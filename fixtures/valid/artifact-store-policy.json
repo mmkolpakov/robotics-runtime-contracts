@@ -1,0 +1,15 @@
+{
+  "schema_version": "artifact-store-policy.v1",
+  "store": {
+    "type": "s3_compatible",
+    "endpoint_env": "ARTIFACT_S3_ENDPOINT",
+    "bucket_env": "ARTIFACT_S3_BUCKET",
+    "prefix": "robotics-runs/"
+  },
+  "retention": {
+    "mode": "on_failure",
+    "ttl_days": 14,
+    "lifecycle_tag": "robotics-short"
+  },
+  "large_artifact_threshold_bytes": 1073741824
+}

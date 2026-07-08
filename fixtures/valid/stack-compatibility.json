@@ -1,0 +1,15 @@
+{
+  "schema_version": "stack-compatibility.v1",
+  "compatibility_id": "generic.v0_1",
+  "requires": {
+    "infra_release": "robotics-simulation-infra-0.1.0",
+    "contracts": "0.1.0",
+    "harness": "0.1.0"
+  },
+  "gates": [
+    {
+      "name": "GATE-STACK-E2E",
+      "required": true
+    }
+  ]
+}

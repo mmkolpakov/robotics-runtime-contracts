@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mmkolpakov.github.io/robotics-runtime-contracts/schemas/artifact-store-policy.v1.schema.json",
+  "title": "ArtifactStorePolicyV1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "store",
+    "retention"
+  ],
+  "properties": {
+    "schema_version": { "const": "artifact-store-policy.v1" },
+    "store": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["local", "s3_compatible"]
+        },
+        "endpoint_env": { "type": "string" },
+        "bucket_env": { "type": "string" },
+        "prefix": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "retention": {
+      "$ref": "#/definitions/retention"
+    },
+    "large_artifact_threshold_bytes": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "definitions": {
+    "retention": {
+      "type": "object",
+      "required": ["mode", "ttl_days"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["always", "on_failure", "never"]
+        },
+        "ttl_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365
+        },
+        "lifecycle_tag": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

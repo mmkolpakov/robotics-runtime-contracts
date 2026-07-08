@@ -1,0 +1,17 @@
+{
+  "schema_version": "stack-lock.v1",
+  "lock_id": "generic.stack",
+  "repositories": {
+    "infra": {
+      "url": "https://github.com/mmkolpakov/droning-simulation-infra",
+      "ref": "main",
+      "commit": "unknown"
+    }
+  },
+  "images": {
+    "simulation": {
+      "ref": "robotics/ros-jazzy-simulation:2026-07-05",
+      "digest": "unknown"
+    }
+  }
+}

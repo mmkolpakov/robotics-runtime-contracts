@@ -1,0 +1,29 @@
+{
+  "schema_version": "evidence-manifest.v1",
+  "run_id": "local-20260708T000000Z",
+  "created_at": "2026-07-08T00:00:00Z",
+  "result": "pass",
+  "scenario": {
+    "scenario_id": "generic.empty_world",
+    "resolved_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "artifacts": [
+    {
+      "name": "resolved-scenario",
+      "uri": "artifacts/resolved-scenario.json",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 1024,
+      "retention": {
+        "mode": "always",
+        "ttl_days": 30,
+        "lifecycle_tag": "evidence"
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "graph_ready",
+      "result": "pass"
+    }
+  ]
+}

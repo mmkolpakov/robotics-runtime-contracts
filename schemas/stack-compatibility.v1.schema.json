@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mmkolpakov.github.io/robotics-runtime-contracts/schemas/stack-compatibility.v1.schema.json",
+  "title": "StackCompatibilityV1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "compatibility_id",
+    "requires",
+    "gates"
+  ],
+  "properties": {
+    "schema_version": { "const": "stack-compatibility.v1" },
+    "compatibility_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "infra_release": { "type": "string" },
+        "contracts": { "type": "string" },
+        "harness": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "required"],
+        "properties": {
+          "name": { "type": "string" },
+          "required": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

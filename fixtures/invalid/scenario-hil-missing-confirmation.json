@@ -1,0 +1,48 @@
+{
+  "schema_version": "scenario-manifest.v1",
+  "scenario_id": "generic.hil_missing_guard",
+  "target_environment": "hil",
+  "launch": {
+    "entrypoint": "external_command",
+    "package": "generic"
+  },
+  "simulation": {
+    "duration_sec": 10,
+    "headless": true
+  },
+  "expected_ros_graph": {
+    "schema_version": "ros-graph-contract.v1",
+    "graph_ready_timeout_sec": 10,
+    "topics": [
+      {
+        "name": "/clock",
+        "type": "rosgraph_msgs/msg/Clock",
+        "publisher_match": {
+          "min_count": 1,
+          "timeout_sec": 10
+        },
+        "subscriber_match": {
+          "min_count": 0,
+          "timeout_sec": 5
+        }
+      }
+    ]
+  },
+  "recording": {
+    "enabled": false,
+    "storage": "mcap",
+    "topics": [],
+    "image_transport": {
+      "policy": "on_failure_only"
+    },
+    "retention": {
+      "mode": "never",
+      "ttl_days": 1
+    }
+  },
+  "safety": {
+    "execution_guard": {
+      "allow_physical_actuation": true
+    }
+  }
+}

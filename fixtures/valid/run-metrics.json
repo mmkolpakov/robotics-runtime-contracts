@@ -1,0 +1,12 @@
+{
+  "schema_version": "run-metrics.v1",
+  "run_id": "local-20260708T000000Z",
+  "metrics": [
+    {
+      "name": "duration",
+      "kind": "duration",
+      "value": 30.0,
+      "unit": "s"
+    }
+  ]
+}
