@@ -5,17 +5,17 @@
     "infra": {
       "url": "https://github.com/mmkolpakov/droning-simulation-infra",
       "ref": "main",
-      "commit": "ca76a655e0c9f86ab069fca1db10ffa37773c612"
+      "commit": "77a7d6f9cb2144fd24f5ff9cdd46e311a32c212a"
     },
     "contracts": {
       "url": "https://github.com/mmkolpakov/robotics-runtime-contracts",
       "ref": "main",
-      "commit": "4d6bff9e5e8336b5f758333ffcc2d78176315a1b"
+      "commit": "cb9b6cce6dfc143e51844abe5d49a4a253bf8b37"
     },
     "harness": {
       "url": "https://github.com/mmkolpakov/robotics-simulation-harness",
       "ref": "main",
-      "commit": "44f56f642db440f0e776a8c03f74266d3916e71f"
+      "commit": "24b27d49abea0d2086608a2415210351c9411cf4"
     }
   },
   "images": {
