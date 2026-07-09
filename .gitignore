@@ -8,4 +8,4 @@ tmp/
 .env
 .env.*
 !.env.example
-n*.egg-info/n
+*.egg-info/
