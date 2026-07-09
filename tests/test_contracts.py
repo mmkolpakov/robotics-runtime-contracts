@@ -54,8 +54,12 @@ VALID_SCHEMA_BY_FIXTURE = {
 
 INVALID_SCHEMA_BY_FIXTURE = {
     "composition-no-trace.json": "scenario-composition-manifest",
+    "evidence-pass-with-skip.json": "evidence-manifest",
     "perception-provider-custom-missing-approval.json": "perception-provider",
     "scenario-hil-missing-confirmation.json": "scenario-manifest",
+    "scenario-missing-wall-timeout.json": "scenario-manifest",
+    "stack-lock-unknown-commit.json": "stack-lock",
+    "stack-lock-unknown-digest.json": "stack-lock",
 }
 
 
@@ -85,3 +89,41 @@ def test_no_unmapped_fixtures() -> None:
     invalid_names = {path.name for path in INVALID_DIR.glob("*.json")}
     assert valid_names == set(VALID_SCHEMA_BY_FIXTURE)
     assert invalid_names == set(INVALID_SCHEMA_BY_FIXTURE)
+
+
+def test_wall_timeout_exceeds_duration() -> None:
+    scenario = load_json(VALID_DIR / "scenario-minimal.json")
+    assert scenario["simulation"]["wall_timeout_sec"] > scenario["simulation"]["duration_sec"]
+
+
+def test_stack_lock_rejects_unknown_literals() -> None:
+    schema = SCHEMAS["stack-lock"]
+    commit_pattern = schema["properties"]["repositories"]["additionalProperties"]["properties"][
+        "commit"
+    ]["pattern"]
+    digest_pattern = schema["properties"]["images"]["additionalProperties"]["properties"][
+        "digest"
+    ]["pattern"]
+    assert "unknown" not in commit_pattern
+    assert "unknown" not in digest_pattern
+
+
+def test_package_exposes_schemas() -> None:
+    from robotics_runtime_contracts import schema_dir, schema_path
+
+    assert schema_dir().is_dir()
+    assert schema_path("stack-lock.v1.schema.json").is_file()
+
+
+def test_packaged_schemas_match_repository_schemas() -> None:
+    from robotics_runtime_contracts import schema_dir
+
+    packaged = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in schema_dir().glob("*.schema.json")
+    }
+    repository = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in SCHEMA_DIR.glob("*.schema.json")
+    }
+    assert packaged == repository

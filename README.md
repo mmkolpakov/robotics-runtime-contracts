@@ -11,6 +11,7 @@ Current baseline:
 
 | Area | Version |
 | --- | --- |
+| Package | 0.2.0 |
 | JSON Schema | Draft 2020-12 |
 | Python for validation | 3.12 |
 | check-jsonschema | 0.37.4 |
@@ -18,6 +19,9 @@ Current baseline:
 | pytest | 9.0.2 |
 | yamllint | 1.38.0 |
 | ruff | 0.15.0 |
+
+Release locks require full git commit SHAs and `sha256:` image digests. The
+literal `unknown` is rejected by `stack-lock.v1`.
 
 ## Contracts
 
@@ -41,8 +45,16 @@ Current baseline:
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+python -m pip install -e . -r requirements-dev.txt
 make ci
+```
+
+Installed package entry:
+
+```python
+from robotics_runtime_contracts import schema_path
+
+schema_path("scenario-manifest.v1.schema.json")
 ```
 
 ## Extension Policy

@@ -1,17 +1,31 @@
 {
   "schema_version": "stack-lock.v1",
-  "lock_id": "generic.stack",
+  "lock_id": "foundation.v0_2",
   "repositories": {
     "infra": {
       "url": "https://github.com/mmkolpakov/droning-simulation-infra",
-      "ref": "main",
-      "commit": "unknown"
+      "ref": "foundation-ready-v0.2",
+      "commit": "a5d3e7cc7e700c2d02703402a5d82eb270607036"
+    },
+    "contracts": {
+      "url": "https://github.com/mmkolpakov/robotics-runtime-contracts",
+      "ref": "foundation-ready-v0.2",
+      "commit": "9510eb08ad6cad7e588dab802ba09e40ac3c1fdb"
+    },
+    "harness": {
+      "url": "https://github.com/mmkolpakov/robotics-simulation-harness",
+      "ref": "foundation-ready-v0.2",
+      "commit": "9638f8abbd860380b229631c3c6caad357fb932d"
     }
   },
   "images": {
     "simulation": {
       "ref": "robotics/ros-jazzy-simulation:2026-07-05",
-      "digest": "unknown"
+      "digest": "sha256:e7a30ca835e0419b929658b4d540aa1ec347b28a65bf1e9357f7d46793fa07ac"
+    },
+    "ros_base": {
+      "ref": "osrf/ros:jazzy-simulation",
+      "digest": "sha256:acb7c427deb2aaa5acd0fdfa5f6cca9ad2055a64102b4667986b70d550dc469d"
     }
   }
 }

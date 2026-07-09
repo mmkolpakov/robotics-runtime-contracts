@@ -8,11 +8,13 @@
   },
   "simulation": {
     "duration_sec": 10,
+    "wall_timeout_sec": 30,
     "headless": true
   },
   "expected_ros_graph": {
     "schema_version": "ros-graph-contract.v1",
     "graph_ready_timeout_sec": 10,
+    "require_clock": true,
     "topics": [
       {
         "name": "/clock",

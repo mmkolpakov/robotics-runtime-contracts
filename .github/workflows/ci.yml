@@ -27,7 +27,14 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.12"
-      - name: Install validation tools
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+      - name: Install package and validation tools
+        run: |
+          make sync-schemas
+          python -m pip install --disable-pip-version-check -e .
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
       - name: Run validation
         run: make ci
+      - name: Package import smoke
+        run: >-
+          python -c "from robotics_runtime_contracts import schema_path;
+          print(schema_path('stack-lock.v1.schema.json'))"

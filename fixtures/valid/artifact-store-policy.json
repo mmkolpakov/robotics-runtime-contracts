@@ -11,5 +11,9 @@
     "ttl_days": 14,
     "lifecycle_tag": "robotics-short"
   },
-  "large_artifact_threshold_bytes": 1073741824
+  "large_artifact_threshold_bytes": 1073741824,
+  "max_bytes": 21474836480,
+  "split_bytes": 524288000,
+  "retention_class": "short",
+  "upload_status": "not_required"
 }

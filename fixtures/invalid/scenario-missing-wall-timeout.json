@@ -1,19 +1,17 @@
 {
   "schema_version": "scenario-manifest.v1",
-  "scenario_id": "generic.empty_world",
-  "title": "Generic empty world smoke",
+  "scenario_id": "generic.missing-wall-timeout",
+  "title": "Invalid missing wall timeout",
   "target_environment": "simulation",
   "launch": {
-    "entrypoint": "ros2_launch",
-    "package": "generic_simulation",
-    "file": "empty_world.launch.py",
+    "entrypoint": "external_command",
+    "package": "generic",
+    "file": "run.sh",
     "arguments": []
   },
   "simulation": {
     "duration_sec": 30,
-    "wall_timeout_sec": 90,
-    "headless": true,
-    "physics_engine": "gz-physics-dartsim-plugin"
+    "headless": true
   },
   "expected_ros_graph": {
     "schema_version": "ros-graph-contract.v1",
@@ -32,23 +30,18 @@
           "timeout_sec": 5
         }
       }
-    ],
-    "services": [],
-    "actions": []
+    ]
   },
   "recording": {
-    "enabled": true,
+    "enabled": false,
     "storage": "mcap",
-    "topics": [
-      "/clock"
-    ],
+    "topics": [],
     "image_transport": {
       "policy": "on_failure_only"
     },
     "retention": {
-      "mode": "on_failure",
-      "ttl_days": 7,
-      "lifecycle_tag": "short"
+      "mode": "never",
+      "ttl_days": 1
     }
   },
   "safety": {

@@ -28,7 +28,12 @@ doctor:
 
 validate: validate-json validate-yaml
 
-validate-json:
+sync-schemas:
+	mkdir -p src/robotics_runtime_contracts/schemas
+	cp schemas/*.schema.json src/robotics_runtime_contracts/schemas/
+	touch src/robotics_runtime_contracts/schemas/__init__.py
+
+validate-json: sync-schemas
 	mkdir -p "$(REPORT_DIR)"
 	python -m pytest tests/test_contracts.py
 

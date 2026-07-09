@@ -1,15 +1,18 @@
 {
   "schema_version": "stack-compatibility.v1",
-  "compatibility_id": "generic.v0_1",
+  "compatibility_id": "foundation.v0_2",
   "requires": {
-    "infra_release": "robotics-simulation-infra-0.1.0",
-    "contracts": "0.1.0",
-    "harness": "0.1.0"
+    "infra_release": "robotics-simulation-infra-0.2.0",
+    "contracts": "0.2.0",
+    "harness": "0.2.0"
   },
   "gates": [
     {
       "name": "GATE-STACK-E2E",
-      "required": true
+      "required": true,
+      "command": "make cross-repo-integration",
+      "expected_artifact": "runs/*/evidence-manifest.json",
+      "required_result": "pass"
     }
   ]
 }

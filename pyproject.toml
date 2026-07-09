@@ -1,18 +1,39 @@
 [project]
 name = "robotics-runtime-contracts"
-version = "0.1.0"
+version = "0.2.0"
 description = "Runtime contract schemas for robotics simulation projects."
 requires-python = ">=3.12"
 readme = "README.md"
 license = "MIT"
 
+[project.optional-dependencies]
+dev = [
+  "check-jsonschema==0.37.4",
+  "jsonschema==4.26.0",
+  "pre-commit==4.6.0",
+  "pytest==9.0.2",
+  "ruff==0.15.0",
+  "yamllint==1.38.0",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+robotics_runtime_contracts = ["schemas/*.schema.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
