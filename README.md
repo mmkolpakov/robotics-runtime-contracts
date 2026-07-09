@@ -27,18 +27,36 @@ literal `unknown` is rejected by `stack-lock.v1`.
 
 | Schema | Purpose |
 | --- | --- |
-| `scenario-manifest.v1.schema.json` | Scenario identity, launch boundary, graph readiness, recording policy, and safety target |
 | `runtime-profile.v1.schema.json` | Runtime capabilities and environment guard |
-| `ros-graph-contract.v1.schema.json` | Expected ROS graph readiness and publisher/subscriber matching |
-| `evidence-manifest.v1.schema.json` | Machine-readable result of a run |
-| `run-metrics.v1.schema.json` | Numeric and categorical run metrics |
 | `artifact-store-policy.v1.schema.json` | Local and S3-compatible artifact retention policy |
-| `scenario-composition-manifest.v1.schema.json` | Base scenario, components, overlays, matrix, and trace requirements |
 | `domain-extension-manifest.v1.schema.json` | Local domain extensions and promotion path |
 | `perception-provider.v1.schema.json` | Computer vision provider boundary and message compatibility policy |
 | `model-artifact.v1.schema.json` | Model artifact identity, runtime, and checksum |
 | `stack-lock.v1.schema.json` | Pinned repositories, images, and runtime releases |
 | `stack-compatibility.v1.schema.json` | Cross-repository compatibility gate |
+
+## Industry-standard migration (2026-07)
+
+This repository no longer owns schemas for concerns that industry-standard
+tooling already solves. Removed in the July 2026 migration, with their
+standard replacement:
+
+| Removed schema | Replaced by |
+| --- | --- |
+| `scenario-manifest.v1.schema.json` | ROS 2 Launch/Parameter files + Hydra (OmegaConf) config composition |
+| `scenario-composition-manifest.v1.schema.json` | Hydra config groups, defaults lists, and overlays |
+| `ros-graph-contract.v1.schema.json` | `launch_testing_ros.WaitForTopics` inside the consuming test suite |
+| `evidence-manifest.v1.schema.json` | `pytest --junitxml` reports + SLSA Provenance attestations (`slsa-github-generator`) |
+| `run-metrics.v1.schema.json` | `<property>`/`<properties>` tags inside JUnit XML |
+
+`stack-lock.v1` (exact commit/digest pins), `runtime-profile.v1`,
+`perception-provider.v1`, `model-artifact.v1`, and `artifact-store-policy.v1`
+remain: they encode business/security decisions (exact infra versions, model
+and perception-provider contracts, retention policy) that no generic testing
+or provenance standard replaces. `domain-extension-manifest.v1` and
+`stack-compatibility.v1` are kept for the same reason (extension governance
+and cross-repo compatibility declarations are project-specific business
+rules, not orchestration plumbing).
 
 ## Quickstart
 

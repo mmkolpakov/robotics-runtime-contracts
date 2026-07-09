@@ -40,26 +40,16 @@ SCHEMAS, REGISTRY = build_registry()
 VALID_SCHEMA_BY_FIXTURE = {
     "artifact-store-policy.json": "artifact-store-policy",
     "domain-extension.json": "domain-extension-manifest",
-    "evidence-dry-run.json": "evidence-manifest",
-    "evidence-manifest.json": "evidence-manifest",
     "model-artifact.json": "model-artifact",
     "perception-provider-custom-approved.json": "perception-provider",
     "perception-provider-standard.json": "perception-provider",
-    "run-metrics.json": "run-metrics",
     "runtime-profile.json": "runtime-profile",
-    "scenario-composition.json": "scenario-composition-manifest",
-    "scenario-minimal.json": "scenario-manifest",
     "stack-compatibility.json": "stack-compatibility",
     "stack-lock.json": "stack-lock",
 }
 
 INVALID_SCHEMA_BY_FIXTURE = {
-    "composition-no-trace.json": "scenario-composition-manifest",
-    "evidence-dry-run-pass.json": "evidence-manifest",
-    "evidence-pass-with-skip.json": "evidence-manifest",
     "perception-provider-custom-missing-approval.json": "perception-provider",
-    "scenario-hil-missing-confirmation.json": "scenario-manifest",
-    "scenario-missing-wall-timeout.json": "scenario-manifest",
     "stack-lock-unknown-commit.json": "stack-lock",
     "stack-lock-unknown-digest.json": "stack-lock",
 }
@@ -91,39 +81,6 @@ def test_no_unmapped_fixtures() -> None:
     invalid_names = {path.name for path in INVALID_DIR.glob("*.json")}
     assert valid_names == set(VALID_SCHEMA_BY_FIXTURE)
     assert invalid_names == set(INVALID_SCHEMA_BY_FIXTURE)
-
-
-def test_wall_timeout_exceeds_duration() -> None:
-    scenario = load_json(VALID_DIR / "scenario-minimal.json")
-    assert scenario["simulation"]["wall_timeout_sec"] > scenario["simulation"]["duration_sec"]
-
-
-def test_evidence_pass_requires_executed_process_execution_check() -> None:
-    evidence = load_json(VALID_DIR / "evidence-manifest.json")
-    assert any(
-        check["name"] == "process_execution" and check["result"] == "executed"
-        for check in evidence["checks"]
-    )
-    schema = SCHEMAS["evidence-manifest"]
-    validator = Draft202012Validator(schema, registry=REGISTRY)
-
-    without_process_execution = {
-        **evidence,
-        "checks": [c for c in evidence["checks"] if c["name"] != "process_execution"],
-    }
-    with pytest.raises(jsonschema.ValidationError):
-        validator.validate(without_process_execution)
-
-
-def test_evidence_dry_run_cannot_claim_pass() -> None:
-    dry_run = load_json(VALID_DIR / "evidence-dry-run.json")
-    assert dry_run["result"] == "not_run"
-    schema = SCHEMAS["evidence-manifest"]
-    validator = Draft202012Validator(schema, registry=REGISTRY)
-
-    faked_pass = {**dry_run, "result": "pass"}
-    with pytest.raises(jsonschema.ValidationError):
-        validator.validate(faked_pass)
 
 
 def test_stack_lock_rejects_unknown_literals() -> None:
