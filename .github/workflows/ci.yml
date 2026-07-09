@@ -38,3 +38,18 @@ jobs:
         run: >-
           python -c "from robotics_runtime_contracts import schema_path;
           print(schema_path('stack-lock.v1.schema.json'))"
+      - name: Notify infra cross-repo gate
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/foundation-ready-v0.2')
+        env:
+          CROSS_REPO_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+        run: |
+          if [[ -z "${CROSS_REPO_TOKEN}" ]]; then
+            echo "CROSS_REPO_TOKEN missing; skip repository_dispatch"
+            exit 0
+          fi
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${CROSS_REPO_TOKEN}" \
+            "https://api.github.com/repos/mmkolpakov/droning-simulation-infra/dispatches" \
+            -d '{"event_type":"contracts-ci-success","client_payload":{"sha":"'"${GITHUB_SHA}"'"}}'
