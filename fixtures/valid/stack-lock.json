@@ -4,24 +4,24 @@
   "repositories": {
     "infra": {
       "url": "https://github.com/mmkolpakov/droning-simulation-infra",
-      "ref": "foundation-ready-v0.2",
-      "commit": "6d1fa9eda3488e713b0ba93d34bb8b26c85f9ada"
+      "ref": "main",
+      "commit": "ca76a655e0c9f86ab069fca1db10ffa37773c612"
     },
     "contracts": {
       "url": "https://github.com/mmkolpakov/robotics-runtime-contracts",
-      "ref": "foundation-ready-v0.2",
-      "commit": "6f314dd7fb8f2b7f045381096c589bce7e47263c"
+      "ref": "main",
+      "commit": "4d6bff9e5e8336b5f758333ffcc2d78176315a1b"
     },
     "harness": {
       "url": "https://github.com/mmkolpakov/robotics-simulation-harness",
-      "ref": "foundation-ready-v0.2",
+      "ref": "main",
       "commit": "44f56f642db440f0e776a8c03f74266d3916e71f"
     }
   },
   "images": {
     "simulation": {
-      "ref": "robotics/ros-jazzy-simulation:2026-07-05",
-      "digest": "sha256:e7a30ca835e0419b929658b4d540aa1ec347b28a65bf1e9357f7d46793fa07ac"
+      "ref": "ghcr.io/mmkolpakov/robotics-ros-jazzy-simulation:v0.2.0",
+      "digest": "sha256:bcb5903525d76f8fdf3f669ee98bb0b41a606540eadfaed13206f978850c4cae"
     },
     "ros_base": {
       "ref": "osrf/ros:jazzy-simulation",
