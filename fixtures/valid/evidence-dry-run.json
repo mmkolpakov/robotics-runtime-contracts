@@ -1,0 +1,33 @@
+{
+  "schema_version": "evidence-manifest.v1",
+  "run_id": "local-dry-run-ok",
+  "created_at": "2026-07-09T00:00:00Z",
+  "result": "not_run",
+  "ros_domain_id": 17,
+  "stack_lock_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "harness_version": "0.2.0",
+  "contracts_version": "0.2.0",
+  "infra_image_digest": "sha256:e7a30ca835e0419b929658b4d540aa1ec347b28a65bf1e9357f7d46793fa07ac",
+  "signed": false,
+  "scenario": {
+    "scenario_id": "generic.empty_world",
+    "resolved_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "artifacts": [],
+  "checks": [
+    {
+      "name": "schema_validation",
+      "result": "pass"
+    },
+    {
+      "name": "execution_guard",
+      "result": "pass"
+    },
+    {
+      "name": "process_execution",
+      "result": "not_run",
+      "message": "dry-run: process not launched"
+    }
+  ],
+  "business_repo": null
+}
