@@ -1,21 +1,21 @@
-{
+﻿{
   "schema_version": "stack-lock.v1",
   "lock_id": "foundation.v0_2",
   "repositories": {
     "infra": {
       "url": "https://github.com/mmkolpakov/droning-simulation-infra",
       "ref": "foundation-ready-v0.2",
-      "commit": "a5d3e7cc7e700c2d02703402a5d82eb270607036"
+      "commit": "1588123ff1653c30d289f0415ff81c2d507cebb6"
     },
     "contracts": {
       "url": "https://github.com/mmkolpakov/robotics-runtime-contracts",
       "ref": "foundation-ready-v0.2",
-      "commit": "9510eb08ad6cad7e588dab802ba09e40ac3c1fdb"
+      "commit": "48babffde235a7593d8579a587ffe2707f1a14c7"
     },
     "harness": {
       "url": "https://github.com/mmkolpakov/robotics-simulation-harness",
       "ref": "foundation-ready-v0.2",
-      "commit": "9638f8abbd860380b229631c3c6caad357fb932d"
+      "commit": "7040abd5012e00c723c5e6dc82e9463c5ffe45b2"
     }
   },
   "images": {
