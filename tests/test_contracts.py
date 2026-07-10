@@ -43,6 +43,7 @@ VALID_SCHEMA_BY_FIXTURE = {
     "model-artifact.json": "model-artifact",
     "perception-provider-custom-approved.json": "perception-provider",
     "perception-provider-standard.json": "perception-provider",
+    "ros-graph-contract-clock-only.json": "ros-graph-contract",
     "runtime-profile.json": "runtime-profile",
     "stack-compatibility.json": "stack-compatibility",
     "stack-lock.json": "stack-lock",
@@ -50,6 +51,7 @@ VALID_SCHEMA_BY_FIXTURE = {
 
 INVALID_SCHEMA_BY_FIXTURE = {
     "perception-provider-custom-missing-approval.json": "perception-provider",
+    "ros-graph-contract-missing-clock.json": "ros-graph-contract",
     "stack-lock-unknown-commit.json": "stack-lock",
     "stack-lock-unknown-digest.json": "stack-lock",
 }
