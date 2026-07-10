@@ -7,20 +7,28 @@ repos:
       - id: end-of-file-fixer
       - id: check-json
       - id: check-yaml
-  - repo: local
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.37.4
     hooks:
-      - id: validate-contracts
-        name: validate contracts
-        entry: python -m pytest
-        language: system
-        pass_filenames: false
+      - id: check-metaschema
+        files: ^src/robotics_runtime_contracts/schemas/.*\.schema\.json$
+      - id: check-jsonschema
+        name: validate acceptance scenario examples
+        files: ^tests/fixtures/valid/.*\.(json|ya?ml)$
+        args:
+          - --schemafile
+          - src/robotics_runtime_contracts/schemas/acceptance-scenario.v1.schema.json
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.21
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.38.0
+    hooks:
       - id: yamllint
-        name: yamllint
-        entry: yamllint .
-        language: system
-        pass_filenames: false
-      - id: ruff
-        name: ruff
-        entry: ruff check .
-        language: system
-        pass_filenames: false

@@ -61,6 +61,4 @@ def test_invalid_scenarios_report_exact_path(
 def test_package_exposes_single_schema() -> None:
     assert schema_path().name == SCHEMA_NAME
     assert schema_path().is_file()
-    assert sorted(path.name for path in schema_path().parent.glob("*.schema.json")) == [
-        SCHEMA_NAME
-    ]
+    assert sorted(path.name for path in schema_path().parent.glob("*.schema.json")) == [SCHEMA_NAME]

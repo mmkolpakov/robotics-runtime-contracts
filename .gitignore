@@ -1,6 +1,11 @@
 .venv/
+.wheel-venv/
+build/
+dist/
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
 __pycache__/
 *.py[cod]
 artifacts/
