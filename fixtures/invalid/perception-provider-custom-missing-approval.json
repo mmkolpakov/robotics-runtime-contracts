@@ -13,7 +13,7 @@
       "type": "example_msgs/msg/Custom",
       "base_standard": "custom",
       "compatibility_strategy": "standard_projection_not_applicable",
-      "adr": "docs/adr/0002-custom.md"
+      "adr": "approval:custom-missing"
     }
   ]
 }

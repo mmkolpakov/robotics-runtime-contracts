@@ -13,7 +13,7 @@
       "type": "example_msgs/msg/GeometryGraph",
       "base_standard": "custom",
       "compatibility_strategy": "standard_projection_not_applicable",
-      "adr": "docs/adr/0002-custom-geometry-graph.md",
+      "adr": "approval:custom-geometry-graph",
       "architecture_approval": {
         "required": true,
         "status": "approved",
