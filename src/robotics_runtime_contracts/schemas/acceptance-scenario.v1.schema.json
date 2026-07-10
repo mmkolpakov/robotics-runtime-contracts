@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:acceptance-scenario:v1",
+  "title": "Robotics acceptance scenario",
+  "description": "Portable execution contract for simulation, hardware-in-the-loop, and real-robot acceptance scenarios.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "target_environment",
+    "seed",
+    "timeouts",
+    "expected_ros_graph"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "acceptance-scenario.v1"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "target_environment": {
+      "enum": [
+        "simulation",
+        "hil",
+        "real_robot"
+      ]
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "timeouts": {
+      "$ref": "#/$defs/timeouts"
+    },
+    "expected_ros_graph": {
+      "$ref": "#/$defs/expectedRosGraph"
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "$defs": {
+    "positiveSeconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "timeouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startup_sec",
+        "graph_ready_sec",
+        "execution_sec",
+        "shutdown_sec"
+      ],
+      "properties": {
+        "startup_sec": {
+          "$ref": "#/$defs/positiveSeconds"
+        },
+        "graph_ready_sec": {
+          "$ref": "#/$defs/positiveSeconds"
+        },
+        "execution_sec": {
+          "$ref": "#/$defs/positiveSeconds"
+        },
+        "shutdown_sec": {
+          "$ref": "#/$defs/positiveSeconds"
+        }
+      }
+    },
+    "graphEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^/[^\\s]+$"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/(?:msg|srv|action)/[A-Za-z][A-Za-z0-9_]*$"
+        }
+      }
+    },
+    "topicExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "min_publishers",
+        "min_subscribers"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^/[^\\s]+$"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/msg/[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "min_publishers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "min_subscribers": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "min_publishers": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "min_subscribers": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "expectedRosGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_for_sec",
+        "topics",
+        "services",
+        "actions"
+      ],
+      "properties": {
+        "stable_for_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/topicExpectation"
+          },
+          "uniqueItems": true
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphEntity"
+          },
+          "uniqueItems": true
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphEntity"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

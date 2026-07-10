@@ -1,0 +1,23 @@
+schema_version: acceptance-scenario.v1
+scenario_id: actuator.hil-smoke
+target_environment: hil
+seed: 7
+timeouts:
+  startup_sec: 45
+  graph_ready_sec: 30
+  execution_sec: 120
+  shutdown_sec: 15
+expected_ros_graph:
+  stable_for_sec: 3
+  topics:
+    - name: /joint_states
+      type: sensor_msgs/msg/JointState
+      min_publishers: 1
+      min_subscribers: 1
+  services:
+    - name: /controller_manager/list_controllers
+      type: controller_manager_msgs/srv/ListControllers
+  actions: []
+extensions:
+  org.example.hardware:
+    connection: serial

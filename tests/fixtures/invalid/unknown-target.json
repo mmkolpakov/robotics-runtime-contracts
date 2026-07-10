@@ -1,0 +1,18 @@
+{
+  "schema_version": "acceptance-scenario.v1",
+  "scenario_id": "invalid.target",
+  "target_environment": "staging",
+  "seed": 0,
+  "timeouts": {
+    "startup_sec": 1,
+    "graph_ready_sec": 1,
+    "execution_sec": 1,
+    "shutdown_sec": 1
+  },
+  "expected_ros_graph": {
+    "stable_for_sec": 0,
+    "topics": [],
+    "services": [],
+    "actions": []
+  }
+}
