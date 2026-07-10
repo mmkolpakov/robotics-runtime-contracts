@@ -1,0 +1,19 @@
+{
+  "schema_version": "acceptance-scenario.v1",
+  "scenario_id": "invalid.unknown-root",
+  "target_environment": "simulation",
+  "seed": 0,
+  "timeouts": {
+    "startup_sec": 1,
+    "graph_ready_sec": 1,
+    "execution_sec": 1,
+    "shutdown_sec": 1
+  },
+  "expected_ros_graph": {
+    "stable_for_sec": 0,
+    "topics": [],
+    "services": [],
+    "actions": []
+  },
+  "command": "unsafe"
+}

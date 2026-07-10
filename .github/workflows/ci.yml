@@ -24,36 +24,37 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990  # v8.3.2
         with:
-          python-version: "3.12"
-      - name: Install package and validation tools
+          version: "0.11.28"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Synchronize locked environment
+        run: uv sync --locked --all-groups
+      - name: Run repository checks
         run: |
-          make sync-schemas
-          python -m pip install --disable-pip-version-check -e .
-          python -m pip install --disable-pip-version-check -r requirements-dev.txt
-      - name: Run validation
-        run: make ci
-      - name: Package import smoke
-        run: >-
-          python -c "from robotics_runtime_contracts import schema_path;
-          print(schema_path('stack-lock.v1.schema.json'))"
-      - name: Notify infra cross-repo gate
-        if: >-
-          github.event_name == 'push' &&
-          (github.ref == 'refs/heads/main' ||
-          github.ref == 'refs/heads/foundation-ready-v0.2')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+          uv run pre-commit run --all-files --show-diff-on-failure
+      - name: Run tests
         run: |
-          if [[ -z "${GH_TOKEN}" ]]; then
-            echo "CROSS_REPO_TOKEN missing; skip repository_dispatch"
-            exit 0
-          fi
-          gh api \
-            --method POST \
-            repos/mmkolpakov/droning-simulation-infra/dispatches \
-            -f event_type=contracts-ci-success \
-            -f client_payload[sha]="${GITHUB_SHA}"
-          echo "repository_dispatch contracts-ci-success sent"
+          mkdir -p artifacts
+          uv run pytest --junitxml=artifacts/junit.xml
+      - name: Build wheel and source distribution
+        run: uv build --out-dir artifacts/dist
+      - name: Verify installed wheel
+        run: |
+          uv venv --python 3.12 .wheel-venv
+          uv pip install --python .wheel-venv/bin/python artifacts/dist/*.whl
+          .wheel-venv/bin/python - <<'PY'
+          from robotics_runtime_contracts import load_schema, schema_path
+
+          assert schema_path().is_file()
+          assert load_schema()["$id"] == "urn:robotics-runtime-contracts:acceptance-scenario:v1"
+          PY
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: contracts-validation-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7

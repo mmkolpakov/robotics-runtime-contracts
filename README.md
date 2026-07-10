@@ -1,64 +1,41 @@
 # robotics-runtime-contracts
 
-Neutral JSON Schema contracts for robotics simulation runtimes.
+Versioned acceptance-scenario contract shared by robotics runtimes and scenario
+runners. The package contains one canonical JSON Schema and a small Python API
+for validating in-memory scenario mappings.
 
-## Scope
+The contract describes execution environment, deterministic seed, phase
+timeouts, expected ROS graph readiness, and namespaced domain extensions. It
+does not contain robot models, launch files, product rules, or scenario data.
 
-This repository owns shared machine-readable contracts only. It does not contain
-domain scenarios, robot models, product rules, training data, or application code.
+## Toolchain
 
-Current baseline:
-
-| Area | Version |
+| Component | Version |
 | --- | --- |
-| Package | 0.2.0 |
+| Python | 3.12 |
+| Package | 0.3.0 |
 | JSON Schema | Draft 2020-12 |
-| Python for validation | 3.12 |
-| check-jsonschema | 0.37.4 |
-| jsonschema | 4.26.0 |
-| pytest | 9.0.2 |
-| yamllint | 1.38.0 |
-| ruff | 0.15.0 |
+| uv | 0.11.28 |
+| jsonschema | 4.26.x |
+| pytest | 9.1.1 |
+| ruff | 0.15.21 |
 
-Release locks require full git commit SHAs and `sha256:` image digests. The
-literal `unknown` is rejected by `stack-lock.v1`.
-
-## Contracts
-
-| Schema | Purpose |
-| --- | --- |
-| `runtime-profile.v1.schema.json` | Runtime capabilities and environment guard |
-| `ros-graph-contract.v1.schema.json` | Expected ROS graph readiness (topics, services, actions) for a scenario |
-| `artifact-store-policy.v1.schema.json` | Local and S3-compatible artifact retention policy |
-| `domain-extension-manifest.v1.schema.json` | Local domain extensions and promotion path |
-| `perception-provider.v1.schema.json` | Computer vision provider boundary and message compatibility policy |
-| `model-artifact.v1.schema.json` | Model artifact identity, runtime, and checksum |
-| `stack-lock.v1.schema.json` | Pinned repositories, images, and runtime releases |
-| `stack-compatibility.v1.schema.json` | Cross-repository compatibility gate |
-
-## Quickstart
+## Development
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-python -m pip install -e . -r requirements-dev.txt
-make ci
+uv sync --locked
+uv run pre-commit run --all-files
+uv run pytest
+uv build
 ```
 
-Installed package entry:
+## Python API
 
 ```python
-from robotics_runtime_contracts import schema_path
+from robotics_runtime_contracts import validate_scenario
 
-schema_path("ros-graph-contract.v1.schema.json")
+validate_scenario(scenario)
 ```
 
-## Extension Policy
-
-Domain teams can keep local extensions outside this repository while they prove
-usefulness. Accepted extensions are promoted through a schema change, fixtures,
-and compatibility tests.
-
-Custom perception messages are allowed only when the standard projection is not
-technically meaningful. Such cases must include an approval reference and an
-explicit architecture approval marker in the domain extension manifest.
+Validation failures raise `ScenarioValidationError` with the exact JSON path.
+Domain-specific data belongs under a reverse-domain-style key in `extensions`.
