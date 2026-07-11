@@ -10,6 +10,8 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
+from robotics_runtime_contracts.semantics import SemanticValidationError, validate_semantics
+
 SCHEMA_NAME = "acceptance-scenario.v1.schema.json"
 SCHEMA_FILES = {
     "acceptance-scenario.v1": SCHEMA_NAME,
@@ -113,6 +115,7 @@ def validate_document(
     )
     if errors:
         raise error_type(schema_name, errors[0]) from errors[0]
+    validate_semantics(schema_name, document)
 
 
 def validate_scenario(scenario: Mapping[str, Any]) -> None:
@@ -131,6 +134,7 @@ __all__ = [
     "SCHEMA_NAME",
     "ContractValidationError",
     "ScenarioValidationError",
+    "SemanticValidationError",
     "UnknownSchemaError",
     "load_schema",
     "resolve_schema_name",
@@ -138,5 +142,6 @@ __all__ = [
     "schema_names",
     "schema_path",
     "validate_document",
+    "validate_semantics",
     "validate_scenario",
 ]
