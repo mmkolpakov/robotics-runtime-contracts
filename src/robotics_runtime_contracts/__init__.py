@@ -13,9 +13,11 @@ from jsonschema.exceptions import ValidationError
 SCHEMA_NAME = "acceptance-scenario.v1.schema.json"
 SCHEMA_FILES = {
     "acceptance-scenario.v1": SCHEMA_NAME,
+    "acceptance-scenario.v2": "acceptance-scenario.v2.schema.json",
 }
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
+    "urn:robotics-runtime-contracts:acceptance-scenario:v2": "acceptance-scenario.v2",
 }
 
 

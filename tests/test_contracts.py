@@ -69,15 +69,16 @@ def test_invalid_scenarios_report_exact_path(
     assert str(caught.value).startswith(f"{expected_path}:")
 
 
-def test_package_exposes_single_schema() -> None:
+def test_package_exposes_registered_schemas() -> None:
     assert schema_path().name == SCHEMA_NAME
     assert schema_path().is_file()
-    assert sorted(path.name for path in schema_path().parent.glob("*.schema.json")) == [SCHEMA_NAME]
+    installed = sorted(path.name for path in schema_path().parent.glob("*.schema.json"))
+    assert installed == sorted(SCHEMA_FILES.values())
 
 
 def test_versioned_registry_resolves_version_file_and_id() -> None:
     canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v1"
-    assert schema_names() == ("acceptance-scenario.v1",)
+    assert schema_names() == ("acceptance-scenario.v1", "acceptance-scenario.v2")
     assert SCHEMA_FILES["acceptance-scenario.v1"] == SCHEMA_NAME
     assert resolve_schema_name("acceptance-scenario.v1") == "acceptance-scenario.v1"
     assert resolve_schema_name(SCHEMA_NAME) == "acceptance-scenario.v1"

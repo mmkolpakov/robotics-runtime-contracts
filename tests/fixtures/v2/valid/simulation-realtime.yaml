@@ -1,0 +1,68 @@
+schema_version: acceptance-scenario.v2
+scenario_id: org.example.camera-stream
+execution:
+  target_environment: simulation
+  hardware_scope: []
+  physical_effect: none
+  test_intent: functional
+  data_source: gazebo
+  plant_backend: gazebo_physics
+  time_mode: simulation_realtime
+  data_plane_profile: standard_isolated
+  security_profile: none
+seed: 42
+timeouts:
+  startup_sec: 60
+  graph_ready_sec: 30
+  stable_for_sec: 3
+  execution_sec: 120
+  shutdown_sec: 30
+expected_ros_graph:
+  topics:
+    - name: /camera/image
+      type: sensor_msgs/msg/Image
+      min_publishers: 1
+      min_subscribers: 1
+      first_message_timeout_sec: 10
+      qos_profile: sensor_data
+    - name: /camera/camera_info
+      type: sensor_msgs/msg/CameraInfo
+      min_publishers: 1
+      min_subscribers: 0
+      first_message_timeout_sec: 10
+      qos_profile: sensor_data
+  services: []
+  actions: []
+  lifecycle_nodes: []
+assertions:
+  - assertion_id: camera-age
+    kind: metric
+    metric_name: robotics.message.age
+    unit: ms
+    aggregation: p95
+    operator: lte
+    threshold: 100
+    window_sec: 30
+time_policy:
+  min_realtime_factor: 0.95
+  max_deadline_miss_ratio: 0
+data_plane_policy:
+  max_message_age_ms: 100
+  max_loss_ratio: 0
+  shm_transport: false
+  data_sharing: false
+  private_ipc: false
+evidence_policy:
+  topics:
+    - /camera/image
+    - /camera/camera_info
+  recording_mode: bounded
+  compression: zstd
+  max_segment_size_bytes: 1073741824
+  max_segment_duration_sec: 60
+  max_spool_size_bytes: 4294967296
+  spool_high_watermark_ratio: 0.85
+  max_upload_lag_sec: 120
+  upload_mode: local_only
+  retention_class: pull-request-7d
+  remote_sink_allowed: false
