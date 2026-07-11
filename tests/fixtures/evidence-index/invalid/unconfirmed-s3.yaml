@@ -1,0 +1,13 @@
+schema_version: evidence-index.v1
+run_id: org.example.invalid
+generated_at: "2026-07-11T12:01:00Z"
+finalized: true
+segments:
+  - uri: s3://robotics-evidence/run-000.mcap
+    media_type: application/mcap
+    sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    size_bytes: 1024
+    retention_class: regression-30d
+    segment_index: 0
+    upload_status: local
+    checksum_verified: false

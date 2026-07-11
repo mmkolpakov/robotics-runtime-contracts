@@ -1,0 +1,23 @@
+schema_version: evidence-index.v1
+run_id: org.example.physics-smoke-001
+generated_at: "2026-07-11T12:01:00Z"
+finalized: true
+segments:
+  - uri: file:///evidence/run-000.mcap
+    local_path: /evidence/run-000.mcap
+    media_type: application/mcap
+    sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    size_bytes: 1024
+    retention_class: pull-request-7d
+    segment_index: 0
+    upload_status: local
+    checksum_verified: true
+  - uri: s3://robotics-evidence/run-001.mcap
+    version_id: 3LgExampleVersion
+    media_type: application/mcap
+    sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    size_bytes: 2048
+    retention_class: regression-30d
+    segment_index: 1
+    upload_status: confirmed
+    checksum_verified: true

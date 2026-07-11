@@ -46,6 +46,7 @@ loading remains the caller's responsibility.
 | `execution-permit.v1` | Short-lived HIL and real-robot approval predicate |
 | `acceptance-result.v1` | Stable model-backed acceptance result from v0.4.0 |
 | `acceptance-result.v2` | Result and evidence with explicit `none` or `inference` workload |
+| `evidence-index.v1` | Finalized local and confirmed remote evidence segments |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
 versioned `$id`, and is included in the Python wheel.

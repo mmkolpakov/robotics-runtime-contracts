@@ -25,6 +25,7 @@ SCHEMA_FILES = {
     "execution-permit.v1": "execution-permit.v1.schema.json",
     "acceptance-result.v1": "acceptance-result.v1.schema.json",
     "acceptance-result.v2": "acceptance-result.v2.schema.json",
+    "evidence-index.v1": "evidence-index.v1.schema.json",
 }
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
@@ -36,8 +37,10 @@ SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:execution-permit:v1": "execution-permit.v1",
     "urn:robotics-runtime-contracts:acceptance-result:v1": "acceptance-result.v1",
     "urn:robotics-runtime-contracts:acceptance-result:v2": "acceptance-result.v2",
+    "urn:robotics-runtime-contracts:evidence-index:v1": "evidence-index.v1",
 }
 PUBLISHED_SCHEMA_SHA256 = {
+    "evidence-index.v1": "29b8d93a5ead7cea35d6a7c4b8c66cffccb43a9202694781767b3550895b21af",
     "acceptance-result.v1": "179a4a1d9f2b1dd339e5dfdc9c8a2bde1801d1adc6c3a65b5a67dec9468d8256",
     "acceptance-result.v2": "af3c13a25a88c60d7ac474c675b61f2974318379e4b5e26c0a6ae9ebc059a041",
     "acceptance-scenario.v1": "e134f3f8b5a24a80177a5bc79e81ee4330e68b8d32416cb043e1f94db6efcb66",
