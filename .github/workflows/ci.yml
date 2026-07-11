@@ -46,8 +46,10 @@ jobs:
           uv pip install --python .wheel-venv/bin/python artifacts/dist/*.whl
           .wheel-venv/bin/python - <<'PY'
           from robotics_runtime_contracts import load_schema, schema_names, schema_path
+          from importlib.resources import files
 
           assert len(schema_names()) == 10
+          assert files("robotics_runtime_contracts").joinpath("py.typed").is_file()
           for name in schema_names():
               assert schema_path(name).is_file()
               assert load_schema(name)["$schema"] == "https://json-schema.org/draft/2020-12/schema"
