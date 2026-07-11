@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:model-artifact-manifest:v1",
+  "title": "Robotics model artifact manifest",
+  "description": "Provenance and compatibility contract for source ONNX models and provider-specific derived artifacts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "source",
+    "target",
+    "build",
+    "numerical_conformance",
+    "compatibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "model-artifact-manifest.v1"
+    },
+    "artifact_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "source": {
+      "$ref": "#/$defs/sourceArtifact"
+    },
+    "target": {
+      "$ref": "#/$defs/targetArtifact"
+    },
+    "build": {
+      "$ref": "#/$defs/build"
+    },
+    "numerical_conformance": {
+      "$ref": "#/$defs/numericalConformance"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/compatibility"
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "format": {
+                "const": "onnx"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "media_type": {
+                "const": "application/onnx"
+              }
+            }
+          },
+          "compatibility": {
+            "properties": {
+              "portable": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "format": {
+                "const": "tensorrt_engine"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "media_type": {
+                "const": "application/vnd.nvidia.tensorrt.engine"
+              },
+              "runtime_family": {
+                "const": "onnxruntime_tensorrt"
+              },
+              "execution_provider": {
+                "const": "TensorrtExecutionProvider"
+              }
+            }
+          },
+          "compatibility": {
+            "properties": {
+              "portable": {
+                "const": false
+              },
+              "hardware": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "format": {
+                "const": "rknn"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "properties": {
+              "media_type": {
+                "const": "application/vnd.rockchip.rknn"
+              },
+              "runtime_family": {
+                "const": "rknn_runtime"
+              },
+              "execution_provider": {
+                "const": "RKNPU2"
+              },
+              "target_architecture": {
+                "const": "aarch64"
+              }
+            }
+          },
+          "compatibility": {
+            "properties": {
+              "portable": {
+                "const": false
+              },
+              "hardware": {
+                "minItems": 1,
+                "contains": {
+                  "properties": {
+                    "soc": {
+                      "const": "rk3588"
+                    }
+                  },
+                  "required": [
+                    "soc"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "target": {
+            "properties": {
+              "precision": {
+                "enum": [
+                  "int8",
+                  "uint8"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "build": {
+            "required": [
+              "calibration_dataset_sha256"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "uri": {
+      "type": "string",
+      "pattern": "^(?:oci|s3|https)://[^\\s]+$"
+    },
+    "tensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "element_type",
+        "shape"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "element_type": {
+          "enum": [
+            "float16",
+            "float32",
+            "float64",
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+            "bool"
+          ]
+        },
+        "shape": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "sha256",
+        "media_type",
+        "opset",
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/uri"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "const": "application/onnx"
+        },
+        "opset": {
+          "type": "integer",
+          "minimum": 7
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/tensor"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/tensor"
+          }
+        }
+      }
+    },
+    "targetArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "uri",
+        "sha256",
+        "media_type",
+        "runtime_family",
+        "runtime_version",
+        "execution_provider",
+        "target_architecture",
+        "precision"
+      ],
+      "properties": {
+        "format": {
+          "enum": [
+            "onnx",
+            "tensorrt_engine",
+            "rknn"
+          ]
+        },
+        "uri": {
+          "$ref": "#/$defs/uri"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_family": {
+          "enum": [
+            "onnxruntime_cpu",
+            "onnxruntime_cuda",
+            "onnxruntime_openvino",
+            "onnxruntime_migraphx",
+            "onnxruntime_tensorrt",
+            "rknn_runtime",
+            "coreml_external"
+          ]
+        },
+        "runtime_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?(?:[-+][A-Za-z0-9.-]+)?$"
+        },
+        "execution_provider": {
+          "enum": [
+            "CPUExecutionProvider",
+            "CUDAExecutionProvider",
+            "OpenVINOExecutionProvider",
+            "MIGraphXExecutionProvider",
+            "TensorrtExecutionProvider",
+            "RKNPU2",
+            "CoreMLExecutionProvider"
+          ]
+        },
+        "target_architecture": {
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "float32",
+            "float16",
+            "int8",
+            "uint8"
+          ]
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "tool_version",
+        "tool_source_revision",
+        "builder_image_digest",
+        "parameters"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "tool_source_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "builder_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean"
+            ]
+          }
+        },
+        "calibration_dataset_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "numericalConformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_sha256",
+        "reference_artifact_sha256",
+        "sample_dataset_sha256",
+        "absolute_tolerance",
+        "relative_tolerance",
+        "passed"
+      ],
+      "properties": {
+        "report_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reference_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sample_dataset_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relative_tolerance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "passed": {
+          "const": true
+        }
+      }
+    },
+    "hardwareCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vendor",
+        "device_family"
+      ],
+      "properties": {
+        "vendor": {
+          "enum": [
+            "generic",
+            "nvidia",
+            "intel",
+            "amd",
+            "apple",
+            "rockchip"
+          ]
+        },
+        "device_family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "soc": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "compute_capability": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "driver_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "portable",
+        "hardware"
+      ],
+      "properties": {
+        "portable": {
+          "type": "boolean"
+        },
+        "hardware": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hardwareCompatibility"
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

@@ -78,7 +78,7 @@ def test_package_exposes_registered_schemas() -> None:
 
 def test_versioned_registry_resolves_version_file_and_id() -> None:
     canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v1"
-    assert schema_names() == ("acceptance-scenario.v1", "acceptance-scenario.v2")
+    assert schema_names() == tuple(SCHEMA_FILES)
     assert SCHEMA_FILES["acceptance-scenario.v1"] == SCHEMA_NAME
     assert resolve_schema_name("acceptance-scenario.v1") == "acceptance-scenario.v1"
     assert resolve_schema_name(SCHEMA_NAME) == "acceptance-scenario.v1"
