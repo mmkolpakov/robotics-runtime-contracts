@@ -7,9 +7,10 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
+from robotics_runtime_contracts.extensions import ExtensionValidationError, validate_extensions
 from robotics_runtime_contracts.semantics import SemanticValidationError, validate_semantics
 
 SCHEMA_NAME = "acceptance-scenario.v1.schema.json"
@@ -93,7 +94,7 @@ def _validator(schema: str) -> Draft202012Validator:
     schema_name = resolve_schema_name(schema)
     contract = load_schema(schema_name)
     Draft202012Validator.check_schema(contract)
-    return Draft202012Validator(contract)
+    return Draft202012Validator(contract, format_checker=FormatChecker())
 
 
 def validate_document(
@@ -101,6 +102,7 @@ def validate_document(
     schema: str | None = None,
     *,
     error_type: type[ContractValidationError] = ContractValidationError,
+    extension_schemas: Mapping[str, bytes | str] | None = None,
 ) -> None:
     """Validate a document against an explicit or declared schema version."""
 
@@ -116,6 +118,7 @@ def validate_document(
     if errors:
         raise error_type(schema_name, errors[0]) from errors[0]
     validate_semantics(schema_name, document)
+    validate_extensions(schema_name, document, extension_schemas)
 
 
 def validate_scenario(scenario: Mapping[str, Any]) -> None:
@@ -133,6 +136,7 @@ __all__ = [
     "SCHEMA_IDS",
     "SCHEMA_NAME",
     "ContractValidationError",
+    "ExtensionValidationError",
     "ScenarioValidationError",
     "SemanticValidationError",
     "UnknownSchemaError",
@@ -142,6 +146,7 @@ __all__ = [
     "schema_names",
     "schema_path",
     "validate_document",
+    "validate_extensions",
     "validate_semantics",
     "validate_scenario",
 ]
