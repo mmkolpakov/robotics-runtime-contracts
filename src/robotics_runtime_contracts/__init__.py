@@ -17,6 +17,7 @@ SCHEMA_FILES = {
     "model-artifact-manifest.v1": "model-artifact-manifest.v1.schema.json",
     "dataset-manifest.v1": "dataset-manifest.v1.schema.json",
     "runtime-manifest.v1": "runtime-manifest.v1.schema.json",
+    "execution-permit.v1": "execution-permit.v1.schema.json",
 }
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
@@ -24,6 +25,7 @@ SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:model-artifact-manifest:v1": "model-artifact-manifest.v1",
     "urn:robotics-runtime-contracts:dataset-manifest:v1": "dataset-manifest.v1",
     "urn:robotics-runtime-contracts:runtime-manifest:v1": "runtime-manifest.v1",
+    "urn:robotics-runtime-contracts:execution-permit:v1": "execution-permit.v1",
 }
 
 
