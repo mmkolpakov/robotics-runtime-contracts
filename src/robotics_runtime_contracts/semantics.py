@@ -308,6 +308,20 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         segment_keys.add(key)
 
 
+def _validate_evidence_index(document: Mapping[str, Any]) -> None:
+    schema_name = "evidence-index.v1"
+    indexes: set[int] = set()
+    identities: set[tuple[str, str]] = set()
+    for index, segment in enumerate(document["segments"]):
+        if segment["segment_index"] in indexes:
+            _fail(schema_name, f"$.segments[{index}].segment_index", "must be unique")
+        identity = (segment["uri"], segment.get("version_id", ""))
+        if identity in identities:
+            _fail(schema_name, f"$.segments[{index}].uri", "evidence object is duplicated")
+        indexes.add(segment["segment_index"])
+        identities.add(identity)
+
+
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-scenario.v2": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
@@ -317,6 +331,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "execution-permit.v1": _validate_permit,
     "acceptance-result.v1": _validate_result,
     "acceptance-result.v2": _validate_result,
+    "evidence-index.v1": _validate_evidence_index,
 }
 
 
