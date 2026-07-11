@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:dataset-manifest:v1",
+  "title": "Robotics dataset manifest",
+  "description": "Immutable MCAP dataset contract for simulation, HIL, and real-robot playback.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "version",
+    "artifact",
+    "channels",
+    "time",
+    "source",
+    "provenance",
+    "governance",
+    "topic_remaps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "dataset-manifest.v1"
+    },
+    "dataset_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "artifact": {
+      "$ref": "#/$defs/artifact"
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "time": {
+      "$ref": "#/$defs/time"
+    },
+    "source": {
+      "enum": [
+        "simulation",
+        "hil",
+        "real_robot"
+      ]
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "governance": {
+      "$ref": "#/$defs/governance"
+    },
+    "annotations": {
+      "$ref": "#/$defs/annotations"
+    },
+    "topic_remaps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/topicRemap"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "artifact": {
+            "properties": {
+              "uri": {
+                "pattern": "^s3://"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "artifact": {
+            "required": [
+              "object_version_id"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
+    },
+    "rosMessageType": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*/msg/[A-Za-z][A-Za-z0-9_]*$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "size_bytes",
+        "sha256",
+        "media_type",
+        "storage_id"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:s3|oci|https)://[^\\s]+$"
+        },
+        "object_version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "const": "application/mcap"
+        },
+        "storage_id": {
+          "const": "mcap"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "type",
+        "type_hash",
+        "qos_profile"
+      ],
+      "properties": {
+        "topic": {
+          "$ref": "#/$defs/rosName"
+        },
+        "type": {
+          "$ref": "#/$defs/rosMessageType"
+        },
+        "type_hash": {
+          "type": "string",
+          "pattern": "^(?:RIHS01_[a-fA-F0-9]{64}|sha256:[a-f0-9]{64})$"
+        },
+        "qos_profile": {
+          "enum": [
+            "system_default",
+            "sensor_data",
+            "services_default",
+            "parameters",
+            "custom"
+          ]
+        },
+        "qos_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "qos_profile": {
+                "const": "custom"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "qos_profile_sha256"
+            ]
+          }
+        }
+      ]
+    },
+    "clockJump": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at_ns",
+        "delta_ns"
+      ],
+      "properties": {
+        "at_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delta_ns": {
+          "type": "integer"
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "start_ns",
+        "end_ns",
+        "clock_jumps",
+        "qos_overrides_sha256"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "ros_time",
+            "system_time",
+            "ptp_time"
+          ]
+        },
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clock_jumps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clockJump"
+          }
+        },
+        "qos_overrides_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer",
+        "captured_at",
+        "scenario_sha256",
+        "runtime_manifest_sha256",
+        "source_revisions"
+      ],
+      "properties": {
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scenario_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "runtime_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_revisions": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40,64}$"
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "license",
+        "data_classification",
+        "retention_class"
+      ],
+      "properties": {
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "data_classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ]
+        },
+        "retention_class": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,63}$"
+        }
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "sha256",
+        "media_type"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:s3|oci|https)://[^\\s]+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "topicRemap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/rosName"
+        },
+        "to": {
+          "$ref": "#/$defs/rosName"
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

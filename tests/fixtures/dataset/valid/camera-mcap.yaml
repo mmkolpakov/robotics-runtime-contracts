@@ -1,0 +1,40 @@
+schema_version: dataset-manifest.v1
+dataset_id: org.example.camera-baseline
+version: 1.0.0
+artifact:
+  uri: s3://robotics-datasets/camera-baseline.mcap
+  object_version_id: 3LgExampleVersion
+  size_bytes: 104857600
+  sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  media_type: application/mcap
+  storage_id: mcap
+channels:
+  - topic: /camera/image
+    type: sensor_msgs/msg/Image
+    type_hash: RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    qos_profile: sensor_data
+  - topic: /camera/camera_info
+    type: sensor_msgs/msg/CameraInfo
+    type_hash: RIHS01_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    qos_profile: sensor_data
+time:
+  basis: ros_time
+  start_ns: 1000000000
+  end_ns: 11000000000
+  clock_jumps: []
+  qos_overrides_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+source: real_robot
+provenance:
+  producer: capture-pipeline
+  captured_at: "2026-07-11T10:00:00Z"
+  scenario_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+  runtime_manifest_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  source_revisions:
+    sensor-stack: ffffffffffffffffffffffffffffffffffffffff
+governance:
+  license: LicenseRef-Internal-Robotics
+  data_classification: internal
+  retention_class: benchmark-365d
+topic_remaps:
+  - from: /camera/image
+    to: /input/image

@@ -1,0 +1,32 @@
+schema_version: dataset-manifest.v1
+dataset_id: org.example.invalid
+version: 1.0.0
+artifact:
+  uri: s3://robotics-datasets/unversioned.mcap
+  size_bytes: 1
+  sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  media_type: application/mcap
+  storage_id: mcap
+channels:
+  - topic: /camera/image
+    type: sensor_msgs/msg/Image
+    type_hash: RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    qos_profile: sensor_data
+time:
+  basis: ros_time
+  start_ns: 0
+  end_ns: 1
+  clock_jumps: []
+  qos_overrides_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+source: simulation
+provenance:
+  producer: test
+  captured_at: "2026-07-11T10:00:00Z"
+  scenario_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  runtime_manifest_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+  source_revisions: {world: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee}
+governance:
+  license: MIT
+  data_classification: public
+  retention_class: test-7d
+topic_remaps: []
