@@ -1,0 +1,842 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:runtime-manifest:v1",
+  "title": "Robotics runtime manifest",
+  "description": "Observed runtime identity for a robotics acceptance execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_id",
+    "generated_at",
+    "oci_image",
+    "components",
+    "host",
+    "ros",
+    "render",
+    "model",
+    "inference",
+    "accelerator",
+    "execution",
+    "data_plane",
+    "security",
+    "lifecycle_states",
+    "physical_targets",
+    "clock"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "runtime-manifest.v1"
+    },
+    "runtime_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "oci_image": {
+      "$ref": "#/$defs/ociImage"
+    },
+    "components": {
+      "$ref": "#/$defs/components"
+    },
+    "host": {
+      "$ref": "#/$defs/host"
+    },
+    "ros": {
+      "$ref": "#/$defs/ros"
+    },
+    "gazebo": {
+      "$ref": "#/$defs/gazebo"
+    },
+    "render": {
+      "$ref": "#/$defs/render"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "inference": {
+      "$ref": "#/$defs/inference"
+    },
+    "accelerator": {
+      "$ref": "#/$defs/accelerator"
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
+    "data_plane": {
+      "$ref": "#/$defs/dataPlane"
+    },
+    "security": {
+      "$ref": "#/$defs/security"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lifecycleState"
+      }
+    },
+    "physical_targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/physicalTarget"
+      }
+    },
+    "clock": {
+      "$ref": "#/$defs/clock"
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "inference": {
+            "properties": {
+              "actual_provider": {
+                "const": "CPUExecutionProvider"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accelerator": {
+            "properties": {
+              "vendor": {
+                "enum": [
+                  "none",
+                  "generic"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "accelerator": {
+            "properties": {
+              "vendor": {
+                "not": {
+                  "const": "none"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accelerator": {
+            "properties": {
+              "device_class": {
+                "const": "jetson"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accelerator": {
+            "required": [
+              "jetpack_version",
+              "l4t_version"
+            ],
+            "properties": {
+              "vendor": {
+                "const": "nvidia"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "data_plane_profile": {
+                "const": "secure_shared_memory"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data_plane": {
+            "properties": {
+              "shm_transport": {
+                "const": true
+              },
+              "data_sharing": {
+                "const": false
+              },
+              "private_ipc": {
+                "const": true
+              }
+            }
+          },
+          "security": {
+            "properties": {
+              "profile": {
+                "const": "sros2_enforce"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "security": {
+            "properties": {
+              "profile": {
+                "const": "sros2_enforce"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "time_mode": {
+                "const": "hardware_realtime"
+              }
+            }
+          },
+          "physical_targets": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "gitRevision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "ociImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "digest"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "pattern": "^[^\\s]+/[^\\s]+@sha256:[a-f0-9]{64}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contracts_revision",
+        "harness_revision",
+        "infra_revision"
+      ],
+      "properties": {
+        "contracts_revision": {
+          "$ref": "#/$defs/gitRevision"
+        },
+        "harness_revision": {
+          "$ref": "#/$defs/gitRevision"
+        },
+        "infra_revision": {
+          "$ref": "#/$defs/gitRevision"
+        }
+      }
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "os_version",
+        "architecture",
+        "kernel"
+      ],
+      "properties": {
+        "os": {
+          "enum": [
+            "ubuntu",
+            "linux",
+            "windows-wsl2",
+            "macos"
+          ]
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "architecture": {
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64"
+          ]
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "ros": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution",
+        "rmw_implementation"
+      ],
+      "properties": {
+        "distribution": {
+          "const": "jazzy"
+        },
+        "rmw_implementation": {
+          "enum": [
+            "rmw_fastrtps_cpp",
+            "rmw_cyclonedds_cpp",
+            "rmw_zenoh_cpp"
+          ]
+        }
+      }
+    },
+    "gazebo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collection",
+        "version",
+        "libraries"
+      ],
+      "properties": {
+        "collection": {
+          "const": "harmonic"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^8\\.[0-9]+\\.[0-9]+$"
+        },
+        "libraries": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$"
+          }
+        }
+      }
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "renderer"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "none",
+            "software",
+            "egl"
+          ]
+        },
+        "renderer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "artifact_sha256",
+        "format"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "format": {
+          "enum": [
+            "onnx",
+            "tensorrt_engine",
+            "rknn"
+          ]
+        }
+      }
+    },
+    "inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_family",
+        "runtime_version",
+        "requested_provider",
+        "actual_provider",
+        "fallback_count"
+      ],
+      "properties": {
+        "runtime_family": {
+          "enum": [
+            "onnxruntime_cpu",
+            "onnxruntime_cuda",
+            "onnxruntime_openvino",
+            "onnxruntime_migraphx",
+            "onnxruntime_tensorrt",
+            "rknn_runtime",
+            "coreml_external"
+          ]
+        },
+        "runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requested_provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "actual_provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "fallback_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_cpu"
+            },
+            "actual_provider": {
+              "const": "CPUExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_cuda"
+            },
+            "actual_provider": {
+              "const": "CUDAExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_openvino"
+            },
+            "actual_provider": {
+              "const": "OpenVINOExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_migraphx"
+            },
+            "actual_provider": {
+              "const": "MIGraphXExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_tensorrt"
+            },
+            "actual_provider": {
+              "const": "TensorrtExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "rknn_runtime"
+            },
+            "actual_provider": {
+              "const": "RKNPU2"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "coreml_external"
+            },
+            "actual_provider": {
+              "const": "CoreMLExecutionProvider"
+            }
+          }
+        }
+      ]
+    },
+    "provider": {
+      "enum": [
+        "CPUExecutionProvider",
+        "CUDAExecutionProvider",
+        "OpenVINOExecutionProvider",
+        "MIGraphXExecutionProvider",
+        "TensorrtExecutionProvider",
+        "RKNPU2",
+        "CoreMLExecutionProvider"
+      ]
+    },
+    "accelerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vendor",
+        "device_class",
+        "device_id"
+      ],
+      "properties": {
+        "vendor": {
+          "enum": [
+            "none",
+            "generic",
+            "nvidia",
+            "intel",
+            "amd",
+            "apple",
+            "rockchip"
+          ]
+        },
+        "device_class": {
+          "enum": [
+            "cpu",
+            "discrete_gpu",
+            "integrated_gpu",
+            "jetson",
+            "npu",
+            "apple_neural_engine"
+          ]
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "driver_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "jetpack_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "l4t_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rocm_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "openvino_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rknn_runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rknpu_driver_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_environment",
+        "data_source",
+        "plant_backend",
+        "time_mode",
+        "data_plane_profile"
+      ],
+      "properties": {
+        "target_environment": {
+          "enum": [
+            "simulation",
+            "hil",
+            "real_robot"
+          ]
+        },
+        "data_source": {
+          "enum": [
+            "gazebo",
+            "mcap_playback",
+            "live_target"
+          ]
+        },
+        "plant_backend": {
+          "enum": [
+            "interface_mock",
+            "gazebo_physics",
+            "recorded_data",
+            "real_hardware"
+          ]
+        },
+        "time_mode": {
+          "enum": [
+            "simulation_realtime",
+            "simulation_stepped",
+            "playback_clocked",
+            "hardware_realtime"
+          ]
+        },
+        "data_plane_profile": {
+          "enum": [
+            "standard_isolated",
+            "local_high_throughput",
+            "secure_shared_memory"
+          ]
+        }
+      }
+    },
+    "dataPlane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rmw_implementation",
+        "ipc_namespace",
+        "network_namespace",
+        "shm_transport",
+        "data_sharing",
+        "private_ipc"
+      ],
+      "properties": {
+        "rmw_implementation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fastdds_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "ipc_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "network_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "shm_transport": {
+          "type": "boolean"
+        },
+        "data_sharing": {
+          "type": "boolean"
+        },
+        "private_ipc": {
+          "type": "boolean"
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "strategy",
+        "enclaves",
+        "policy_digests"
+      ],
+      "properties": {
+        "profile": {
+          "enum": [
+            "none",
+            "sros2_enforce"
+          ]
+        },
+        "strategy": {
+          "enum": [
+            "none",
+            "Enforce"
+          ]
+        },
+        "enclaves": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/[^\\s]+$"
+          },
+          "uniqueItems": true
+        },
+        "policy_digests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sha256"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "lifecycleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "state",
+        "observed_at_ns"
+      ],
+      "properties": {
+        "node": {
+          "type": "string",
+          "pattern": "^/[^\\s]+$"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "unconfigured",
+            "inactive",
+            "active",
+            "finalized"
+          ]
+        },
+        "observed_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "physicalTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "scope"
+      ],
+      "properties": {
+        "target_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "scope": {
+          "enum": [
+            "compute",
+            "sensor",
+            "controller",
+            "actuator"
+          ]
+        },
+        "stable_device_path": {
+          "type": "string",
+          "pattern": "^/dev/[^*?\\s]+$"
+        }
+      }
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "sync_protocol",
+        "offset_ms",
+        "drift_ppm"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "ros_time",
+            "system_time",
+            "ptp_time"
+          ]
+        },
+        "sync_protocol": {
+          "enum": [
+            "sim_clock",
+            "playback_clock",
+            "ptp",
+            "chrony_ntp",
+            "mavlink_timesync",
+            "micro_xrce_dds",
+            "external"
+          ]
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "drift_ppm": {
+          "type": "number"
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

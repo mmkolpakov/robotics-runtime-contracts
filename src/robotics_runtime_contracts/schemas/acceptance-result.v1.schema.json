@@ -1,0 +1,527 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:acceptance-result:v1",
+  "title": "Robotics acceptance result",
+  "description": "Machine-readable result and evidence index for one acceptance execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "scenario_sha256",
+    "runtime_manifest_sha256",
+    "started_at",
+    "finished_at",
+    "monotonic_duration_sec",
+    "status",
+    "assertion_results",
+    "observed_ros_graph",
+    "execution",
+    "inference",
+    "lifecycle_states",
+    "clock_observation",
+    "shutdown",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "acceptance-result.v1"
+    },
+    "result_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "scenario_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "runtime_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "model_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "dataset_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "permit_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "monotonic_duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "cancelled"
+      ]
+    },
+    "assertion_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assertionResult"
+      }
+    },
+    "observed_ros_graph": {
+      "$ref": "#/$defs/observedRosGraph"
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
+    "inference": {
+      "$ref": "#/$defs/inference"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lifecycleState"
+      }
+    },
+    "clock_observation": {
+      "$ref": "#/$defs/clockObservation"
+    },
+    "shutdown": {
+      "$ref": "#/$defs/shutdown"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "assertion_results": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "passed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "permit_sha256"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
+    },
+    "assertionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_id",
+        "status",
+        "observed_value",
+        "unit"
+      ],
+      "properties": {
+        "assertion_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "error",
+            "skipped"
+          ]
+        },
+        "observed_value": {
+          "type": [
+            "number",
+            "integer",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "observedTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "publishers",
+        "subscribers",
+        "first_message_at_ns"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/rosName"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/msg/[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "publishers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subscribers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_message_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "observedEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "servers"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/rosName"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/(?:srv|action)/[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "servers": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "observedRosGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_for_sec",
+        "topics",
+        "services",
+        "actions"
+      ],
+      "properties": {
+        "stable_for_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observedTopic"
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observedEndpoint"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observedEndpoint"
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_environment",
+        "data_source",
+        "plant_backend",
+        "time_mode",
+        "data_plane_profile"
+      ],
+      "properties": {
+        "target_environment": {
+          "enum": [
+            "simulation",
+            "hil",
+            "real_robot"
+          ]
+        },
+        "data_source": {
+          "enum": [
+            "gazebo",
+            "mcap_playback",
+            "live_target"
+          ]
+        },
+        "plant_backend": {
+          "enum": [
+            "interface_mock",
+            "gazebo_physics",
+            "recorded_data",
+            "real_hardware"
+          ]
+        },
+        "time_mode": {
+          "enum": [
+            "simulation_realtime",
+            "simulation_stepped",
+            "playback_clocked",
+            "hardware_realtime"
+          ]
+        },
+        "data_plane_profile": {
+          "enum": [
+            "standard_isolated",
+            "local_high_throughput",
+            "secure_shared_memory"
+          ]
+        }
+      }
+    },
+    "inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_family",
+        "actual_provider",
+        "model_format",
+        "fallback_count"
+      ],
+      "properties": {
+        "runtime_family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "actual_provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model_format": {
+          "enum": [
+            "onnx",
+            "tensorrt_engine",
+            "rknn"
+          ]
+        },
+        "fallback_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "lifecycleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "state",
+        "observed_at_ns"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/rosName"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "unconfigured",
+            "inactive",
+            "active",
+            "finalized"
+          ]
+        },
+        "observed_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "clockObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monotonic",
+        "offset_ms",
+        "drift_ppm",
+        "real_time_factor",
+        "deadline_miss_ratio"
+      ],
+      "properties": {
+        "monotonic": {
+          "type": "boolean"
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "drift_ppm": {
+          "type": "number"
+        },
+        "real_time_factor": {
+          "type": "number",
+          "minimum": 0
+        },
+        "deadline_miss_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "shutdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer_detached",
+        "recorders_closed",
+        "evidence_index_finalized"
+      ],
+      "properties": {
+        "observer_detached": {
+          "type": "boolean"
+        },
+        "recorders_closed": {
+          "type": "boolean"
+        },
+        "evidence_index_finalized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "media_type",
+        "sha256",
+        "size_bytes",
+        "retention_class"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:file|s3|oci|https)://[^\\s]+$"
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "media_type": {
+          "enum": [
+            "application/mcap",
+            "application/json",
+            "application/junit+xml",
+            "text/plain",
+            "application/vnd.in-toto+json"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retention_class": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,63}$"
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "uri": {
+                "pattern": "^s3://"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "version_id"
+            ]
+          }
+        }
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

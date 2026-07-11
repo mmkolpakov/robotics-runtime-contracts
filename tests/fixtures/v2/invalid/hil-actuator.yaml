@@ -1,0 +1,19 @@
+schema_version: acceptance-scenario.v2
+scenario_id: org.example.invalid-hil-actuator
+execution:
+  target_environment: hil
+  hardware_scope: [controller, actuator]
+  physical_effect: none
+  test_intent: functional
+  data_source: live_target
+  plant_backend: real_hardware
+  time_mode: hardware_realtime
+  data_plane_profile: secure_shared_memory
+  security_profile: sros2_enforce
+seed: 1
+timeouts: {startup_sec: 1, graph_ready_sec: 1, stable_for_sec: 0, execution_sec: 1, shutdown_sec: 1}
+expected_ros_graph: {topics: [], services: [], actions: [], lifecycle_nodes: []}
+assertions: []
+time_policy: {clock_sync_protocol: ptp, max_clock_offset_ms: 1, max_clock_drift_ppm: 1, max_message_age_ms: 1}
+data_plane_policy: {max_message_age_ms: 1, max_loss_ratio: 0, shm_transport: true, data_sharing: false, private_ipc: true}
+evidence_policy: {topics: [], recording_mode: bounded, compression: zstd, max_segment_size_bytes: 1048576, max_segment_duration_sec: 1, max_spool_size_bytes: 1048576, spool_high_watermark_ratio: 0.8, max_upload_lag_sec: 1, upload_mode: closed_segments_during_run, retention_class: hil-30d, remote_sink_allowed: true}

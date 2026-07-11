@@ -39,16 +39,28 @@ jobs:
           mkdir -p artifacts
           uv run pytest --junitxml=artifacts/junit.xml
       - name: Build wheel and source distribution
-        run: uv build --out-dir artifacts/dist
+        run: uv build --no-sources --out-dir artifacts/dist
       - name: Verify installed wheel
         run: |
           uv venv --python 3.12 .wheel-venv
           uv pip install --python .wheel-venv/bin/python artifacts/dist/*.whl
           .wheel-venv/bin/python - <<'PY'
-          from robotics_runtime_contracts import load_schema, schema_path
+          from robotics_runtime_contracts import load_schema, schema_names, schema_path
 
-          assert schema_path().is_file()
-          assert load_schema()["$id"] == "urn:robotics-runtime-contracts:acceptance-scenario:v1"
+          assert len(schema_names()) == 7
+          for name in schema_names():
+              assert schema_path(name).is_file()
+              assert load_schema(name)["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          PY
+      - name: Verify installed source distribution
+        run: |
+          uv venv --python 3.12 .sdist-venv
+          uv pip install --python .sdist-venv/bin/python artifacts/dist/*.tar.gz
+          .sdist-venv/bin/python - <<'PY'
+          from robotics_runtime_contracts import schema_names, schema_path
+
+          assert len(schema_names()) == 7
+          assert all(schema_path(name).is_file() for name in schema_names())
           PY
       - name: Upload validation artifacts
         if: always()

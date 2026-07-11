@@ -1,0 +1,16 @@
+schema_version: acceptance-result.v1
+result_id: org.example.invalid
+scenario_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+runtime_manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+started_at: "2026-07-11T12:00:00Z"
+finished_at: "2026-07-11T12:00:01Z"
+monotonic_duration_sec: 1
+status: passed
+assertion_results: [{assertion_id: check, status: failed, observed_value: 2, unit: count}]
+observed_ros_graph: {stable_for_sec: 0, topics: [], services: [], actions: []}
+execution: {target_environment: simulation, data_source: gazebo, plant_backend: gazebo_physics, time_mode: simulation_realtime, data_plane_profile: standard_isolated}
+inference: {runtime_family: onnxruntime_cpu, actual_provider: CPUExecutionProvider, model_format: onnx, fallback_count: 0}
+lifecycle_states: []
+clock_observation: {monotonic: true, offset_ms: 0, drift_ppm: 0, real_time_factor: 1, deadline_miss_ratio: 0}
+shutdown: {observer_detached: true, recorders_closed: true, evidence_index_finalized: true}
+evidence: []
