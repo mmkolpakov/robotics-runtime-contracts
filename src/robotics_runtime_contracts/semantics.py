@@ -143,21 +143,36 @@ def _validate_dataset(document: Mapping[str, Any]) -> None:
 
 
 def _validate_runtime(document: Mapping[str, Any]) -> None:
-    schema_name = "runtime-manifest.v1"
-    inference = document["inference"]
+    schema_name = document["schema_version"]
+    if schema_name == "runtime-manifest.v1":
+        inference = document["inference"]
+        accelerator = document["accelerator"]
+        inference_path = "$.inference"
+        accelerator_path = "$.accelerator"
+    elif document["workload"]["kind"] == "inference":
+        inference = document["workload"]["inference"]
+        accelerator = document["workload"]["accelerator"]
+        inference_path = "$.workload.inference"
+        accelerator_path = "$.workload.accelerator"
+    else:
+        inference = None
+        accelerator = None
+        inference_path = "$.workload.inference"
+        accelerator_path = "$.workload.accelerator"
     execution = document["execution"]
     data_plane = document["data_plane"]
     security = document["security"]
     clock = document["clock"]
 
-    if inference["requested_provider"] != inference["actual_provider"]:
-        _fail(
-            schema_name,
-            "$.inference.actual_provider",
-            "must equal requested_provider; silent fallback is forbidden",
-        )
-    if inference["fallback_count"] != 0:
-        _fail(schema_name, "$.inference.fallback_count", "must be zero")
+    if inference is not None:
+        if inference["requested_provider"] != inference["actual_provider"]:
+            _fail(
+                schema_name,
+                f"{inference_path}.actual_provider",
+                "must equal requested_provider; silent fallback is forbidden",
+            )
+        if inference["fallback_count"] != 0:
+            _fail(schema_name, f"{inference_path}.fallback_count", "must be zero")
     if document["ros"]["rmw_implementation"] != data_plane["rmw_implementation"]:
         _fail(
             schema_name,
@@ -209,19 +224,20 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     ):
         _fail(schema_name, "$.render.renderer", "EGL mode must use a hardware renderer")
 
-    expected_vendor = {
-        "CUDAExecutionProvider": "nvidia",
-        "TensorrtExecutionProvider": "nvidia",
-        "MIGraphXExecutionProvider": "amd",
-        "RKNPU2": "rockchip",
-        "CoreMLExecutionProvider": "apple",
-    }.get(inference["actual_provider"])
-    if expected_vendor is not None and document["accelerator"]["vendor"] != expected_vendor:
-        _fail(
-            schema_name,
-            "$.accelerator.vendor",
-            f"{inference['actual_provider']} requires vendor {expected_vendor}",
-        )
+    if inference is not None and accelerator is not None:
+        expected_vendor = {
+            "CUDAExecutionProvider": "nvidia",
+            "TensorrtExecutionProvider": "nvidia",
+            "MIGraphXExecutionProvider": "amd",
+            "RKNPU2": "rockchip",
+            "CoreMLExecutionProvider": "apple",
+        }.get(inference["actual_provider"])
+        if expected_vendor is not None and accelerator["vendor"] != expected_vendor:
+            _fail(
+                schema_name,
+                f"{accelerator_path}.vendor",
+                f"{inference['actual_provider']} requires vendor {expected_vendor}",
+            )
 
 
 def _validate_permit(document: Mapping[str, Any]) -> None:
@@ -239,7 +255,7 @@ def _validate_permit(document: Mapping[str, Any]) -> None:
 
 
 def _validate_result(document: Mapping[str, Any]) -> None:
-    schema_name = "acceptance-result.v1"
+    schema_name = document["schema_version"]
     if _timestamp(document["finished_at"]) < _timestamp(document["started_at"]):
         _fail(schema_name, "$.finished_at", "must not be earlier than started_at")
 
@@ -254,10 +270,19 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         _require_unique(schema_name, graph[key], "name", f"$.observed_ros_graph.{key}")
 
     if document["status"] == "passed":
-        if document["inference"]["fallback_count"] != 0:
+        if schema_name == "acceptance-result.v1":
+            workload = document["inference"]
+            fallback_path = "$.inference.fallback_count"
+        elif document["workload"]["kind"] == "inference":
+            workload = document["workload"]
+            fallback_path = "$.workload.fallback_count"
+        else:
+            workload = None
+            fallback_path = "$.workload.fallback_count"
+        if workload is not None and workload["fallback_count"] != 0:
             _fail(
                 schema_name,
-                "$.inference.fallback_count",
+                fallback_path,
                 "passed result cannot include fallback",
             )
         if not document["clock_observation"]["monotonic"]:
@@ -288,8 +313,10 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
+    "runtime-manifest.v2": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "acceptance-result.v1": _validate_result,
+    "acceptance-result.v2": _validate_result,
 }
 
 

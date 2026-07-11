@@ -47,7 +47,7 @@ jobs:
           .wheel-venv/bin/python - <<'PY'
           from robotics_runtime_contracts import load_schema, schema_names, schema_path
 
-          assert len(schema_names()) == 7
+          assert len(schema_names()) == 9
           for name in schema_names():
               assert schema_path(name).is_file()
               assert load_schema(name)["$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -59,7 +59,7 @@ jobs:
           .sdist-venv/bin/python - <<'PY'
           from robotics_runtime_contracts import schema_names, schema_path
 
-          assert len(schema_names()) == 7
+          assert len(schema_names()) == 9
           assert all(schema_path(name).is_file() for name in schema_names())
           PY
       - name: Upload validation artifacts

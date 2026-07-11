@@ -41,9 +41,11 @@ loading remains the caller's responsibility.
 | `acceptance-scenario.v2` | Execution mode, ROS readiness, time, data plane, and evidence policy |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
-| `runtime-manifest.v1` | Observed image, host, ROS, Gazebo, provider, device, security, and clock facts |
+| `runtime-manifest.v1` | Stable model-backed runtime manifest from v0.4.0 |
+| `runtime-manifest.v2` | Runtime facts with explicit `none` or `inference` workload |
 | `execution-permit.v1` | Short-lived HIL and real-robot approval predicate |
-| `acceptance-result.v1` | Assertions, observed graph, execution facts, shutdown, and evidence links |
+| `acceptance-result.v1` | Stable model-backed acceptance result from v0.4.0 |
+| `acceptance-result.v2` | Result and evidence with explicit `none` or `inference` workload |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
 versioned `$id`, and is included in the Python wheel.
@@ -97,6 +99,8 @@ from network or file-system side effects.
 - `acceptance-scenario.v1` is protected by a byte-level SHA-256 regression test.
 - See [Migrating from scenario v1 to v2](docs/migration-v1-v2.md) before adopting
   the execution and evidence policies in v2.
+- Use [runtime and result v2](docs/runtime-result-v2.md) for executions that may
+  omit inference.
 
 ## Development
 

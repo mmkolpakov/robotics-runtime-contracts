@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:acceptance-result:v2",
+  "title": "Robotics acceptance result v2",
+  "description": "Machine-readable result with an explicit optional inference workload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "scenario_sha256",
+    "runtime_manifest_sha256",
+    "started_at",
+    "finished_at",
+    "monotonic_duration_sec",
+    "status",
+    "assertion_results",
+    "observed_ros_graph",
+    "execution",
+    "workload",
+    "lifecycle_states",
+    "clock_observation",
+    "shutdown",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "acceptance-result.v2"
+    },
+    "result_id": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/identifier"
+    },
+    "scenario_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/sha256"
+    },
+    "runtime_manifest_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/sha256"
+    },
+    "model_manifest_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/sha256"
+    },
+    "dataset_manifest_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/sha256"
+    },
+    "permit_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/sha256"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "monotonic_duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "cancelled"
+      ]
+    },
+    "assertion_results": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/assertionResult"
+      }
+    },
+    "observed_ros_graph": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/observedRosGraph"
+    },
+    "execution": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/execution"
+    },
+    "workload": {
+      "$ref": "#/$defs/workload"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/lifecycleState"
+      }
+    },
+    "clock_observation": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/clockObservation"
+    },
+    "shutdown": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/shutdown"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/evidence"
+      }
+    },
+    "extensions": {
+      "$ref": "urn:robotics-runtime-contracts:acceptance-result:v1#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "assertion_results": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "passed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "target_environment"
+            ],
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "permit_sha256"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "workload"
+        ],
+        "properties": {
+          "workload": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "inference"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "model_manifest_sha256"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "runtime_family",
+            "actual_provider",
+            "model_format",
+            "fallback_count"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "runtime_family": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actual_provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "model_format": {
+              "enum": [
+                "onnx",
+                "tensorrt_engine",
+                "rknn"
+              ]
+            },
+            "fallback_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    }
+  }
+}

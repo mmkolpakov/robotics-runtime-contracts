@@ -9,6 +9,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
+from referencing import Registry, Resource
 
 from robotics_runtime_contracts.extensions import ExtensionValidationError, validate_extensions
 from robotics_runtime_contracts.semantics import SemanticValidationError, validate_semantics
@@ -20,8 +21,10 @@ SCHEMA_FILES = {
     "model-artifact-manifest.v1": "model-artifact-manifest.v1.schema.json",
     "dataset-manifest.v1": "dataset-manifest.v1.schema.json",
     "runtime-manifest.v1": "runtime-manifest.v1.schema.json",
+    "runtime-manifest.v2": "runtime-manifest.v2.schema.json",
     "execution-permit.v1": "execution-permit.v1.schema.json",
     "acceptance-result.v1": "acceptance-result.v1.schema.json",
+    "acceptance-result.v2": "acceptance-result.v2.schema.json",
 }
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
@@ -29,8 +32,23 @@ SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:model-artifact-manifest:v1": "model-artifact-manifest.v1",
     "urn:robotics-runtime-contracts:dataset-manifest:v1": "dataset-manifest.v1",
     "urn:robotics-runtime-contracts:runtime-manifest:v1": "runtime-manifest.v1",
+    "urn:robotics-runtime-contracts:runtime-manifest:v2": "runtime-manifest.v2",
     "urn:robotics-runtime-contracts:execution-permit:v1": "execution-permit.v1",
     "urn:robotics-runtime-contracts:acceptance-result:v1": "acceptance-result.v1",
+    "urn:robotics-runtime-contracts:acceptance-result:v2": "acceptance-result.v2",
+}
+PUBLISHED_SCHEMA_SHA256 = {
+    "acceptance-result.v1": "179a4a1d9f2b1dd339e5dfdc9c8a2bde1801d1adc6c3a65b5a67dec9468d8256",
+    "acceptance-result.v2": "af3c13a25a88c60d7ac474c675b61f2974318379e4b5e26c0a6ae9ebc059a041",
+    "acceptance-scenario.v1": "e134f3f8b5a24a80177a5bc79e81ee4330e68b8d32416cb043e1f94db6efcb66",
+    "acceptance-scenario.v2": "de15aa20118aee430b1501dbbf543e9144c4f0cbe4ff74a17b6d82c263c79dfb",
+    "dataset-manifest.v1": "b768eb96ee26e4c646eac2ba8743ba4a25bc2b668f7fe1453a474de7c10c8f08",
+    "execution-permit.v1": "0b29e024ab8581b04b866ff6bfe4d29d527eb553e22ed43228fb0920887e8d19",
+    "model-artifact-manifest.v1": (
+        "eed0440e05b1846db93958db9bc7fba4bb45b451a907200b5f98f843a3577063"
+    ),
+    "runtime-manifest.v1": "6eb3d6aba3fcbb2dfb9a06f138e9a8267760b3357410f729ec1486d2f64cf72d",
+    "runtime-manifest.v2": "a93a1cce7a2a85b0e9fb5d7b237935ced1c0db78947ef4da1468f536e2ada45e",
 }
 
 
@@ -94,7 +112,20 @@ def _validator(schema: str) -> Draft202012Validator:
     schema_name = resolve_schema_name(schema)
     contract = load_schema(schema_name)
     Draft202012Validator.check_schema(contract)
-    return Draft202012Validator(contract, format_checker=FormatChecker())
+    return Draft202012Validator(
+        contract,
+        registry=_registry(),
+        format_checker=FormatChecker(),
+    )
+
+
+@cache
+def _registry() -> Registry:
+    resources = (
+        (contract["$id"], Resource.from_contents(contract))
+        for contract in (load_schema(name) for name in schema_names())
+    )
+    return Registry().with_resources(resources)
 
 
 def validate_document(
@@ -135,6 +166,7 @@ __all__ = [
     "SCHEMA_FILES",
     "SCHEMA_IDS",
     "SCHEMA_NAME",
+    "PUBLISHED_SCHEMA_SHA256",
     "ContractValidationError",
     "ExtensionValidationError",
     "ScenarioValidationError",

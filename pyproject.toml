@@ -1,6 +1,6 @@
 [project]
 name = "robotics-runtime-contracts"
-version = "0.4.0"
+version = "0.4.1"
 description = "Versioned acceptance and evidence contracts for robotics runtimes."
 requires-python = ">=3.12"
 readme = "README.md"
