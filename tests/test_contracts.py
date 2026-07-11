@@ -17,11 +17,18 @@ from robotics_runtime_contracts import (
     UnknownSchemaError,
     load_schema,
     resolve_schema_name,
+    schema_dir,
     schema_names,
     schema_path,
     validate_document,
     validate_scenario,
 )
+
+
+def test_package_declares_pep561_typing() -> None:
+    marker = schema_dir().parent / "py.typed"
+    assert marker.is_file()
+
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
