@@ -1,6 +1,7 @@
 # Robotics Runtime Contracts
 
 [![CI](https://github.com/mmkolpakov/robotics-runtime-contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/mmkolpakov/robotics-runtime-contracts/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mmkolpakov/robotics-runtime-contracts)](https://github.com/mmkolpakov/robotics-runtime-contracts/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Versioned JSON Schema contracts and canonical validation for portable robotics
@@ -11,9 +12,23 @@ The contracts are neutral to robot type, simulator scene, model family, and
 product rules. Launch files, worlds, model weights, and control logic belong in
 consumer repositories.
 
+## Install
+
+The current release is 0.4.3. Install its attested wheel directly from the
+GitHub Release:
+
+```bash
+python -m pip install \
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.4.3/robotics_runtime_contracts-0.4.3-py3-none-any.whl
+```
+
+Python 3.12 or newer is required. Release assets include the wheel, source
+distribution, checksums, and GitHub artifact attestations.
+
 ## Quick Start
 
-Requirements: Python 3.12 or newer and [uv](https://docs.astral.sh/uv/).
+To run the packaged examples and development checks, use
+[uv](https://docs.astral.sh/uv/) from a checkout:
 
 ```bash
 git clone https://github.com/mmkolpakov/robotics-runtime-contracts.git
