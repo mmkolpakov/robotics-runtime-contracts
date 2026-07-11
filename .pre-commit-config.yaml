@@ -16,6 +16,7 @@ repos:
     hooks:
       - id: check-metaschema
         files: ^src/robotics_runtime_contracts/schemas/.*\.schema\.json$
+      - id: check-github-workflows
       - id: check-jsonschema
         name: validate acceptance scenario examples
         files: ^tests/fixtures/valid/.*\.(json|ya?ml)$
@@ -32,3 +33,11 @@ repos:
     rev: v1.38.0
     hooks:
       - id: yamllint
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
+    hooks:
+      - id: markdownlint-cli2
+  - repo: https://github.com/rhysd/actionlint.git
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

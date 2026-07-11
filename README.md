@@ -114,10 +114,11 @@ wheel.
 ## Support and Security
 
 Use [GitHub Issues](https://github.com/mmkolpakov/robotics-runtime-contracts/issues)
-for reproducible contract defects and compatibility questions. Do not include
+for reproducible contract defects and compatibility questions. See
+[CONTRIBUTING.md](CONTRIBUTING.md) before proposing a schema change. Report
+security-sensitive findings according to [SECURITY.md](SECURITY.md); never put
 credentials, private datasets, device identifiers, or signing material in an
-issue. Report security-sensitive findings through GitHub's private vulnerability
-reporting for this repository.
+issue.
 
 ## License
 
