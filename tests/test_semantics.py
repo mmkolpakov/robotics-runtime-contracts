@@ -41,6 +41,11 @@ def load_fixture(path: str) -> dict[str, object]:
             "$.inference.fallback_count",
         ),
         (
+            "runtime/valid/no-inference-simulation.yaml",
+            lambda value: value["clock"].update(sync_protocol="playback_clock"),
+            "$.clock.sync_protocol",
+        ),
+        (
             "permit/valid/hil.yaml",
             lambda value: value.update(approver_id=value["operator_id"]),
             "$.approver_id",

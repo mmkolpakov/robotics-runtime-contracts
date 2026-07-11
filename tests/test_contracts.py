@@ -10,6 +10,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from robotics_runtime_contracts import (
+    PUBLISHED_SCHEMA_SHA256,
     SCHEMA_FILES,
     SCHEMA_NAME,
     ScenarioValidationError,
@@ -41,6 +42,12 @@ def test_schema_satisfies_draft_2020_12_metaschema() -> None:
 def test_acceptance_scenario_v1_is_byte_for_byte_stable() -> None:
     digest = sha256(schema_path().read_bytes()).hexdigest()
     assert digest == "e134f3f8b5a24a80177a5bc79e81ee4330e68b8d32416cb043e1f94db6efcb66"
+
+
+def test_all_published_schemas_are_byte_for_byte_stable() -> None:
+    assert set(PUBLISHED_SCHEMA_SHA256) == set(SCHEMA_FILES)
+    for schema_name, expected_digest in PUBLISHED_SCHEMA_SHA256.items():
+        assert sha256(schema_path(schema_name).read_bytes()).hexdigest() == expected_digest
 
 
 @pytest.mark.parametrize("fixture", sorted((FIXTURES / "valid").iterdir()))

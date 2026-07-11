@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:runtime-manifest:v2",
+  "title": "Robotics runtime manifest v2",
+  "description": "Observed runtime identity with an explicit optional inference workload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_id",
+    "generated_at",
+    "oci_image",
+    "components",
+    "host",
+    "ros",
+    "render",
+    "workload",
+    "execution",
+    "data_plane",
+    "security",
+    "lifecycle_states",
+    "physical_targets",
+    "clock"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "runtime-manifest.v2"
+    },
+    "runtime_id": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/identifier"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "oci_image": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/ociImage"
+    },
+    "components": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/components"
+    },
+    "host": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/host"
+    },
+    "ros": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/ros"
+    },
+    "gazebo": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/gazebo"
+    },
+    "render": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/render"
+    },
+    "workload": {
+      "$ref": "#/$defs/workload"
+    },
+    "execution": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/execution"
+    },
+    "data_plane": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/dataPlane"
+    },
+    "security": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/security"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/lifecycleState"
+      }
+    },
+    "physical_targets": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/physicalTarget"
+      }
+    },
+    "clock": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/clock"
+    },
+    "extensions": {
+      "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "data_plane_profile"
+            ],
+            "properties": {
+              "data_plane_profile": {
+                "const": "secure_shared_memory"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data_plane": {
+            "properties": {
+              "shm_transport": {
+                "const": true
+              },
+              "data_sharing": {
+                "const": false
+              },
+              "private_ipc": {
+                "const": true
+              }
+            }
+          },
+          "security": {
+            "properties": {
+              "profile": {
+                "const": "sros2_enforce"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "target_environment"
+            ],
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "security": {
+            "properties": {
+              "profile": {
+                "const": "sros2_enforce"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "time_mode": {
+                "const": "hardware_realtime"
+              }
+            }
+          },
+          "physical_targets": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "model",
+            "inference",
+            "accelerator"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "model": {
+              "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/model"
+            },
+            "inference": {
+              "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/inference"
+            },
+            "accelerator": {
+              "$ref": "urn:robotics-runtime-contracts:runtime-manifest:v1#/$defs/accelerator"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
