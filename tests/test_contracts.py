@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,11 @@ def test_schema_satisfies_draft_2020_12_metaschema() -> None:
     schema = load_schema()
     Draft202012Validator.check_schema(schema)
     assert schema["$id"] == "urn:robotics-runtime-contracts:acceptance-scenario:v1"
+
+
+def test_acceptance_scenario_v1_is_byte_for_byte_stable() -> None:
+    digest = sha256(schema_path().read_bytes()).hexdigest()
+    assert digest == "e134f3f8b5a24a80177a5bc79e81ee4330e68b8d32416cb043e1f94db6efcb66"
 
 
 @pytest.mark.parametrize("fixture", sorted((FIXTURES / "valid").iterdir()))
