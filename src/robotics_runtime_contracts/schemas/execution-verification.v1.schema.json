@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:execution-verification:v1",
+  "title": "Robotics execution verification v1",
+  "description": "Fail-closed record of two independently verified Sigstore execution-permit signatures and policy authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verification_id",
+    "permit_sha256",
+    "statement_sha256",
+    "policy_sha256",
+    "trust_policy_sha256",
+    "target",
+    "verified_at",
+    "cosign_version",
+    "cosign_image_digest",
+    "signers",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "execution-verification.v1"
+    },
+    "verification_id": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/identifier"
+    },
+    "permit_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/sha256"
+    },
+    "statement_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/sha256"
+    },
+    "policy_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/sha256"
+    },
+    "trust_policy_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/sha256"
+    },
+    "target": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v2#/$defs/target"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cosign_version": {
+      "type": "string",
+      "pattern": "^3\\.[0-9]+\\.[0-9]+$"
+    },
+    "cosign_image_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "signers": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/signer"
+      }
+    },
+    "decision": {
+      "const": "allow"
+    },
+    "extensions": {
+      "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "signer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "identity",
+        "issuer",
+        "bundle_sha256",
+        "integrated_time",
+        "transparency_log_verified"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "operator",
+            "approver"
+          ]
+        },
+        "identity": {
+          "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/principal"
+        },
+        "issuer": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://[^\\s]+$"
+        },
+        "bundle_sha256": {
+          "$ref": "urn:robotics-runtime-contracts:execution-permit:v1#/$defs/sha256"
+        },
+        "integrated_time": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transparency_log_verified": {
+          "const": true
+        }
+      }
+    }
+  }
+}

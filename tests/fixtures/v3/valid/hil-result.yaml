@@ -1,0 +1,67 @@
+schema_version: acceptance-result.v3
+result_id: org.example.hil-run-001
+scenario_sha256: "1111111111111111111111111111111111111111111111111111111111111111"
+runtime_manifest_sha256: "7777777777777777777777777777777777777777777777777777777777777777"
+started_at: "2026-07-12T10:00:00Z"
+finished_at: "2026-07-12T10:02:00Z"
+monotonic_duration_sec: 120
+status: passed
+assertion_results: []
+observed_ros_graph:
+  stable_for_sec: 3
+  topics:
+    - name: /telemetry/state
+      type: example_msgs/msg/State
+      publishers: 1
+      subscribers: 1
+      first_message_at_ns: 1000000000
+  services: []
+  actions: []
+forbidden_graph_observation:
+  passed: true
+  checked_topics:
+    - /cmd_vel
+  checked_services: []
+  checked_actions: []
+  violations: []
+execution:
+  target_environment: hil
+  data_source: live_target
+  plant_backend: real_hardware
+  time_mode: hardware_realtime
+  data_plane_profile: secure_shared_memory
+authorization:
+  mode: verified_execution_permit
+  permit_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  execution_verification_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  trust_policy_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  target:
+    environment: hil
+    target_id: controller-alpha
+    identity_kind: mavlink_system_component
+    identity_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+workload:
+  kind: none
+lifecycle_states: []
+clock_observation:
+  monotonic: true
+  offset_ms: 0.5
+  drift_ppm: 2
+  real_time_factor: 1
+  deadline_miss_ratio: 0
+hardware_clock_observation:
+  sync_protocol: mavlink_timesync
+  source: mavlink_timesync_status
+  measured_at: "2026-07-12T10:01:00Z"
+  sample_count: 120
+  offset_ms: 0.5
+  jitter_ms: 0.2
+  drift_ppm: 2
+  max_sample_age_ms: 10
+  within_policy: true
+  evidence_sha256: "8888888888888888888888888888888888888888888888888888888888888888"
+shutdown:
+  observer_detached: true
+  recorders_closed: true
+  evidence_index_finalized: true
+evidence: []
