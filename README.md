@@ -54,13 +54,18 @@ loading remains the caller's responsibility.
 | --- | --- |
 | `acceptance-scenario.v1` | Stable legacy scenario contract |
 | `acceptance-scenario.v2` | Execution mode, ROS readiness, time, data plane, and evidence policy |
+| `acceptance-scenario.v3` | Signed physical-observation intent and forbidden ROS interfaces |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
 | `runtime-manifest.v1` | Stable model-backed runtime manifest from v0.4.0 |
 | `runtime-manifest.v2` | Runtime facts with explicit `none` or `inference` workload |
+| `runtime-manifest.v3` | Authorized physical runtime and immutable target identity facts |
 | `execution-permit.v1` | Short-lived HIL and real-robot approval predicate |
+| `execution-permit.v2` | Two-party permit bound to trust policy and target identity |
+| `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
 | `acceptance-result.v1` | Stable model-backed acceptance result from v0.4.0 |
 | `acceptance-result.v2` | Result and evidence with explicit `none` or `inference` workload |
+| `acceptance-result.v3` | Physical authorization, forbidden graph, and timing observations |
 | `evidence-index.v1` | Finalized local and confirmed remote evidence segments |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
@@ -117,6 +122,11 @@ from network or file-system side effects.
   the execution and evidence policies in v2.
 - Use [runtime and result v2](docs/runtime-result-v2.md) for executions that may
   omit inference.
+- See [Migrating physical observation contracts to v3](docs/migration-v2-v3.md)
+  before adopting signed permits, target identity checks, or physical results.
+
+The v3 family supports HIL with independently isolated actuators and
+observation-only real targets. It does not authorize physical actuation.
 
 ## Development
 
