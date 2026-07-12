@@ -47,6 +47,18 @@ def test_namespaced_extension_is_validated_from_digest_pinned_json() -> None:
     )
 
 
+def test_v3_preserves_digest_pinned_domain_extensions() -> None:
+    scenario = scenario_with_extension()
+    scenario["schema_version"] = "acceptance-scenario.v3"
+    scenario["authorization"] = {"mode": "none"}
+    scenario["forbidden_ros_graph"] = {"topics": [], "services": [], "actions": []}
+
+    validate_document(
+        scenario,
+        extension_schemas={SCHEMA_URI: extension_schema()},
+    )
+
+
 def test_declared_extension_requires_caller_supplied_schema() -> None:
     with pytest.raises(ExtensionValidationError, match="was not supplied"):
         validate_document(scenario_with_extension(), extension_schemas={})

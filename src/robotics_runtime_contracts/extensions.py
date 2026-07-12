@@ -14,22 +14,22 @@ class ExtensionValidationError(SemanticValidationError):
     """Raised when a declared domain extension cannot be verified."""
 
 
-def _fail(path: str, message: str) -> None:
-    raise ExtensionValidationError("acceptance-scenario.v2", path, message)
+def _fail(schema_name: str, path: str, message: str) -> None:
+    raise ExtensionValidationError(schema_name, path, message)
 
 
-def _reject_external_references(value: object, path: str = "$") -> None:
+def _reject_external_references(schema_name: str, value: object, path: str = "$") -> None:
     if isinstance(value, dict):
         for key, child in value.items():
             child_path = f"{path}.{key}"
             if key in {"$ref", "$dynamicRef"} and (
                 not isinstance(child, str) or not child.startswith("#")
             ):
-                _fail(child_path, "external schema references are not allowed")
-            _reject_external_references(child, child_path)
+                _fail(schema_name, child_path, "external schema references are not allowed")
+            _reject_external_references(schema_name, child, child_path)
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _reject_external_references(child, f"{path}[{index}]")
+            _reject_external_references(schema_name, child, f"{path}[{index}]")
 
 
 def validate_extensions(
@@ -39,7 +39,7 @@ def validate_extensions(
 ) -> None:
     """Validate declared scenario extensions without performing network access."""
 
-    if schema_name != "acceptance-scenario.v2":
+    if schema_name not in {"acceptance-scenario.v2", "acceptance-scenario.v3"}:
         return
 
     declarations = document.get("extension_schemas", [])
@@ -47,13 +47,18 @@ def validate_extensions(
     if not declarations and not extensions:
         return
     if not isinstance(schema_documents, Mapping):
-        _fail("$.extension_schemas", "declared extensions require supplied schema documents")
+        _fail(
+            schema_name,
+            "$.extension_schemas",
+            "declared extensions require supplied schema documents",
+        )
 
     declared_namespaces = [item["namespace"] for item in declarations]
     if len(declared_namespaces) != len(set(declared_namespaces)):
-        _fail("$.extension_schemas", "namespaces must be unique")
+        _fail(schema_name, "$.extension_schemas", "namespaces must be unique")
     if set(declared_namespaces) != set(extensions):
         _fail(
+            schema_name,
             "$.extensions",
             "extension payload namespaces must exactly match extension_schemas",
         )
@@ -64,27 +69,47 @@ def validate_extensions(
         try:
             raw_document = schema_documents[uri]
         except KeyError:
-            _fail(f"$.extension_schemas[{index}].schema_uri", "schema document was not supplied")
+            _fail(
+                schema_name,
+                f"$.extension_schemas[{index}].schema_uri",
+                "schema document was not supplied",
+            )
         raw_bytes = (
             raw_document if isinstance(raw_document, bytes) else raw_document.encode("utf-8")
         )
         if sha256(raw_bytes).hexdigest() != declaration["sha256"]:
-            _fail(f"$.extension_schemas[{index}].sha256", "schema digest does not match")
+            _fail(
+                schema_name,
+                f"$.extension_schemas[{index}].sha256",
+                "schema digest does not match",
+            )
 
         try:
             extension_schema = json.loads(raw_bytes)
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            _fail(f"$.extension_schemas[{index}]", f"schema must be UTF-8 JSON: {error}")
+            _fail(
+                schema_name,
+                f"$.extension_schemas[{index}]",
+                f"schema must be UTF-8 JSON: {error}",
+            )
         if not isinstance(extension_schema, dict):
-            _fail(f"$.extension_schemas[{index}]", "schema root must be an object")
+            _fail(schema_name, f"$.extension_schemas[{index}]", "schema root must be an object")
         if extension_schema.get("$id") != uri:
-            _fail(f"$.extension_schemas[{index}].schema_uri", "must match the schema $id")
+            _fail(
+                schema_name,
+                f"$.extension_schemas[{index}].schema_uri",
+                "must match the schema $id",
+            )
 
-        _reject_external_references(extension_schema)
+        _reject_external_references(schema_name, extension_schema)
         try:
             Draft202012Validator.check_schema(extension_schema)
         except Exception as error:
-            _fail(f"$.extension_schemas[{index}]", f"invalid Draft 2020-12 schema: {error}")
+            _fail(
+                schema_name,
+                f"$.extension_schemas[{index}]",
+                f"invalid Draft 2020-12 schema: {error}",
+            )
 
         errors = sorted(
             Draft202012Validator(
@@ -96,7 +121,7 @@ def validate_extensions(
         if errors:
             error = errors[0]
             suffix = error.json_path.removeprefix("$")
-            _fail(f"$.extensions.{namespace}{suffix}", error.message)
+            _fail(schema_name, f"$.extensions.{namespace}{suffix}", error.message)
 
 
 __all__ = ["ExtensionValidationError", "validate_extensions"]
