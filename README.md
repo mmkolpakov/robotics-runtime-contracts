@@ -14,12 +14,12 @@ consumer repositories.
 
 ## Install
 
-The current release is 0.4.3. Install its attested wheel directly from the
+The current release is 0.5.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.4.3/robotics_runtime_contracts-0.4.3-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.5.0/robotics_runtime_contracts-0.5.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel, source
