@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/mmkolpakov/robotics-runtime-contracts)](https://github.com/mmkolpakov/robotics-runtime-contracts/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Versioned JSON Schema contracts and canonical validation for portable robotics
+Canonical JSON Schema contracts and validation for portable robotics
 acceptance runs. The package defines what a scenario requests, what a runtime
 actually provided, and what evidence an execution produced.
 
@@ -14,12 +14,12 @@ consumer repositories.
 
 ## Install
 
-The current release is 0.5.0. Install its attested wheel directly from the
+The current release is 0.6.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.5.0/robotics_runtime_contracts-0.5.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.6.0/robotics_runtime_contracts-0.6.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel, source
@@ -39,7 +39,7 @@ import yaml
 from pathlib import Path
 from robotics_runtime_contracts import validate_document
 
-path = Path("tests/fixtures/v2/valid/simulation-realtime.yaml")
+path = Path("tests/fixtures/scenario/valid/simulation-realtime.yaml")
 validate_document(yaml.safe_load(path.read_text(encoding="utf-8")))
 print("valid")
 PY
@@ -52,20 +52,13 @@ loading remains the caller's responsibility.
 
 | Schema version | Purpose |
 | --- | --- |
-| `acceptance-scenario.v1` | Stable legacy scenario contract |
-| `acceptance-scenario.v2` | Execution mode, ROS readiness, time, data plane, and evidence policy |
-| `acceptance-scenario.v3` | Signed physical-observation intent and forbidden ROS interfaces |
+| `acceptance-scenario.v1` | Execution intent, ROS readiness, timing, evidence, authorization, and forbidden interfaces |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
-| `runtime-manifest.v1` | Stable model-backed runtime manifest from v0.4.0 |
-| `runtime-manifest.v2` | Runtime facts with explicit `none` or `inference` workload |
-| `runtime-manifest.v3` | Authorized physical runtime and immutable target identity facts |
-| `execution-permit.v1` | Short-lived HIL and real-robot approval predicate |
-| `execution-permit.v2` | Two-party permit bound to trust policy and target identity |
+| `runtime-manifest.v1` | Observed runtime, workload, accelerator, security, timing, and physical target facts |
+| `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
-| `acceptance-result.v1` | Stable model-backed acceptance result from v0.4.0 |
-| `acceptance-result.v2` | Result and evidence with explicit `none` or `inference` workload |
-| `acceptance-result.v3` | Physical authorization, forbidden graph, and timing observations |
+| `acceptance-result.v1` | Acceptance verdict, authorization, forbidden graph, timing, workload, and evidence |
 | `evidence-index.v1` | Finalized local and confirmed remote evidence segments |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
@@ -89,11 +82,11 @@ schema = load_schema("runtime-manifest.v1")
 
 `validate_document()` selects the contract from `schema_version`. Structural
 and semantic failures include an exact JSON path. `validate_scenario()` and
-`ScenarioValidationError` remain available for `acceptance-scenario.v1` users.
+`ScenarioValidationError` is the scenario-specific validation error.
 
 ## Domain Extensions
 
-`acceptance-scenario.v2` supports independently versioned, namespaced extension
+`acceptance-scenario.v1` supports independently versioned, namespaced extension
 schemas without weakening common safety, time, or evidence rules. The caller
 supplies the digest-pinned schema bytes; validation never fetches a schema from
 the network.
@@ -113,29 +106,14 @@ from network or file-system side effects.
 
 ## Compatibility
 
-- Published schema versions are immutable.
-- Package releases follow semantic versioning.
-- Adding a schema is backward-compatible; changing a published schema requires
-  a new schema version.
-- `acceptance-scenario.v1` is protected by a byte-level SHA-256 regression test.
-- See [Migrating from scenario v1 to v2](docs/migration-v1-v2.md) before adopting
-  the execution and evidence policies in v2.
-- Use [runtime and result v2](docs/runtime-result-v2.md) for executions that may
-  omit inference.
-- See [Migrating physical observation contracts to v3](docs/migration-v2-v3.md)
-  before adopting signed permits, target identity checks, or physical results.
+- The v1 catalog introduced by package 0.6.0 is the initial public contract set.
+- Published schema bytes are immutable and protected by SHA-256 regression tests.
+- Package releases follow semantic versioning; a contract change requires a new
+  schema version and explicit consumer migration.
+- HIL and real-target contracts are observation-only and never authorize
+  physical actuation.
 
-The v3 family supports HIL with independently isolated actuators and
-observation-only real targets. It does not authorize physical actuation.
-
-### Foundation compatibility
-
-| Foundation line | Contracts | Acceptance harness | Runtime infrastructure | Scope |
-| --- | --- | --- | --- | --- |
-| Published simulation baseline | 0.4.3 | 0.5.1 | [`v0.5.0`](https://github.com/mmkolpakov/robotics-runtime-infra/releases/tag/v0.5.0) | Scenario, runtime, and result v2 |
-| Physical-observation candidate | 0.5.0 | 0.6.0 | Unreleased source pinned to both release commits | Scenario, runtime, and result v3 |
-
-Package compatibility is not a hardware qualification. Accelerator, HIL, and
+Package installation is not a hardware qualification. Accelerator, HIL, and
 real-target claims are owned by the runtime infrastructure's
 [support matrix](https://github.com/mmkolpakov/robotics-runtime-infra#support-status)
 and are scoped to an exact source revision, image digest, and named device.

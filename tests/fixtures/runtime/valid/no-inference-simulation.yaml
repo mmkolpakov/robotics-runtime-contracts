@@ -1,4 +1,4 @@
-schema_version: runtime-manifest.v2
+schema_version: runtime-manifest.v1
 runtime_id: org.example.physics-only-run
 generated_at: "2026-07-11T12:00:00Z"
 oci_image:
@@ -32,6 +32,8 @@ execution:
   plant_backend: gazebo_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
+authorization:
+  mode: none
 data_plane:
   rmw_implementation: rmw_fastrtps_cpp
   ipc_namespace: container:simulation

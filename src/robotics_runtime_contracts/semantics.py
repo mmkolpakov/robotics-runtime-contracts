@@ -66,19 +66,18 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
             "must match whether upload_mode uses a remote sink",
         )
 
-    if schema_name == "acceptance-scenario.v3":
-        forbidden = document["forbidden_ros_graph"]
-        for key in ("topics", "services", "actions"):
-            values = forbidden[key]
-            if len(values) != len(set(values)):
-                _fail(schema_name, f"$.forbidden_ros_graph.{key}", "names must be unique")
-        physical = document["execution"]["target_environment"] in {"hil", "real_robot"}
-        if physical and not any(forbidden.values()):
-            _fail(
-                schema_name,
-                "$.forbidden_ros_graph",
-                "physical observation must declare at least one forbidden ROS interface",
-            )
+    forbidden = document["forbidden_ros_graph"]
+    for key in ("topics", "services", "actions"):
+        values = forbidden[key]
+        if len(values) != len(set(values)):
+            _fail(schema_name, f"$.forbidden_ros_graph.{key}", "names must be unique")
+    physical = document["execution"]["target_environment"] in {"hil", "real_robot"}
+    if physical and not any(forbidden.values()):
+        _fail(
+            schema_name,
+            "$.forbidden_ros_graph",
+            "physical observation must declare at least one forbidden ROS interface",
+        )
 
 
 def _validate_model_artifact(document: Mapping[str, Any]) -> None:
@@ -158,12 +157,7 @@ def _validate_dataset(document: Mapping[str, Any]) -> None:
 
 def _validate_runtime(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    if schema_name == "runtime-manifest.v1":
-        inference = document["inference"]
-        accelerator = document["accelerator"]
-        inference_path = "$.inference"
-        accelerator_path = "$.accelerator"
-    elif document["workload"]["kind"] == "inference":
+    if document["workload"]["kind"] == "inference":
         inference = document["workload"]["inference"]
         accelerator = document["workload"]["accelerator"]
         inference_path = "$.workload.inference"
@@ -225,10 +219,9 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     if execution["target_environment"] == "simulation" and document["physical_targets"]:
         _fail(schema_name, "$.physical_targets", "simulation must not claim physical targets")
 
-    if schema_name == "runtime-manifest.v3":
-        targets = document["physical_targets"]
-        _require_unique(schema_name, targets, "target_id", "$.physical_targets")
-        _require_unique(schema_name, targets, "identity_sha256", "$.physical_targets")
+    targets = document["physical_targets"]
+    _require_unique(schema_name, targets, "target_id", "$.physical_targets")
+    _require_unique(schema_name, targets, "identity_sha256", "$.physical_targets")
 
     expected_clock = {
         "simulation_realtime": "sim_clock",
@@ -271,7 +264,7 @@ def _validate_permit(document: Mapping[str, Any]) -> None:
         _fail(schema_name, "$.interlock_check.checked_at", "must not be later than issued_at")
     if document["operator_id"] == document["approver_id"]:
         _fail(schema_name, "$.approver_id", "must differ from operator_id")
-    if schema_name == "execution-permit.v2" and (expires_at - issued_at).total_seconds() > 1800:
+    if (expires_at - issued_at).total_seconds() > 1800:
         _fail(schema_name, "$.expires_at", "must be no more than 30 minutes after issued_at")
 
 
@@ -300,62 +293,58 @@ def _validate_result(document: Mapping[str, Any]) -> None:
     for key in ("topics", "services", "actions"):
         _require_unique(schema_name, graph[key], "name", f"$.observed_ros_graph.{key}")
 
-    if schema_name == "acceptance-result.v3":
-        forbidden = document["forbidden_graph_observation"]
-        violation_keys = [(item["kind"], item["name"]) for item in forbidden["violations"]]
-        if len(violation_keys) != len(set(violation_keys)):
-            _fail(
-                schema_name,
-                "$.forbidden_graph_observation.violations",
-                "violations must be unique by kind and name",
-            )
-        if forbidden["passed"] != (not forbidden["violations"]):
-            _fail(
-                schema_name,
-                "$.forbidden_graph_observation.passed",
-                "must equal whether violations is empty",
-            )
+    forbidden = document["forbidden_graph_observation"]
+    violation_keys = [(item["kind"], item["name"]) for item in forbidden["violations"]]
+    if len(violation_keys) != len(set(violation_keys)):
+        _fail(
+            schema_name,
+            "$.forbidden_graph_observation.violations",
+            "violations must be unique by kind and name",
+        )
+    if forbidden["passed"] != (not forbidden["violations"]):
+        _fail(
+            schema_name,
+            "$.forbidden_graph_observation.passed",
+            "must equal whether violations is empty",
+        )
 
-        target_environment = document["execution"]["target_environment"]
-        if target_environment in {"hil", "real_robot"}:
-            authorization = document["authorization"]
-            if authorization["target"]["environment"] != target_environment:
-                _fail(
-                    schema_name,
-                    "$.authorization.target.environment",
-                    "must match execution.target_environment",
-                )
-            clock = document["hardware_clock_observation"]
-            expected_sources = {
-                "ptp": {"pmc"},
-                "chrony_ntp": {"chronyc_tracking"},
-                "mavlink_timesync": {"mavlink_timesync_status"},
-                "micro_xrce_dds": {"controller_telemetry"},
-                "external": {"external_attestation"},
-            }
-            if clock["source"] not in expected_sources[clock["sync_protocol"]]:
-                _fail(
-                    schema_name,
-                    "$.hardware_clock_observation.source",
-                    "must match sync_protocol",
-                )
-            measured_at = _timestamp(clock["measured_at"])
-            if (
-                not _timestamp(document["started_at"])
-                <= measured_at
-                <= _timestamp(document["finished_at"])
-            ):
-                _fail(
-                    schema_name,
-                    "$.hardware_clock_observation.measured_at",
-                    "must fall within the observed interval",
-                )
+    target_environment = document["execution"]["target_environment"]
+    if target_environment in {"hil", "real_robot"}:
+        authorization = document["authorization"]
+        if authorization["target"]["environment"] != target_environment:
+            _fail(
+                schema_name,
+                "$.authorization.target.environment",
+                "must match execution.target_environment",
+            )
+        clock = document["hardware_clock_observation"]
+        expected_sources = {
+            "ptp": {"pmc"},
+            "chrony_ntp": {"chronyc_tracking"},
+            "mavlink_timesync": {"mavlink_timesync_status"},
+            "micro_xrce_dds": {"controller_telemetry"},
+            "external": {"external_attestation"},
+        }
+        if clock["source"] not in expected_sources[clock["sync_protocol"]]:
+            _fail(
+                schema_name,
+                "$.hardware_clock_observation.source",
+                "must match sync_protocol",
+            )
+        measured_at = _timestamp(clock["measured_at"])
+        if (
+            not _timestamp(document["started_at"])
+            <= measured_at
+            <= _timestamp(document["finished_at"])
+        ):
+            _fail(
+                schema_name,
+                "$.hardware_clock_observation.measured_at",
+                "must fall within the observed interval",
+            )
 
     if document["status"] == "passed":
-        if schema_name == "acceptance-result.v1":
-            workload = document["inference"]
-            fallback_path = "$.inference.fallback_count"
-        elif document["workload"]["kind"] == "inference":
+        if document["workload"]["kind"] == "inference":
             workload = document["workload"]
             fallback_path = "$.workload.fallback_count"
         else:
@@ -379,22 +368,21 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.shutdown",
                 "passed result requires finalized evidence and shutdown",
             )
-        if schema_name == "acceptance-result.v3":
-            if not document["forbidden_graph_observation"]["passed"]:
-                _fail(
-                    schema_name,
-                    "$.forbidden_graph_observation.passed",
-                    "passed result requires a clean forbidden graph observation",
-                )
-            if (
-                document["execution"]["target_environment"] in {"hil", "real_robot"}
-                and not (document["hardware_clock_observation"]["within_policy"])
-            ):
-                _fail(
-                    schema_name,
-                    "$.hardware_clock_observation.within_policy",
-                    "passed physical result requires hardware timing within policy",
-                )
+        if not document["forbidden_graph_observation"]["passed"]:
+            _fail(
+                schema_name,
+                "$.forbidden_graph_observation.passed",
+                "passed result requires a clean forbidden graph observation",
+            )
+        if (
+            document["execution"]["target_environment"] in {"hil", "real_robot"}
+            and not (document["hardware_clock_observation"]["within_policy"])
+        ):
+            _fail(
+                schema_name,
+                "$.hardware_clock_observation.within_policy",
+                "passed physical result requires hardware timing within policy",
+            )
 
     segment_keys: set[tuple[str, int]] = set()
     for index, item in enumerate(document["evidence"]):
@@ -421,19 +409,13 @@ def _validate_evidence_index(document: Mapping[str, Any]) -> None:
 
 
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
-    "acceptance-scenario.v2": _validate_acceptance_scenario,
-    "acceptance-scenario.v3": _validate_acceptance_scenario,
+    "acceptance-scenario.v1": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
-    "runtime-manifest.v2": _validate_runtime,
-    "runtime-manifest.v3": _validate_runtime,
     "execution-permit.v1": _validate_permit,
-    "execution-permit.v2": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
     "acceptance-result.v1": _validate_result,
-    "acceptance-result.v2": _validate_result,
-    "acceptance-result.v3": _validate_result,
     "evidence-index.v1": _validate_evidence_index,
 }
 

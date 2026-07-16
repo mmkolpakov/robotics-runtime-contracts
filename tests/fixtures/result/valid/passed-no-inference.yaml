@@ -1,4 +1,4 @@
-schema_version: acceptance-result.v2
+schema_version: acceptance-result.v1
 result_id: org.example.physics-run-001
 scenario_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 runtime_manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -17,6 +17,12 @@ observed_ros_graph:
       first_message_at_ns: 1000000000
   services: []
   actions: []
+forbidden_graph_observation:
+  passed: true
+  checked_topics: []
+  checked_services: []
+  checked_actions: []
+  violations: []
 execution:
   target_environment: simulation
   data_source: gazebo
@@ -25,6 +31,8 @@ execution:
   data_plane_profile: standard_isolated
 workload:
   kind: none
+authorization:
+  mode: none
 lifecycle_states: []
 clock_observation:
   monotonic: true

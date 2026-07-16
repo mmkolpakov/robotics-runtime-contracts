@@ -1,4 +1,4 @@
-schema_version: acceptance-scenario.v2
+schema_version: acceptance-scenario.v1
 scenario_id: org.example.invalid-playback
 execution:
   target_environment: simulation
@@ -10,6 +10,8 @@ execution:
   time_mode: playback_clocked
   data_plane_profile: standard_isolated
   security_profile: none
+authorization: {mode: none}
+forbidden_ros_graph: {topics: [], services: [], actions: []}
 seed: 1
 timeouts: {startup_sec: 1, graph_ready_sec: 1, stable_for_sec: 0, execution_sec: 1, shutdown_sec: 1}
 expected_ros_graph: {topics: [], services: [], actions: [], lifecycle_nodes: []}

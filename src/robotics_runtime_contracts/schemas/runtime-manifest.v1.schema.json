@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:robotics-runtime-contracts:runtime-manifest:v1",
-  "title": "Robotics runtime manifest",
-  "description": "Observed runtime identity for a robotics acceptance execution.",
+  "title": "Robotics runtime manifest v1",
+  "description": "Observed runtime identity with cryptographically authorized physical target facts.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,10 +14,9 @@
     "host",
     "ros",
     "render",
-    "model",
-    "inference",
-    "accelerator",
+    "workload",
     "execution",
+    "authorization",
     "data_plane",
     "security",
     "lifecycle_states",
@@ -29,52 +28,49 @@
       "const": "runtime-manifest.v1"
     },
     "runtime_id": {
-      "$ref": "#/$defs/identifier"
+      "$ref": "#/$defs/imported__runtime-manifest__identifier"
     },
     "generated_at": {
       "type": "string",
       "format": "date-time"
     },
     "oci_image": {
-      "$ref": "#/$defs/ociImage"
+      "$ref": "#/$defs/imported__runtime-manifest__ociImage"
     },
     "components": {
-      "$ref": "#/$defs/components"
+      "$ref": "#/$defs/imported__runtime-manifest__components"
     },
     "host": {
-      "$ref": "#/$defs/host"
+      "$ref": "#/$defs/imported__runtime-manifest__host"
     },
     "ros": {
-      "$ref": "#/$defs/ros"
+      "$ref": "#/$defs/imported__runtime-manifest__ros"
     },
     "gazebo": {
-      "$ref": "#/$defs/gazebo"
+      "$ref": "#/$defs/imported__runtime-manifest__gazebo"
     },
     "render": {
-      "$ref": "#/$defs/render"
+      "$ref": "#/$defs/imported__runtime-manifest__render"
     },
-    "model": {
-      "$ref": "#/$defs/model"
-    },
-    "inference": {
-      "$ref": "#/$defs/inference"
-    },
-    "accelerator": {
-      "$ref": "#/$defs/accelerator"
+    "workload": {
+      "$ref": "#/$defs/imported__runtime-manifest__workload"
     },
     "execution": {
-      "$ref": "#/$defs/execution"
+      "$ref": "#/$defs/imported__runtime-manifest__execution"
+    },
+    "authorization": {
+      "$ref": "#/$defs/authorization"
     },
     "data_plane": {
-      "$ref": "#/$defs/dataPlane"
+      "$ref": "#/$defs/imported__runtime-manifest__dataPlane"
     },
     "security": {
-      "$ref": "#/$defs/security"
+      "$ref": "#/$defs/imported__runtime-manifest__security"
     },
     "lifecycle_states": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/lifecycleState"
+        "$ref": "#/$defs/imported__runtime-manifest__lifecycleState"
       }
     },
     "physical_targets": {
@@ -84,88 +80,20 @@
       }
     },
     "clock": {
-      "$ref": "#/$defs/clock"
+      "$ref": "#/$defs/imported__runtime-manifest__clock"
     },
     "extensions": {
-      "$ref": "#/$defs/extensions"
+      "$ref": "#/$defs/imported__runtime-manifest__extensions"
     }
   },
   "allOf": [
     {
       "if": {
         "properties": {
-          "inference": {
-            "properties": {
-              "actual_provider": {
-                "const": "CPUExecutionProvider"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "accelerator": {
-            "properties": {
-              "vendor": {
-                "enum": [
-                  "none",
-                  "generic"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "else": {
-        "properties": {
-          "accelerator": {
-            "properties": {
-              "vendor": {
-                "not": {
-                  "const": "none"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "accelerator": {
-            "properties": {
-              "device_class": {
-                "const": "jetson"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "accelerator": {
-            "required": [
-              "jetpack_version",
-              "l4t_version"
-            ],
-            "properties": {
-              "vendor": {
-                "const": "nvidia"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
           "execution": {
             "properties": {
-              "data_plane_profile": {
-                "const": "secure_shared_memory"
+              "target_environment": {
+                "const": "simulation"
               }
             }
           }
@@ -173,25 +101,15 @@
       },
       "then": {
         "properties": {
-          "data_plane": {
+          "authorization": {
             "properties": {
-              "shm_transport": {
-                "const": true
-              },
-              "data_sharing": {
-                "const": false
-              },
-              "private_ipc": {
-                "const": true
+              "mode": {
+                "const": "none"
               }
             }
           },
-          "security": {
-            "properties": {
-              "profile": {
-                "const": "sros2_enforce"
-              }
-            }
+          "physical_targets": {
+            "maxItems": 0
           }
         }
       }
@@ -213,10 +131,20 @@
       },
       "then": {
         "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "verified_execution_permit"
+              }
+            }
+          },
           "security": {
             "properties": {
               "profile": {
                 "const": "sros2_enforce"
+              },
+              "strategy": {
+                "const": "Enforce"
               }
             }
           },
@@ -224,6 +152,12 @@
             "properties": {
               "time_mode": {
                 "const": "hardware_realtime"
+              },
+              "data_source": {
+                "const": "live_target"
+              },
+              "plant_backend": {
+                "const": "real_hardware"
               }
             }
           },
@@ -235,20 +169,95 @@
     }
   ],
   "$defs": {
-    "identifier": {
+    "authorization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "permit_sha256",
+            "execution_verification_sha256",
+            "trust_policy_sha256"
+          ],
+          "properties": {
+            "mode": {
+              "const": "verified_execution_permit"
+            },
+            "permit_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            },
+            "execution_verification_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            },
+            "trust_policy_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            }
+          }
+        }
+      ]
+    },
+    "physicalTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "scope",
+        "identity_kind",
+        "identity_sha256",
+        "preflight_evidence_sha256"
+      ],
+      "properties": {
+        "target_id": {
+          "$ref": "#/$defs/imported__runtime-manifest__identifier"
+        },
+        "scope": {
+          "enum": [
+            "compute",
+            "sensor",
+            "controller"
+          ]
+        },
+        "identity_kind": {
+          "enum": [
+            "udev_serial",
+            "pci_device",
+            "mavlink_system_component",
+            "x509_spki",
+            "tpm_ek",
+            "vendor_soc"
+          ]
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "preflight_evidence_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "stable_device_path": {
+          "type": "string",
+          "pattern": "^/dev/[^*?\\s]+$"
+        }
+      }
+    },
+    "imported__runtime-manifest__identifier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
       "maxLength": 128
     },
-    "sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
-    },
-    "gitRevision": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{40}$"
-    },
-    "ociImage": {
+    "imported__runtime-manifest__ociImage": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -266,7 +275,7 @@
         }
       }
     },
-    "components": {
+    "imported__runtime-manifest__components": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -276,17 +285,21 @@
       ],
       "properties": {
         "contracts_revision": {
-          "$ref": "#/$defs/gitRevision"
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
         },
         "harness_revision": {
-          "$ref": "#/$defs/gitRevision"
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
         },
         "infra_revision": {
-          "$ref": "#/$defs/gitRevision"
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
         }
       }
     },
-    "host": {
+    "imported__runtime-manifest__gitRevision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "imported__runtime-manifest__host": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -323,7 +336,7 @@
         }
       }
     },
-    "ros": {
+    "imported__runtime-manifest__ros": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -343,7 +356,7 @@
         }
       }
     },
-    "gazebo": {
+    "imported__runtime-manifest__gazebo": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -369,7 +382,7 @@
         }
       }
     },
-    "render": {
+    "imported__runtime-manifest__render": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -391,7 +404,47 @@
         }
       }
     },
-    "model": {
+    "imported__runtime-manifest__workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "model",
+            "inference",
+            "accelerator"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "model": {
+              "$ref": "#/$defs/imported__runtime-manifest__model"
+            },
+            "inference": {
+              "$ref": "#/$defs/imported__runtime-manifest__inference"
+            },
+            "accelerator": {
+              "$ref": "#/$defs/imported__runtime-manifest__accelerator"
+            }
+          }
+        }
+      ]
+    },
+    "imported__runtime-manifest__model": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -401,10 +454,10 @@
       ],
       "properties": {
         "manifest_sha256": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
         },
         "artifact_sha256": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
         },
         "format": {
           "enum": [
@@ -415,7 +468,11 @@
         }
       }
     },
-    "inference": {
+    "imported__runtime-manifest__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__runtime-manifest__inference": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -443,10 +500,10 @@
           "maxLength": 128
         },
         "requested_provider": {
-          "$ref": "#/$defs/provider"
+          "$ref": "#/$defs/imported__runtime-manifest__provider"
         },
         "actual_provider": {
-          "$ref": "#/$defs/provider"
+          "$ref": "#/$defs/imported__runtime-manifest__provider"
         },
         "fallback_count": {
           "type": "integer",
@@ -526,7 +583,7 @@
         }
       ]
     },
-    "provider": {
+    "imported__runtime-manifest__provider": {
       "enum": [
         "CPUExecutionProvider",
         "CUDAExecutionProvider",
@@ -537,7 +594,7 @@
         "CoreMLExecutionProvider"
       ]
     },
-    "accelerator": {
+    "imported__runtime-manifest__accelerator": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -609,7 +666,7 @@
         }
       }
     },
-    "execution": {
+    "imported__runtime-manifest__execution": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -659,7 +716,7 @@
         }
       }
     },
-    "dataPlane": {
+    "imported__runtime-manifest__dataPlane": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -677,7 +734,7 @@
           "maxLength": 128
         },
         "fastdds_profile_sha256": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
         },
         "ipc_namespace": {
           "type": "string",
@@ -700,7 +757,7 @@
         }
       }
     },
-    "security": {
+    "imported__runtime-manifest__security": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -733,13 +790,13 @@
         "policy_digests": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/sha256"
+            "$ref": "#/$defs/imported__runtime-manifest__sha256"
           },
           "uniqueItems": true
         }
       }
     },
-    "lifecycleState": {
+    "imported__runtime-manifest__lifecycleState": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -767,32 +824,7 @@
         }
       }
     },
-    "physicalTarget": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "target_id",
-        "scope"
-      ],
-      "properties": {
-        "target_id": {
-          "$ref": "#/$defs/identifier"
-        },
-        "scope": {
-          "enum": [
-            "compute",
-            "sensor",
-            "controller",
-            "actuator"
-          ]
-        },
-        "stable_device_path": {
-          "type": "string",
-          "pattern": "^/dev/[^*?\\s]+$"
-        }
-      }
-    },
-    "clock": {
+    "imported__runtime-manifest__clock": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -828,7 +860,7 @@
         }
       }
     },
-    "extensions": {
+    "imported__runtime-manifest__extensions": {
       "type": "object",
       "default": {},
       "propertyNames": {

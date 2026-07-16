@@ -15,9 +15,8 @@ def load_fixture(path: Path) -> dict[str, object]:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("schema_name", ["acceptance-result.v1", "acceptance-result.v2"])
-def test_acceptance_results_satisfy_metaschema(schema_name: str) -> None:
-    Draft202012Validator.check_schema(load_schema(schema_name))
+def test_acceptance_result_satisfies_metaschema() -> None:
+    Draft202012Validator.check_schema(load_schema("acceptance-result.v1"))
 
 
 @pytest.mark.parametrize("fixture", sorted((FIXTURES / "valid").iterdir()))

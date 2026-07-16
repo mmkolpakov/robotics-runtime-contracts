@@ -451,10 +451,11 @@ wheels = [
 
 [[package]]
 name = "robotics-runtime-contracts"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },
+    { name = "referencing" },
 ]
 
 [package.dev-dependencies]
@@ -468,7 +469,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "jsonschema", specifier = ">=4.26,<5" }]
+requires-dist = [
+    { name = "jsonschema", specifier = ">=4.26,<5" },
+    { name = "referencing", specifier = ">=0.37,<1" },
+]
 
 [package.metadata.requires-dev]
 dev = [

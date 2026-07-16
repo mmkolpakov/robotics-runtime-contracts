@@ -24,26 +24,30 @@ gazebo:
 render:
   mode: software
   renderer: llvmpipe
-model:
-  manifest_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-  artifact_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-  format: onnx
-inference:
-  runtime_family: onnxruntime_cpu
-  runtime_version: 1.27.0
-  requested_provider: CPUExecutionProvider
-  actual_provider: CPUExecutionProvider
-  fallback_count: 0
-accelerator:
-  vendor: none
-  device_class: cpu
-  device_id: host-cpu
+workload:
+  kind: inference
+  model:
+    manifest_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+    artifact_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    format: onnx
+  inference:
+    runtime_family: onnxruntime_cpu
+    runtime_version: 1.27.0
+    requested_provider: CPUExecutionProvider
+    actual_provider: CPUExecutionProvider
+    fallback_count: 0
+  accelerator:
+    vendor: none
+    device_class: cpu
+    device_id: host-cpu
 execution:
   target_environment: simulation
   data_source: gazebo
   plant_backend: gazebo_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
+authorization:
+  mode: none
 data_plane:
   rmw_implementation: rmw_fastrtps_cpp
   ipc_namespace: container:simulation

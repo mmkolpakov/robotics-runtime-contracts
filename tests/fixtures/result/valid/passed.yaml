@@ -22,13 +22,22 @@ observed_ros_graph:
       first_message_at_ns: 1000000000
   services: []
   actions: []
+forbidden_graph_observation:
+  passed: true
+  checked_topics: []
+  checked_services: []
+  checked_actions: []
+  violations: []
 execution:
   target_environment: simulation
   data_source: gazebo
   plant_backend: gazebo_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
-inference:
+authorization:
+  mode: none
+workload:
+  kind: inference
   runtime_family: onnxruntime_cpu
   actual_provider: CPUExecutionProvider
   model_format: onnx

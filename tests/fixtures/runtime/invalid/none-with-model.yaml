@@ -1,4 +1,4 @@
-schema_version: runtime-manifest.v2
+schema_version: runtime-manifest.v1
 runtime_id: org.example.invalid-none
 generated_at: "2026-07-11T12:00:00Z"
 oci_image: {reference: "ghcr.io/example/runtime@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
@@ -10,6 +10,7 @@ workload:
   kind: none
   model: {}
 execution: {target_environment: simulation, data_source: gazebo, plant_backend: gazebo_physics, time_mode: simulation_realtime, data_plane_profile: standard_isolated}
+authorization: {mode: none}
 data_plane: {rmw_implementation: rmw_fastrtps_cpp, ipc_namespace: "container:simulation", network_namespace: "compose:default", shm_transport: false, data_sharing: false, private_ipc: false}
 security: {profile: none, strategy: none, enclaves: [], policy_digests: []}
 lifecycle_states: []
