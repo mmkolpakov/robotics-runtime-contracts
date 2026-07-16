@@ -10,7 +10,7 @@ import yaml
 
 from robotics_runtime_contracts import ExtensionValidationError, validate_document
 
-FIXTURE = Path(__file__).parent / "fixtures" / "v2" / "valid" / "simulation-realtime.yaml"
+FIXTURE = Path(__file__).parent / "fixtures" / "scenario" / "valid" / "simulation-realtime.yaml"
 SCHEMA_URI = "https://schemas.example.org/sorting-item.v1.schema.json"
 
 
@@ -43,18 +43,6 @@ def scenario_with_extension() -> dict[str, object]:
 def test_namespaced_extension_is_validated_from_digest_pinned_json() -> None:
     validate_document(
         scenario_with_extension(),
-        extension_schemas={SCHEMA_URI: extension_schema()},
-    )
-
-
-def test_v3_preserves_digest_pinned_domain_extensions() -> None:
-    scenario = scenario_with_extension()
-    scenario["schema_version"] = "acceptance-scenario.v3"
-    scenario["authorization"] = {"mode": "none"}
-    scenario["forbidden_ros_graph"] = {"topics": [], "services": [], "actions": []}
-
-    validate_document(
-        scenario,
         extension_schemas={SCHEMA_URI: extension_schema()},
     )
 

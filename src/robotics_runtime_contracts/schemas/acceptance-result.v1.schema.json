@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:robotics-runtime-contracts:acceptance-result:v1",
-  "title": "Robotics acceptance result",
-  "description": "Machine-readable result and evidence index for one acceptance execution.",
+  "title": "Robotics acceptance result v1",
+  "description": "Acceptance result with physical authorization, forbidden-interface observations, and hardware timing evidence.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,8 +16,10 @@
     "status",
     "assertion_results",
     "observed_ros_graph",
+    "forbidden_graph_observation",
     "execution",
-    "inference",
+    "authorization",
+    "workload",
     "lifecycle_states",
     "clock_observation",
     "shutdown",
@@ -28,22 +30,19 @@
       "const": "acceptance-result.v1"
     },
     "result_id": {
-      "$ref": "#/$defs/identifier"
+      "$ref": "#/$defs/imported__acceptance-result__identifier"
     },
     "scenario_sha256": {
-      "$ref": "#/$defs/sha256"
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
     },
     "runtime_manifest_sha256": {
-      "$ref": "#/$defs/sha256"
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
     },
     "model_manifest_sha256": {
-      "$ref": "#/$defs/sha256"
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
     },
     "dataset_manifest_sha256": {
-      "$ref": "#/$defs/sha256"
-    },
-    "permit_sha256": {
-      "$ref": "#/$defs/sha256"
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
     },
     "started_at": {
       "type": "string",
@@ -68,43 +67,55 @@
     "assertion_results": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/assertionResult"
+        "$ref": "#/$defs/imported__acceptance-result__assertionResult"
       }
     },
     "observed_ros_graph": {
-      "$ref": "#/$defs/observedRosGraph"
+      "$ref": "#/$defs/imported__acceptance-result__observedRosGraph"
+    },
+    "forbidden_graph_observation": {
+      "$ref": "#/$defs/forbiddenGraphObservation"
     },
     "execution": {
-      "$ref": "#/$defs/execution"
+      "$ref": "#/$defs/imported__acceptance-result__execution"
     },
-    "inference": {
-      "$ref": "#/$defs/inference"
+    "authorization": {
+      "$ref": "#/$defs/authorization"
+    },
+    "workload": {
+      "$ref": "#/$defs/imported__acceptance-result__workload"
     },
     "lifecycle_states": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/lifecycleState"
+        "$ref": "#/$defs/imported__acceptance-result__lifecycleState"
       }
     },
     "clock_observation": {
-      "$ref": "#/$defs/clockObservation"
+      "$ref": "#/$defs/imported__acceptance-result__clockObservation"
+    },
+    "hardware_clock_observation": {
+      "$ref": "#/$defs/hardwareClockObservation"
     },
     "shutdown": {
-      "$ref": "#/$defs/shutdown"
+      "$ref": "#/$defs/imported__acceptance-result__shutdown"
     },
     "evidence": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/evidence"
+        "$ref": "#/$defs/imported__acceptance-result__evidence"
       }
     },
     "extensions": {
-      "$ref": "#/$defs/extensions"
+      "$ref": "#/$defs/imported__acceptance-result__extensions"
     }
   },
   "allOf": [
     {
       "if": {
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "const": "passed"
@@ -121,14 +132,65 @@
                 }
               }
             }
+          },
+          "forbidden_graph_observation": {
+            "properties": {
+              "passed": {
+                "const": true
+              },
+              "violations": {
+                "maxItems": 0
+              }
+            }
           }
         }
       }
     },
     {
       "if": {
+        "required": [
+          "execution"
+        ],
         "properties": {
           "execution": {
+            "required": [
+              "target_environment"
+            ],
+            "properties": {
+              "target_environment": {
+                "const": "simulation"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "none"
+              }
+            }
+          }
+        },
+        "not": {
+          "required": [
+            "hardware_clock_observation"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "target_environment"
+            ],
             "properties": {
               "target_environment": {
                 "enum": [
@@ -142,26 +204,239 @@
       },
       "then": {
         "required": [
-          "permit_sha256"
+          "hardware_clock_observation"
+        ],
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "verified_execution_permit"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "data_source": {
+                "const": "live_target"
+              },
+              "plant_backend": {
+                "const": "real_hardware"
+              },
+              "time_mode": {
+                "const": "hardware_realtime"
+              },
+              "data_plane_profile": {
+                "const": "secure_shared_memory"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "workload"
+        ],
+        "properties": {
+          "workload": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "inference"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "model_manifest_sha256"
         ]
       }
     }
   ],
   "$defs": {
-    "identifier": {
+    "authorization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "permit_sha256",
+            "execution_verification_sha256",
+            "trust_policy_sha256",
+            "target"
+          ],
+          "properties": {
+            "mode": {
+              "const": "verified_execution_permit"
+            },
+            "permit_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "execution_verification_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "trust_policy_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "target": {
+              "$ref": "#/$defs/imported__execution-permit__target"
+            }
+          }
+        }
+      ]
+    },
+    "forbiddenGraphObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "checked_topics",
+        "checked_services",
+        "checked_actions",
+        "violations"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "checked_topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "checked_services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "checked_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "name"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "topic",
+                  "service",
+                  "action"
+                ]
+              },
+              "name": {
+                "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hardwareClockObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sync_protocol",
+        "source",
+        "measured_at",
+        "sample_count",
+        "offset_ms",
+        "jitter_ms",
+        "drift_ppm",
+        "max_sample_age_ms",
+        "within_policy",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "sync_protocol": {
+          "enum": [
+            "ptp",
+            "chrony_ntp",
+            "mavlink_timesync",
+            "micro_xrce_dds",
+            "external"
+          ]
+        },
+        "source": {
+          "enum": [
+            "pmc",
+            "chronyc_tracking",
+            "mavlink_timesync_status",
+            "controller_telemetry",
+            "external_attestation"
+          ]
+        },
+        "measured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "jitter_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "drift_ppm": {
+          "type": "number"
+        },
+        "max_sample_age_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "within_policy": {
+          "type": "boolean"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/imported__acceptance-result__sha256"
+        }
+      }
+    },
+    "imported__acceptance-result__identifier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
       "maxLength": 128
     },
-    "sha256": {
+    "imported__acceptance-result__sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
     },
-    "rosName": {
-      "type": "string",
-      "pattern": "^/[^\\s]+$"
-    },
-    "assertionResult": {
+    "imported__acceptance-result__assertionResult": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -172,7 +447,7 @@
       ],
       "properties": {
         "assertion_id": {
-          "$ref": "#/$defs/identifier"
+          "$ref": "#/$defs/imported__acceptance-result__identifier"
         },
         "status": {
           "enum": [
@@ -202,7 +477,41 @@
         }
       }
     },
-    "observedTopic": {
+    "imported__acceptance-result__observedRosGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_for_sec",
+        "topics",
+        "services",
+        "actions"
+      ],
+      "properties": {
+        "stable_for_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedTopic"
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedEndpoint"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedEndpoint"
+          }
+        }
+      }
+    },
+    "imported__acceptance-result__observedTopic": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -214,7 +523,7 @@
       ],
       "properties": {
         "name": {
-          "$ref": "#/$defs/rosName"
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
         },
         "type": {
           "type": "string",
@@ -234,7 +543,11 @@
         }
       }
     },
-    "observedEndpoint": {
+    "imported__acceptance-result__rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
+    },
+    "imported__acceptance-result__observedEndpoint": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -244,7 +557,7 @@
       ],
       "properties": {
         "name": {
-          "$ref": "#/$defs/rosName"
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
         },
         "type": {
           "type": "string",
@@ -256,41 +569,7 @@
         }
       }
     },
-    "observedRosGraph": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "stable_for_sec",
-        "topics",
-        "services",
-        "actions"
-      ],
-      "properties": {
-        "stable_for_sec": {
-          "type": "number",
-          "minimum": 0
-        },
-        "topics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/observedTopic"
-          }
-        },
-        "services": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/observedEndpoint"
-          }
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/observedEndpoint"
-          }
-        }
-      }
-    },
-    "execution": {
+    "imported__acceptance-result__execution": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -340,40 +619,60 @@
         }
       }
     },
-    "inference": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "runtime_family",
-        "actual_provider",
-        "model_format",
-        "fallback_count"
-      ],
-      "properties": {
-        "runtime_family": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+    "imported__acceptance-result__workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
         },
-        "actual_provider": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "model_format": {
-          "enum": [
-            "onnx",
-            "tensorrt_engine",
-            "rknn"
-          ]
-        },
-        "fallback_count": {
-          "type": "integer",
-          "minimum": 0
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "runtime_family",
+            "actual_provider",
+            "model_format",
+            "fallback_count"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "runtime_family": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actual_provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "model_format": {
+              "enum": [
+                "onnx",
+                "tensorrt_engine",
+                "rknn"
+              ]
+            },
+            "fallback_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
-      }
+      ]
     },
-    "lifecycleState": {
+    "imported__acceptance-result__lifecycleState": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -383,7 +682,7 @@
       ],
       "properties": {
         "node": {
-          "$ref": "#/$defs/rosName"
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
         },
         "state": {
           "enum": [
@@ -400,7 +699,7 @@
         }
       }
     },
-    "clockObservation": {
+    "imported__acceptance-result__clockObservation": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -431,7 +730,7 @@
         }
       }
     },
-    "shutdown": {
+    "imported__acceptance-result__shutdown": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -451,7 +750,7 @@
         }
       }
     },
-    "evidence": {
+    "imported__acceptance-result__evidence": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -481,7 +780,7 @@
           ]
         },
         "sha256": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/imported__acceptance-result__sha256"
         },
         "size_bytes": {
           "type": "integer",
@@ -513,7 +812,7 @@
         }
       ]
     },
-    "extensions": {
+    "imported__acceptance-result__extensions": {
       "type": "object",
       "default": {},
       "propertyNames": {
@@ -522,6 +821,53 @@
       "additionalProperties": {
         "type": "object"
       }
+    },
+    "imported__execution-permit__target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "target_id",
+        "identity_kind",
+        "identity_sha256"
+      ],
+      "properties": {
+        "environment": {
+          "enum": [
+            "hil",
+            "real_robot"
+          ]
+        },
+        "target_id": {
+          "$ref": "#/$defs/imported__execution-permit__identifier"
+        },
+        "identity_kind": {
+          "enum": [
+            "udev_serial",
+            "pci_device",
+            "mavlink_system_component",
+            "x509_spki",
+            "tpm_ek",
+            "vendor_soc"
+          ]
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/imported__execution-permit__sha256"
+        }
+      }
+    },
+    "imported__execution-permit__identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "imported__execution-permit__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__acceptance-scenario__rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
     }
   }
 }

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:robotics-runtime-contracts:execution-permit:v1",
-  "title": "Robotics execution permit",
-  "description": "Short-lived approval predicate for hardware-in-the-loop and real-robot execution.",
+  "title": "Robotics execution permit v1",
+  "description": "Short-lived two-party approval predicate bound to an immutable physical target identity.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,6 +11,7 @@
     "permit_id",
     "scenario_sha256",
     "image_digest",
+    "trust_policy_sha256",
     "target",
     "allowed_physical_effect",
     "hardware_scope",
@@ -29,14 +30,17 @@
       "const": "https://robotics-runtime-contracts.dev/attestations/execution-permit/v1"
     },
     "permit_id": {
-      "$ref": "#/$defs/identifier"
+      "$ref": "#/$defs/imported__execution-permit__identifier"
     },
     "scenario_sha256": {
-      "$ref": "#/$defs/sha256"
+      "$ref": "#/$defs/imported__execution-permit__sha256"
     },
     "image_digest": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "trust_policy_sha256": {
+      "$ref": "#/$defs/imported__execution-permit__sha256"
     },
     "target": {
       "$ref": "#/$defs/target"
@@ -44,8 +48,7 @@
     "allowed_physical_effect": {
       "enum": [
         "none",
-        "observation",
-        "actuation"
+        "observation"
       ]
     },
     "hardware_scope": {
@@ -55,8 +58,7 @@
         "enum": [
           "compute",
           "sensor",
-          "controller",
-          "actuator"
+          "controller"
         ]
       },
       "uniqueItems": true
@@ -74,23 +76,29 @@
       "pattern": "^[a-f0-9]{32,128}$"
     },
     "operator_id": {
-      "$ref": "#/$defs/principal"
+      "$ref": "#/$defs/imported__execution-permit__principal"
     },
     "approver_id": {
-      "$ref": "#/$defs/principal"
+      "$ref": "#/$defs/imported__execution-permit__principal"
     },
     "interlock_check": {
-      "$ref": "#/$defs/interlockCheck"
+      "$ref": "#/$defs/imported__execution-permit__interlockCheck"
     },
     "extensions": {
-      "$ref": "#/$defs/extensions"
+      "$ref": "#/$defs/imported__execution-permit__extensions"
     }
   },
   "allOf": [
     {
       "if": {
+        "required": [
+          "target"
+        ],
         "properties": {
           "target": {
+            "required": [
+              "environment"
+            ],
             "properties": {
               "environment": {
                 "const": "hil"
@@ -103,21 +111,20 @@
         "properties": {
           "allowed_physical_effect": {
             "const": "none"
-          },
-          "hardware_scope": {
-            "not": {
-              "contains": {
-                "const": "actuator"
-              }
-            }
           }
         }
       }
     },
     {
       "if": {
+        "required": [
+          "target"
+        ],
         "properties": {
           "target": {
+            "required": [
+              "environment"
+            ],
             "properties": {
               "environment": {
                 "const": "real_robot"
@@ -129,35 +136,21 @@
       "then": {
         "properties": {
           "allowed_physical_effect": {
-            "enum": [
-              "observation",
-              "actuation"
-            ]
+            "const": "observation"
           }
         }
       }
     }
   ],
   "$defs": {
-    "identifier": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
-      "maxLength": 128
-    },
-    "principal": {
-      "type": "string",
-      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:/-]{2,255}$"
-    },
-    "sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
-    },
     "target": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "environment",
-        "target_id"
+        "target_id",
+        "identity_kind",
+        "identity_sha256"
       ],
       "properties": {
         "environment": {
@@ -167,11 +160,37 @@
           ]
         },
         "target_id": {
-          "$ref": "#/$defs/identifier"
+          "$ref": "#/$defs/imported__execution-permit__identifier"
+        },
+        "identity_kind": {
+          "enum": [
+            "udev_serial",
+            "pci_device",
+            "mavlink_system_component",
+            "x509_spki",
+            "tpm_ek",
+            "vendor_soc"
+          ]
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/imported__execution-permit__sha256"
         }
       }
     },
-    "interlockCheck": {
+    "imported__execution-permit__identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "imported__execution-permit__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__execution-permit__principal": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9@._:/-]{2,255}$"
+    },
+    "imported__execution-permit__interlockCheck": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -186,7 +205,7 @@
           "pattern": "^(?:https|s3|oci)://[^\\s]+$"
         },
         "sha256": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/imported__execution-permit__sha256"
         },
         "status": {
           "const": "passed"
@@ -197,7 +216,7 @@
         }
       }
     },
-    "extensions": {
+    "imported__execution-permit__extensions": {
       "type": "object",
       "default": {},
       "propertyNames": {

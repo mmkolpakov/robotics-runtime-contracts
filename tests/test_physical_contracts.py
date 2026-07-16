@@ -16,13 +16,13 @@ from robotics_runtime_contracts import (
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
-FIXTURES = FIXTURE_ROOT / "v3" / "valid"
+FIXTURES = FIXTURE_ROOT / "physical" / "valid"
 SCHEMAS = (
-    "acceptance-scenario.v3",
-    "runtime-manifest.v3",
-    "execution-permit.v2",
+    "acceptance-scenario.v1",
+    "runtime-manifest.v1",
+    "execution-permit.v1",
     "execution-verification.v1",
-    "acceptance-result.v3",
+    "acceptance-result.v1",
 )
 
 
@@ -49,41 +49,27 @@ def test_valid_physical_documents(fixture_name: str) -> None:
     validate_document(load_fixture(fixture_name))
 
 
-def test_v3_accepts_simulation_without_physical_authorization() -> None:
+def test_canonical_contracts_accept_simulation_without_physical_authorization() -> None:
     scenario = yaml.safe_load(
-        (FIXTURE_ROOT / "v2" / "valid" / "simulation-realtime.yaml").read_text(encoding="utf-8")
+        (FIXTURE_ROOT / "scenario" / "valid" / "simulation-realtime.yaml").read_text(
+            encoding="utf-8"
+        )
     )
-    scenario["schema_version"] = "acceptance-scenario.v3"
-    scenario["authorization"] = {"mode": "none"}
-    scenario["forbidden_ros_graph"] = {"topics": [], "services": [], "actions": []}
 
     runtime = yaml.safe_load(
         (FIXTURE_ROOT / "runtime" / "valid" / "no-inference-simulation.yaml").read_text(
             encoding="utf-8"
         )
     )
-    runtime["schema_version"] = "runtime-manifest.v3"
-    runtime["authorization"] = {"mode": "none"}
-
     result = yaml.safe_load(
         (FIXTURE_ROOT / "result" / "valid" / "passed-no-inference.yaml").read_text(encoding="utf-8")
     )
-    result["schema_version"] = "acceptance-result.v3"
-    result["authorization"] = {"mode": "none"}
-    result["forbidden_graph_observation"] = {
-        "passed": True,
-        "checked_topics": [],
-        "checked_services": [],
-        "checked_actions": [],
-        "violations": [],
-    }
-
     validate_document(scenario)
     validate_document(runtime)
     validate_document(result)
 
 
-def test_v3_accepts_real_target_only_as_observation() -> None:
+def test_contracts_accept_real_target_only_as_observation() -> None:
     scenario = load_fixture("hil-scenario.yaml")
     scenario["execution"]["target_environment"] = "real_robot"
     scenario["execution"]["physical_effect"] = "observation"
@@ -131,7 +117,7 @@ def test_permit_rejects_same_operator_and_approver() -> None:
         validate_document(permit)
 
 
-def test_permit_v2_is_bounded_to_thirty_minutes() -> None:
+def test_permit_is_bounded_to_thirty_minutes() -> None:
     permit = load_fixture("hil-permit.yaml")
     permit["expires_at"] = "2026-07-12T10:30:01Z"
 
@@ -156,7 +142,7 @@ def test_permit_v2_is_bounded_to_thirty_minutes() -> None:
         ),
     ),
 )
-def test_v3_foundation_rejects_actuation(
+def test_foundation_rejects_actuation(
     fixture_name: str,
     mutation: Any,
 ) -> None:

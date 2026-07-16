@@ -19,7 +19,7 @@ repos:
       - id: check-github-workflows
       - id: check-jsonschema
         name: validate acceptance scenario examples
-        files: ^tests/fixtures/valid/.*\.(json|ya?ml)$
+        files: ^tests/fixtures/scenario/valid/.*\.(json|ya?ml)$
         args:
           - --schemafile
           - src/robotics_runtime_contracts/schemas/acceptance-scenario.v1.schema.json

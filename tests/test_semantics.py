@@ -19,12 +19,12 @@ def load_fixture(path: str) -> dict[str, object]:
     ("fixture", "mutation", "expected_path"),
     [
         (
-            "v2/valid/simulation-realtime.yaml",
+            "scenario/valid/simulation-realtime.yaml",
             lambda value: value["timeouts"].update(stable_for_sec=31),
             "$.timeouts.stable_for_sec",
         ),
         (
-            "v2/valid/simulation-realtime.yaml",
+            "scenario/valid/simulation-realtime.yaml",
             lambda value: value["expected_ros_graph"]["topics"].append(
                 deepcopy(value["expected_ros_graph"]["topics"][0])
             ),
@@ -37,8 +37,8 @@ def load_fixture(path: str) -> dict[str, object]:
         ),
         (
             "runtime/valid/cpu-simulation.yaml",
-            lambda value: value["inference"].update(fallback_count=1),
-            "$.inference.fallback_count",
+            lambda value: value["workload"]["inference"].update(fallback_count=1),
+            "$.workload.inference.fallback_count",
         ),
         (
             "runtime/valid/no-inference-simulation.yaml",
@@ -46,7 +46,7 @@ def load_fixture(path: str) -> dict[str, object]:
             "$.clock.sync_protocol",
         ),
         (
-            "permit/valid/hil.yaml",
+            "physical/valid/hil-permit.yaml",
             lambda value: value.update(approver_id=value["operator_id"]),
             "$.approver_id",
         ),

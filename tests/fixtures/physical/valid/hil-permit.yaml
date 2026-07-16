@@ -1,5 +1,5 @@
-schema_version: execution-permit.v2
-predicate_type: https://robotics-runtime-contracts.dev/attestations/execution-permit/v2
+schema_version: execution-permit.v1
+predicate_type: https://robotics-runtime-contracts.dev/attestations/execution-permit/v1
 permit_id: org.example.hil-permit-001
 scenario_sha256: "1111111111111111111111111111111111111111111111111111111111111111"
 image_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

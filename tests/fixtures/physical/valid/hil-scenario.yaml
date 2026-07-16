@@ -1,17 +1,28 @@
-schema_version: acceptance-scenario.v2
-scenario_id: org.example.controller-hil
+schema_version: acceptance-scenario.v1
+scenario_id: org.example.controller-hil-observation
 execution:
   target_environment: hil
   hardware_scope:
     - compute
     - controller
   physical_effect: none
-  test_intent: functional
+  test_intent: safety_evidence
   data_source: live_target
   plant_backend: real_hardware
   time_mode: hardware_realtime
   data_plane_profile: secure_shared_memory
   security_profile: sros2_enforce
+authorization:
+  mode: signed_execution_permit
+  permit_schema: execution-permit.v1
+  verification_schema: execution-verification.v1
+  trust_policy_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  two_party_approval: true
+forbidden_ros_graph:
+  topics:
+    - /cmd_vel
+  services: []
+  actions: []
 seed: 42
 timeouts:
   startup_sec: 60

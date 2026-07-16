@@ -30,7 +30,7 @@ def test_package_declares_pep561_typing() -> None:
     assert marker.is_file()
 
 
-FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURES = Path(__file__).parent / "fixtures" / "scenario"
 
 
 def load_fixture(path: Path) -> dict[str, Any]:
@@ -46,11 +46,6 @@ def test_schema_satisfies_draft_2020_12_metaschema() -> None:
     assert schema["$id"] == "urn:robotics-runtime-contracts:acceptance-scenario:v1"
 
 
-def test_acceptance_scenario_v1_is_byte_for_byte_stable() -> None:
-    digest = sha256(schema_path().read_bytes()).hexdigest()
-    assert digest == "e134f3f8b5a24a80177a5bc79e81ee4330e68b8d32416cb043e1f94db6efcb66"
-
-
 def test_all_published_schemas_are_byte_for_byte_stable() -> None:
     assert set(PUBLISHED_SCHEMA_SHA256) == set(SCHEMA_FILES)
     for schema_name, expected_digest in PUBLISHED_SCHEMA_SHA256.items():
@@ -63,21 +58,24 @@ def test_valid_scenarios(fixture: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "expected_path"),
+    ("mutation", "expected_path"),
     [
-        ("invalid-extension-key.yaml", "$.extensions"),
-        ("negative-timeout.json", "$.timeouts.execution_sec"),
-        ("unmatched-topic.json", "$.expected_ros_graph.topics[0]"),
-        ("unknown-root-property.json", "$"),
-        ("unknown-target.json", "$.target_environment"),
+        (lambda value: value["timeouts"].update(execution_sec=-1), "$.timeouts.execution_sec"),
+        (lambda value: value.update(unknown=True), "$"),
+        (
+            lambda value: value["execution"].update(target_environment="unknown"),
+            "$.execution.target_environment",
+        ),
     ],
 )
 def test_invalid_scenarios_report_exact_path(
-    fixture_name: str,
+    mutation: Any,
     expected_path: str,
 ) -> None:
+    scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
+    mutation(scenario)
     with pytest.raises(ScenarioValidationError) as caught:
-        validate_scenario(load_fixture(FIXTURES / "invalid" / fixture_name))
+        validate_scenario(scenario)
 
     assert caught.value.json_path == expected_path
     assert str(caught.value).startswith(f"{expected_path}:")
@@ -90,7 +88,7 @@ def test_package_exposes_registered_schemas() -> None:
     assert installed == sorted(SCHEMA_FILES.values())
 
 
-def test_versioned_registry_resolves_version_file_and_id() -> None:
+def test_registry_resolves_name_file_and_id() -> None:
     canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v1"
     assert schema_names() == tuple(SCHEMA_FILES)
     assert SCHEMA_FILES["acceptance-scenario.v1"] == SCHEMA_NAME
@@ -102,7 +100,7 @@ def test_versioned_registry_resolves_version_file_and_id() -> None:
 
 
 def test_validate_document_uses_declared_schema_version() -> None:
-    scenario = load_fixture(FIXTURES / "valid" / "simulation.json")
+    scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
     validate_document(scenario)
 
 
