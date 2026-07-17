@@ -4,13 +4,58 @@
 [![Release](https://img.shields.io/github/v/release/mmkolpakov/robotics-runtime-contracts)](https://github.com/mmkolpakov/robotics-runtime-contracts/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Canonical JSON Schema contracts and validation for portable robotics
-acceptance runs. The package defines what a scenario requests, what a runtime
-actually provided, and what evidence an execution produced.
+Define one machine-verifiable language for portable robotics executions.
+
+Use this repository to:
+
+1. **Declare** the requested scenario, workload, ROS graph, timing, safety, and
+   evidence policy.
+2. **Describe** the runtime, model, dataset, authorization, evidence, and final
+   result with versioned JSON Schema contracts.
+3. **Extend** domain data through digest-pinned schemas without weakening the
+   common execution boundary.
 
 The contracts are neutral to robot type, simulator scene, model family, and
 product rules. Launch files, worlds, model weights, and control logic belong in
-consumer repositories.
+consumer repositories. This package validates documents; it does not start a
+runtime, observe ROS, collect evidence, or decide a verdict.
+
+## Where It Fits
+
+```mermaid
+flowchart LR
+    product["Product repository<br/>worlds, robots, models, drivers, behavior"]
+    infra["Runtime infra<br/>start services, expose facts, capture evidence"]
+    execution["Running ROS 2 execution"]
+    harness["Acceptance harness<br/>observe, evaluate, report"]
+    result["Acceptance result<br/>JSON and JUnit"]
+    contracts["Runtime contracts<br/>scenario, runtime, evidence, result"]
+
+    product --> infra --> execution --> harness --> result
+    contracts -. validates .-> product
+    contracts -. validates .-> infra
+    contracts -. validates .-> harness
+```
+
+The end-to-end handoff is machine-readable: a product repository supplies its
+workload and scenario, runtime infra emits observed runtime and evidence facts,
+and the harness emits an acceptance result plus JUnit. Each layer can evolve
+and be tested independently.
+
+[`robotics-runtime-infra`](https://github.com/mmkolpakov/robotics-runtime-infra)
+uses these contracts to describe the environment and evidence.
+[`robotics-acceptance-harness`](https://github.com/mmkolpakov/robotics-acceptance-harness)
+uses the same contracts to validate inputs and emit a result.
+
+## Choose an Interface
+
+| Goal | Start here |
+| --- | --- |
+| Validate an application document | [`validate_document()`](#python-api) |
+| Embed a published schema | [`load_schema()` or `schema_path()`](#python-api) |
+| Review the public document set | [Schema Catalog](#schema-catalog) |
+| Add product-specific fields | [Domain Extensions](#domain-extensions) |
+| Change a public contract | [Compatibility](#compatibility) and [Development](#development) |
 
 ## Install
 
@@ -27,7 +72,8 @@ distribution, checksums, and GitHub artifact attestations.
 
 ## Quick Start
 
-To run the packaged examples and development checks, use
+Run a version-controlled fixture through the same structural, semantic, and
+extension validation used by consumers. This example uses
 [uv](https://docs.astral.sh/uv/) from a checkout:
 
 ```bash
@@ -45,8 +91,9 @@ print("valid")
 PY
 ```
 
-Applications pass already parsed mappings to the package. JSON and YAML file
-loading remains the caller's responsibility.
+Expected output is `valid`. The fixture is intentionally loaded by the caller:
+the package accepts parsed mappings and does not impose a JSON or YAML loading
+policy on applications.
 
 ## Schema Catalog
 
@@ -72,6 +119,7 @@ from robotics_runtime_contracts import (
     SemanticValidationError,
     load_schema,
     schema_names,
+    schema_path,
     validate_document,
 )
 
@@ -82,7 +130,7 @@ schema = load_schema("runtime-manifest.v1")
 
 `validate_document()` selects the contract from `schema_version`. Structural
 and semantic failures include an exact JSON path. `validate_scenario()` and
-`ScenarioValidationError` is the scenario-specific validation error.
+`ScenarioValidationError` provide the scenario-specific validation path.
 
 ## Domain Extensions
 
