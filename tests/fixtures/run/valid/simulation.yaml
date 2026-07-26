@@ -1,0 +1,13 @@
+schema_version: acceptance-run.v1
+run_id: run-6ba7b810-9dad-41d1-80b4-00c04fd430c8
+created_at: "2026-07-26T10:00:00Z"
+scenario_id: foundation-stepped-smoke
+scenario_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+time_authority:
+  kind: sim_clock
+  source_id: gazebo-clock
+domains:
+  - domain_id: primary
+    role: observer
+  - domain_id: secondary
+    role: observer

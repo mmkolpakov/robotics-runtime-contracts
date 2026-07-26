@@ -1,0 +1,77 @@
+schema_version: acceptance-result.v2
+result_id: result-01234567-89ab-4def-8123-456789abcdef
+run_id: run-01234567-89ab-4def-8123-456789abcdef
+scenario_id: org.example.camera-stream
+domain_id: primary
+verdict_scope: domain
+unevaluated: []
+time_authority_observation:
+  source_id: simulation-clock
+  sample_count: 30
+  window_start_ns: 1000000000
+  window_end_ns: 30000000000
+  p50_offset_ms: 0.1
+  p95_offset_ms: 0.2
+  max_offset_ms: 0.3
+  within_policy: true
+  evidence_sha256: 91c55c1da055f1378f3d73e05535ebadd2d876b14a5d2fdd92285908c87b5b5b
+scenario_sha256: 01796d4c8bd39b86f9937b77a837856e5d1c0f4817cf773153c05bd008a0c7f7
+runtime_manifest_sha256: d594492bd567f221659a144b3b722e50ad2e51baa49b57dc992691845d7df280
+started_at: "2026-07-26T12:00:00Z"
+finished_at: "2026-07-26T12:02:00Z"
+monotonic_duration_sec: 120
+status: passed
+assertion_results:
+  - assertion_id: camera-age
+    status: passed
+    observed_value: 20.1
+    unit: ms
+observed_ros_graph:
+  stable_for_sec: 3
+  topics:
+    - name: /clock
+      type: rosgraph_msgs/msg/Clock
+      publishers: 1
+      subscribers: 1
+      first_message_at_ns: 1000000000
+    - name: /camera/image
+      type: sensor_msgs/msg/Image
+      publishers: 1
+      subscribers: 1
+      first_message_at_ns: 1100000000
+  services: []
+  actions: []
+forbidden_graph_observation:
+  passed: true
+  checked_topics: []
+  checked_services: []
+  checked_actions: []
+  violations: []
+execution:
+  target_environment: simulation
+  data_source: gazebo
+  plant_backend: gazebo_physics
+  time_mode: simulation_realtime
+  data_plane_profile: standard_isolated
+workload:
+  kind: none
+authorization:
+  mode: none
+lifecycle_states: []
+clock_observation:
+  monotonic: true
+  offset_ms: 0
+  drift_ppm: 0
+  real_time_factor: 0.99
+  deadline_miss_ratio: 0
+shutdown:
+  observer_detached: true
+  recorders_closed: true
+  evidence_index_finalized: true
+evidence:
+  - uri: file:///evidence/time-authority.json
+    media_type: application/json
+    sha256: 91c55c1da055f1378f3d73e05535ebadd2d876b14a5d2fdd92285908c87b5b5b
+    size_bytes: 222
+    retention_class: pull-request-7d
+    segment_index: 0

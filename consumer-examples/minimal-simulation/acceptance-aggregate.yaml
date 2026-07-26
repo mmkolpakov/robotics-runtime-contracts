@@ -1,0 +1,14 @@
+schema_version: acceptance-aggregate.v1
+aggregate_id: aggregate-01234567-89ab-4def-8123-456789abcdef
+run_id: run-01234567-89ab-4def-8123-456789abcdef
+acceptance_run_sha256: a7d705bcfc521b7eec3f80556963a262e098d0184d637acda8be1a38c8151133
+generated_at: "2026-07-26T12:02:00Z"
+per_domain_results:
+  - domain_id: primary
+    result_id: result-01234567-89ab-4def-8123-456789abcdef
+    result_sha256: c23b9155f6db7d38b82a4a12e9d28ecaecb0494334a9aff6c6e323621207440c
+    status: passed
+per_domain_aggregate: passed
+cross_domain_e2e:
+  status: unevaluated
+  reason: trace_evidence_not_evaluated

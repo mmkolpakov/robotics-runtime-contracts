@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:mcap-summary:v1",
+  "title": "MCAP summary v1",
+  "description": "Deterministic summary extracted from a finalized MCAP footer and Statistics record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_sha256",
+    "statistics",
+    "compressions",
+    "channels"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mcap-summary.v1"
+    },
+    "source_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "statistics": {
+      "$ref": "#/$defs/statistics"
+    },
+    "compressions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message_count",
+        "schema_count",
+        "channel_count",
+        "attachment_count",
+        "metadata_count",
+        "chunk_count",
+        "message_start_time_ns",
+        "message_end_time_ns"
+      ],
+      "properties": {
+        "message_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schema_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attachment_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadata_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunk_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message_start_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "message_end_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "message_encoding",
+        "schema_name",
+        "message_count"
+      ],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "pattern": "^/(?:[A-Za-z_][A-Za-z0-9_]*/)*[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "message_encoding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

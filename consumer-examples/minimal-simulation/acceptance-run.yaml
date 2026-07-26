@@ -1,0 +1,11 @@
+schema_version: acceptance-run.v1
+run_id: run-01234567-89ab-4def-8123-456789abcdef
+created_at: "2026-07-26T12:00:00Z"
+scenario_id: org.example.camera-stream
+scenario_sha256: 01796d4c8bd39b86f9937b77a837856e5d1c0f4817cf773153c05bd008a0c7f7
+time_authority:
+  kind: sim_clock
+  source_id: simulation-clock
+domains:
+  - domain_id: primary
+    role: observer

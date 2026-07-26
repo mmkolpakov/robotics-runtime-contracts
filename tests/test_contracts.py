@@ -88,7 +88,7 @@ def test_package_exposes_registered_schemas() -> None:
     assert installed == sorted(SCHEMA_FILES.values())
 
 
-def test_registry_resolves_name_file_and_id() -> None:
+def test_catalog_resolves_name_file_and_id() -> None:
     canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v1"
     assert schema_names() == tuple(SCHEMA_FILES)
     assert SCHEMA_FILES["acceptance-scenario.v1"] == SCHEMA_NAME
@@ -97,6 +97,14 @@ def test_registry_resolves_name_file_and_id() -> None:
     assert resolve_schema_name(canonical_id) == "acceptance-scenario.v1"
     assert schema_path(canonical_id) == schema_path()
     assert load_schema(SCHEMA_NAME) == load_schema()
+
+
+def test_load_schema_returns_an_isolated_copy() -> None:
+    schema = load_schema("acceptance-scenario.v1")
+    schema["properties"]["schema_version"]["const"] = "poisoned"
+
+    fresh = load_schema("acceptance-scenario.v1")
+    assert fresh["properties"]["schema_version"]["const"] == "acceptance-scenario.v1"
 
 
 def test_validate_document_uses_declared_schema_version() -> None:

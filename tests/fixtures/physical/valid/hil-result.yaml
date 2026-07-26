@@ -64,4 +64,9 @@ shutdown:
   observer_detached: true
   recorders_closed: true
   evidence_index_finalized: true
-evidence: []
+evidence:
+  - uri: file:///evidence/hardware-clock.json
+    media_type: application/json
+    sha256: "8888888888888888888888888888888888888888888888888888888888888888"
+    size_bytes: 512
+    retention_class: pull-request-7d

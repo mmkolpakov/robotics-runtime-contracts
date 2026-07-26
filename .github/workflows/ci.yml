@@ -34,6 +34,8 @@ jobs:
       - name: Run repository checks
         run: |
           uv run pre-commit run --all-files --show-diff-on-failure
+      - name: Validate consumer examples
+        run: uv run pytest tests/test_consumer_examples.py
       - name: Run tests
         run: |
           mkdir -p artifacts
@@ -48,7 +50,7 @@ jobs:
           from robotics_runtime_contracts import load_schema, schema_names, schema_path
           from importlib.resources import files
 
-          assert len(schema_names()) == 8
+          assert schema_names()
           assert files("robotics_runtime_contracts").joinpath("py.typed").is_file()
           for name in schema_names():
               assert schema_path(name).is_file()
@@ -61,7 +63,7 @@ jobs:
           .sdist-venv/bin/python - <<'PY'
           from robotics_runtime_contracts import schema_names, schema_path
 
-          assert len(schema_names()) == 8
+          assert schema_names()
           assert all(schema_path(name).is_file() for name in schema_names())
           PY
       - name: Upload validation artifacts

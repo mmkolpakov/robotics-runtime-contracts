@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:causal-chain:v1",
+  "title": "Robotics causal chain contract v1",
+  "description": "Immutable expected channel sequence for one cross-domain acceptance verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "chain_id",
+    "required_domain_ids",
+    "channel_contracts",
+    "require_connected_trace_graph",
+    "missing_evidence_status",
+    "broken_relationship_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "causal-chain.v1"
+    },
+    "chain_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "required_domain_ids": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "channel_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "sha256"
+        ],
+        "properties": {
+          "channel_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "require_connected_trace_graph": {
+      "const": true
+    },
+    "missing_evidence_status": {
+      "const": "incomplete"
+    },
+    "broken_relationship_status": {
+      "const": "failed"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

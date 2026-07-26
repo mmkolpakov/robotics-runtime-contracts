@@ -54,21 +54,22 @@ uses the same contracts to validate inputs and emit a result.
 | Validate an application document | [`validate_document()`](#python-api) |
 | Embed a published schema | [`load_schema()` or `schema_path()`](#python-api) |
 | Review the public document set | [Schema Catalog](#schema-catalog) |
+| Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
 | Add product-specific fields | [Domain Extensions](#domain-extensions) |
-| Change a public contract | [Compatibility](#compatibility) and [Development](#development) |
+| Change a public contract | [Compatibility policy](COMPATIBILITY.md) and [Development](#development) |
 
 ## Install
 
-The current release is 0.6.0. Install its attested wheel directly from the
+The current package line is 0.7.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.6.0/robotics_runtime_contracts-0.6.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.7.0/robotics_runtime_contracts-0.7.0-py3-none-any.whl
 ```
 
-Python 3.12 or newer is required. Release assets include the wheel, source
-distribution, checksums, and GitHub artifact attestations.
+Python 3.12 or newer is required. Release assets include the wheel and source
+distribution. GitHub stores build-provenance attestations for both artifacts.
 
 ## Quick Start
 
@@ -100,13 +101,25 @@ policy on applications.
 | Schema version | Purpose |
 | --- | --- |
 | `acceptance-scenario.v1` | Execution intent, ROS readiness, timing, evidence, authorization, and forbidden interfaces |
+| `acceptance-scenario.v2` | Attributed metrics and measured time-authority policy |
+| `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
+| `acceptance-result.v1` | Domain acceptance verdict and observed evidence |
+| `acceptance-result.v2` | Run-scoped result with explicit domain, coverage, and time-authority evidence |
+| `acceptance-aggregate.v1` | Per-domain result aggregation with unevaluated cross-domain status |
+| `acceptance-aggregate.v2` | Cross-domain channel and causal-chain verdict |
+| `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
 | `runtime-manifest.v1` | Observed runtime, workload, accelerator, security, timing, and physical target facts |
 | `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
-| `acceptance-result.v1` | Acceptance verdict, authorization, forbidden graph, timing, workload, and evidence |
 | `evidence-index.v1` | Finalized local and confirmed remote evidence segments |
+| `evidence-index.v2` | Evidence policy observation and MCAP summary references |
+| `mcap-summary.v1` | Canonical MCAP statistics and channel summary |
+| `qualification-bundle.v1` | In-toto-shaped qualification evidence statement |
+| `qualification-policy.v1` | Trust policy for qualification-bundle verification |
+| `zenoh-channel.v1` | Cross-domain channel contract |
+| `zenoh-channel-observation.v1` | Observed cross-domain channel delivery and trace evidence |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
 versioned `$id`, and is included in the Python wheel.
@@ -134,10 +147,12 @@ and semantic failures include an exact JSON path. `validate_scenario()` and
 
 ## Domain Extensions
 
-`acceptance-scenario.v1` supports independently versioned, namespaced extension
-schemas without weakening common safety, time, or evidence rules. The caller
-supplies the digest-pinned schema bytes; validation never fetches a schema from
-the network.
+`acceptance-scenario.v1` and `acceptance-scenario.v2` support independently
+versioned, namespaced extension schemas without weakening common safety, time,
+or evidence rules. The caller supplies the digest-pinned schema bytes;
+validation never fetches a schema from the network. Migrating a scenario to v2
+preserves the declarations and payload, and the migrated payload is validated
+against the same pinned schema.
 
 ```python
 validate_document(
@@ -154,12 +169,12 @@ from network or file-system side effects.
 
 ## Compatibility
 
-- The v1 catalog introduced by package 0.6.0 is the initial public contract set.
-- Published schema bytes are immutable and protected by SHA-256 regression tests.
-- Package releases follow semantic versioning; a contract change requires a new
-  schema version and explicit consumer migration.
-- HIL and real-target contracts are observation-only and never authorize
-  physical actuation.
+[COMPATIBILITY.md](COMPATIBILITY.md) defines package SemVer, immutable published
+schema bytes, exact reader and writer behavior, the migration policy for every
+schema, and the normative ROS 2 Jazzy, Gazebo Harmonic, and zstd basis.
+
+HIL and real-target contracts are observation-only and never authorize physical
+actuation.
 
 Package installation is not a hardware qualification. Accelerator, HIL, and
 real-target claims are owned by the runtime infrastructure's
@@ -176,8 +191,8 @@ uv build
 ```
 
 CI validates every schema against its metaschema, runs positive and negative
-fixtures, builds wheel and source distributions, and verifies the installed
-wheel.
+fixtures and neutral consumer examples, runs strict static analysis, builds
+wheel and source distributions, and verifies the installed artifacts.
 
 ## Support and Security
 
@@ -187,6 +202,12 @@ for reproducible contract defects and compatibility questions. See
 security-sensitive findings according to [SECURITY.md](SECURITY.md); never put
 credentials, private datasets, device identifiers, or signing material in an
 issue.
+
+The package currently declares
+[REP-2004 Quality Level 4](QUALITY_DECLARATION.md). Release components and their
+factual SLSA Build level are listed in [SUPPLY_CHAIN.md](SUPPLY_CHAIN.md).
+Package-scoped architecture decisions are recorded in
+[`docs/decisions`](docs/decisions/).
 
 ## License
 
