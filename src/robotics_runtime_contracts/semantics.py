@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, NoReturn
 
 
 class SemanticValidationError(ValueError):
@@ -15,12 +15,16 @@ class SemanticValidationError(ValueError):
         super().__init__(f"{json_path}: {message}")
 
 
-def _fail(schema_name: str, path: str, message: str) -> None:
+def _fail(schema_name: str, path: str, message: str) -> NoReturn:
     raise SemanticValidationError(schema_name, path, message)
 
 
-def _timestamp(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+def _timestamp(schema_name: str, path: str, value: str) -> datetime:
+    try:
+        normalized = f"{value[:-1]}+00:00" if value.endswith(("Z", "z")) else value
+        return datetime.fromisoformat(normalized)
+    except (TypeError, ValueError) as error:
+        _fail(schema_name, path, f"must be a valid date-time: {error}")
 
 
 def _require_unique(
@@ -67,10 +71,6 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
         )
 
     forbidden = document["forbidden_ros_graph"]
-    for key in ("topics", "services", "actions"):
-        values = forbidden[key]
-        if len(values) != len(set(values)):
-            _fail(schema_name, f"$.forbidden_ros_graph.{key}", "names must be unique")
     physical = document["execution"]["target_environment"] in {"hil", "real_robot"}
     if physical and not any(forbidden.values()):
         _fail(
@@ -78,6 +78,18 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
             "$.forbidden_ros_graph",
             "physical observation must declare at least one forbidden ROS interface",
         )
+
+    if schema_name == "acceptance-scenario.v2":
+        time_policy = document["time_policy"]
+        p50 = time_policy["max_clock_offset_p50_ms"]
+        p95 = time_policy["max_clock_offset_p95_ms"]
+        maximum = time_policy["max_clock_offset_ms"]
+        if not p50 <= p95 <= maximum:
+            _fail(
+                schema_name,
+                "$.time_policy",
+                "clock offset thresholds must satisfy p50 <= p95 <= max",
+            )
 
 
 def _validate_model_artifact(document: Mapping[str, Any]) -> None:
@@ -216,9 +228,6 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
             "sros2_enforce requires Enforce, enclaves, and policy digests",
         )
 
-    if execution["target_environment"] == "simulation" and document["physical_targets"]:
-        _fail(schema_name, "$.physical_targets", "simulation must not claim physical targets")
-
     targets = document["physical_targets"]
     _require_unique(schema_name, targets, "target_id", "$.physical_targets")
     _require_unique(schema_name, targets, "identity_sha256", "$.physical_targets")
@@ -254,9 +263,13 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
 
 def _validate_permit(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    issued_at = _timestamp(document["issued_at"])
-    expires_at = _timestamp(document["expires_at"])
-    checked_at = _timestamp(document["interlock_check"]["checked_at"])
+    issued_at = _timestamp(schema_name, "$.issued_at", document["issued_at"])
+    expires_at = _timestamp(schema_name, "$.expires_at", document["expires_at"])
+    checked_at = _timestamp(
+        schema_name,
+        "$.interlock_check.checked_at",
+        document["interlock_check"]["checked_at"],
+    )
 
     if expires_at <= issued_at:
         _fail(schema_name, "$.expires_at", "must be later than issued_at")
@@ -280,7 +293,9 @@ def _validate_execution_verification(document: Mapping[str, Any]) -> None:
 
 def _validate_result(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    if _timestamp(document["finished_at"]) < _timestamp(document["started_at"]):
+    started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
+    finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
+    if finished_at < started_at:
         _fail(schema_name, "$.finished_at", "must not be earlier than started_at")
 
     _require_unique(
@@ -289,9 +304,39 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "assertion_id",
         "$.assertion_results",
     )
+    if schema_name == "acceptance-result.v2":
+        status_priority = {
+            "passed": 0,
+            "skipped": 0,
+            "cancelled": 1,
+            "incomplete": 2,
+            "failed": 3,
+            "error": 4,
+        }
+        assertion_priority = max(
+            (status_priority[item["status"]] for item in document["assertion_results"]),
+            default=0,
+        )
+        if assertion_priority > status_priority[document["status"]]:
+            _fail(
+                schema_name,
+                "$.status",
+                "must not be less severe than an assertion result",
+            )
     graph = document["observed_ros_graph"]
     for key in ("topics", "services", "actions"):
         _require_unique(schema_name, graph[key], "name", f"$.observed_ros_graph.{key}")
+    if schema_name == "acceptance-result.v2":
+        lifecycle_keys = [
+            (item["node"], item["observed_at_ns"]) for item in document["lifecycle_states"]
+        ]
+        if len(lifecycle_keys) != len(set(lifecycle_keys)):
+            _fail(
+                schema_name,
+                "$.lifecycle_states",
+                "node and observed_at_ns pairs must be unique",
+            )
+    evidence_digests = {item["sha256"] for item in document["evidence"]}
 
     forbidden = document["forbidden_graph_observation"]
     violation_keys = [(item["kind"], item["name"]) for item in forbidden["violations"]]
@@ -331,12 +376,21 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.source",
                 "must match sync_protocol",
             )
-        measured_at = _timestamp(clock["measured_at"])
         if (
-            not _timestamp(document["started_at"])
-            <= measured_at
-            <= _timestamp(document["finished_at"])
+            schema_name == "acceptance-result.v2"
+            and clock["evidence_sha256"] not in evidence_digests
         ):
+            _fail(
+                schema_name,
+                "$.hardware_clock_observation.evidence_sha256",
+                "must identify an item listed in evidence",
+            )
+        measured_at = _timestamp(
+            schema_name,
+            "$.hardware_clock_observation.measured_at",
+            clock["measured_at"],
+        )
+        if not started_at <= measured_at <= finished_at:
             _fail(
                 schema_name,
                 "$.hardware_clock_observation.measured_at",
@@ -368,12 +422,6 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.shutdown",
                 "passed result requires finalized evidence and shutdown",
             )
-        if not document["forbidden_graph_observation"]["passed"]:
-            _fail(
-                schema_name,
-                "$.forbidden_graph_observation.passed",
-                "passed result requires a clean forbidden graph observation",
-            )
         if (
             document["execution"]["target_environment"] in {"hil", "real_robot"}
             and not (document["hardware_clock_observation"]["within_policy"])
@@ -383,19 +431,54 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.within_policy",
                 "passed physical result requires hardware timing within policy",
             )
+        if (
+            schema_name == "acceptance-result.v2"
+            and not document["time_authority_observation"]["within_policy"]
+        ):
+            _fail(
+                schema_name,
+                "$.time_authority_observation.within_policy",
+                "passed result requires time-authority evidence within policy",
+            )
+
+    if schema_name == "acceptance-result.v2":
+        observation = document["time_authority_observation"]
+        if observation["window_end_ns"] < observation["window_start_ns"]:
+            _fail(
+                schema_name,
+                "$.time_authority_observation.window_end_ns",
+                "must not be earlier than window_start_ns",
+            )
+        if not (
+            observation["p50_offset_ms"]
+            <= observation["p95_offset_ms"]
+            <= observation["max_offset_ms"]
+        ):
+            _fail(
+                schema_name,
+                "$.time_authority_observation",
+                "offset statistics must satisfy p50 <= p95 <= max",
+            )
+        evidence_sha256 = observation.get("evidence_sha256")
+        if evidence_sha256 is not None and evidence_sha256 not in evidence_digests:
+            _fail(
+                schema_name,
+                "$.time_authority_observation.evidence_sha256",
+                "must identify an item listed in evidence",
+            )
 
     segment_keys: set[tuple[str, int]] = set()
     for index, item in enumerate(document["evidence"]):
         if "segment_index" not in item:
             continue
-        key = (item["uri"], item["segment_index"])
-        if key in segment_keys:
+        segment_key = (item["uri"], item["segment_index"])
+        if segment_key in segment_keys:
             _fail(schema_name, f"$.evidence[{index}]", "duplicate evidence segment")
-        segment_keys.add(key)
+        segment_keys.add(segment_key)
 
 
 def _validate_evidence_index(document: Mapping[str, Any]) -> None:
-    schema_name = "evidence-index.v1"
+    schema_name = document["schema_version"]
     indexes: set[int] = set()
     identities: set[tuple[str, str]] = set()
     for index, segment in enumerate(document["segments"]):
@@ -406,17 +489,466 @@ def _validate_evidence_index(document: Mapping[str, Any]) -> None:
             _fail(schema_name, f"$.segments[{index}].uri", "evidence object is duplicated")
         indexes.add(segment["segment_index"])
         identities.add(identity)
+    if schema_name == "evidence-index.v2":
+        policy = document["policy_observation"]
+        remote = policy["upload_mode"] == "closed_segments_during_run"
+        if policy["remote_sink_used"] != remote:
+            _fail(
+                schema_name,
+                "$.policy_observation.remote_sink_used",
+                "must match whether upload_mode uses a remote sink",
+            )
+
+
+def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
+    schema_name = document["schema_version"]
+    results = document["per_domain_results"]
+    _require_unique(schema_name, results, "domain_id", "$.per_domain_results")
+    _require_unique(schema_name, results, "result_id", "$.per_domain_results")
+    result_domains = {item["domain_id"] for item in results}
+    statuses = {item["status"] for item in results}
+    expected = (
+        "error"
+        if "error" in statuses
+        else "failed"
+        if "failed" in statuses
+        else "incomplete"
+        if "incomplete" in statuses
+        else "cancelled"
+        if "cancelled" in statuses
+        else "passed"
+    )
+    if document["per_domain_aggregate"] != expected:
+        _fail(
+            schema_name,
+            "$.per_domain_aggregate",
+            f"must equal the aggregate domain status {expected!r}",
+        )
+    if schema_name != "acceptance-aggregate.v2":
+        return
+
+    trace_evidence = document["trace_evidence"]
+    _require_unique(schema_name, trace_evidence, "domain_id", "$.trace_evidence")
+    if {item["domain_id"] for item in trace_evidence} != result_domains:
+        _fail(
+            schema_name,
+            "$.trace_evidence",
+            "must contain exactly one trace file for every result domain",
+        )
+
+    contracts = document["channel_contracts"]
+    _require_unique(schema_name, contracts, "channel_id", "$.channel_contracts")
+    contract_ids = {item["channel_id"] for item in contracts}
+    contract_by_id = {item["channel_id"]: item for item in contracts}
+    contract_domains = {
+        domain_id
+        for item in contracts
+        for domain_id in (item["source_domain_id"], item["destination_domain_id"])
+    }
+    unknown_contract_domains = contract_domains - result_domains
+    if unknown_contract_domains:
+        _fail(
+            schema_name,
+            "$.channel_contracts",
+            f"references unknown result domains: {sorted(unknown_contract_domains)}",
+        )
+    if contract_domains != result_domains:
+        _fail(
+            schema_name,
+            "$.channel_contracts",
+            "must traverse every result domain",
+        )
+    for contract_index, contract in enumerate(contracts):
+        if contract["source_domain_id"] == contract["destination_domain_id"]:
+            _fail(
+                schema_name,
+                f"$.channel_contracts[{contract_index}]",
+                "cross-domain channel requires distinct source and destination domains",
+            )
+    observations = document["channel_observations"]
+    _require_unique(schema_name, observations, "channel_id", "$.channel_observations")
+    if {item["channel_id"] for item in observations} != contract_ids:
+        _fail(
+            schema_name,
+            "$.channel_observations",
+            "must contain exactly one observation for every channel contract",
+        )
+    chains = document["causal_chains"]
+    _require_unique(schema_name, chains, "chain_id", "$.causal_chains")
+    chain_contracts = document["causal_chain_contracts"]
+    _require_unique(
+        schema_name,
+        chain_contracts,
+        "chain_id",
+        "$.causal_chain_contracts",
+    )
+    chain_contract_by_id = {item["chain_id"]: item for item in chain_contracts}
+    chain_ids = {item["chain_id"] for item in chains}
+    if chain_ids != set(chain_contract_by_id):
+        _fail(
+            schema_name,
+            "$.causal_chains",
+            "must contain exactly one result for every causal chain contract",
+        )
+    covered_channel_ids: set[str] = set()
+    for index, chain in enumerate(chains):
+        unknown = set(chain["channel_ids"]) - contract_ids
+        if unknown:
+            _fail(
+                schema_name,
+                f"$.causal_chains[{index}].channel_ids",
+                f"unknown channel contracts: {sorted(unknown)}",
+            )
+        covered_channel_ids.update(chain["channel_ids"])
+        expected_contract = chain_contract_by_id[chain["chain_id"]]
+        if chain["expected_contract_sha256"] != expected_contract["sha256"]:
+            _fail(
+                schema_name,
+                f"$.causal_chains[{index}].expected_contract_sha256",
+                "must match the referenced causal chain contract sha256",
+            )
+        for channel_index, channel_id in enumerate(chain["channel_ids"][1:], start=1):
+            previous_id = chain["channel_ids"][channel_index - 1]
+            previous = contract_by_id[previous_id]
+            current = contract_by_id[channel_id]
+            if previous["destination_domain_id"] != current["source_domain_id"]:
+                _fail(
+                    schema_name,
+                    f"$.causal_chains[{index}].channel_ids[{channel_index}]",
+                    "must continue from the preceding channel destination",
+                )
+        hop_ids = [hop["channel_id"] for hop in chain["hops"]]
+        if len(hop_ids) != len(set(hop_ids)):
+            _fail(
+                schema_name,
+                f"$.causal_chains[{index}].hops",
+                "channel_id values must be unique",
+            )
+        if chain["status"] == "passed" and hop_ids != chain["channel_ids"]:
+            _fail(
+                schema_name,
+                f"$.causal_chains[{index}].hops",
+                "passed requires one ordered hop for every channel",
+            )
+        if any(hop["status"] != "passed" for hop in chain["hops"]) and chain["status"] == "passed":
+            _fail(
+                schema_name,
+                f"$.causal_chains[{index}].status",
+                "passed requires every observed hop to pass",
+            )
+        if chain["status"] == "passed":
+            trace_ids = set(chain["trace_ids"])
+            if chain["root_trace_id"] not in trace_ids:
+                _fail(
+                    schema_name,
+                    f"$.causal_chains[{index}].root_trace_id",
+                    "must be present in trace_ids",
+                )
+            observed_trace_ids = {
+                reference["trace_id"]
+                for hop in chain["hops"]
+                for reference in (hop["producer"], hop["consumer"])
+            }
+            if observed_trace_ids != trace_ids:
+                _fail(
+                    schema_name,
+                    f"$.causal_chains[{index}].trace_ids",
+                    "must equal the trace IDs used by the verified hops",
+                )
+            transition_ids: set[tuple[tuple[str, str], tuple[str, str]]] = set()
+            for hop_index, hop in enumerate(chain["hops"]):
+                channel_contract = contract_by_id[hop["channel_id"]]
+                referenced_domains = {
+                    hop["producer"]["domain_id"],
+                    hop["consumer"]["domain_id"],
+                }
+                unknown_domains = referenced_domains - result_domains
+                if unknown_domains:
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        f"references unknown result domains: {sorted(unknown_domains)}",
+                    )
+                if hop["producer"]["domain_id"] == hop["consumer"]["domain_id"]:
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "cross-domain hop requires distinct producer and consumer domains",
+                    )
+                if (
+                    hop["producer"]["domain_id"] != channel_contract["source_domain_id"]
+                    or hop["consumer"]["domain_id"] != channel_contract["destination_domain_id"]
+                ):
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "observed domains must match the referenced channel direction",
+                    )
+                producer_span = (
+                    hop["producer"]["trace_id"],
+                    hop["producer"]["span_id"],
+                )
+                consumer_span = (
+                    hop["consumer"]["trace_id"],
+                    hop["consumer"]["span_id"],
+                )
+                transition_id = (producer_span, consumer_span)
+                if transition_id in transition_ids:
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "observed span transition is duplicated across channels",
+                    )
+                transition_ids.add(transition_id)
+                if producer_span == consumer_span:
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "producer and consumer must identify distinct spans",
+                    )
+                if hop["producer"]["message_id"] != hop["consumer"]["message_id"]:
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "producer and consumer message_id values must match",
+                    )
+                if (
+                    hop["relationship"] == "parent"
+                    and hop["producer"]["trace_id"] != hop["consumer"]["trace_id"]
+                ):
+                    _fail(
+                        schema_name,
+                        f"$.causal_chains[{index}].hops[{hop_index}]",
+                        "parent relationship requires producer and consumer to share trace_id",
+                    )
+    if covered_channel_ids != contract_ids:
+        _fail(
+            schema_name,
+            "$.causal_chains",
+            "must collectively cover every channel contract",
+        )
+
+    verdict = document["cross_domain_e2e"]
+    passed_chains = sum(chain["status"] == "passed" for chain in chains)
+    failed_chains = sum(chain["status"] == "failed" for chain in chains)
+    incomplete_chains = sum(chain["status"] == "incomplete" for chain in chains)
+    error_chains = sum(chain["status"] == "error" for chain in chains)
+    if verdict["chain_count"] != len(chains):
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.chain_count",
+            "must equal the number of causal chains",
+        )
+    if verdict["passed_chain_count"] != passed_chains:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.passed_chain_count",
+            "must equal the number of passed causal chains",
+        )
+    if verdict["failed_chain_count"] != failed_chains:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.failed_chain_count",
+            "must equal the number of failed causal chains",
+        )
+    if verdict["incomplete_chain_count"] != incomplete_chains:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.incomplete_chain_count",
+            "must equal the number of incomplete causal chains",
+        )
+    if verdict["error_chain_count"] != error_chains:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.error_chain_count",
+            "must equal the number of errored causal chains",
+        )
+    observation_statuses = {item["status"] for item in observations}
+    chain_statuses = {item["status"] for item in chains}
+    expected_e2e = (
+        "error"
+        if expected == "error" or "error" in observation_statuses or "error" in chain_statuses
+        else "failed"
+        if expected == "failed" or "failed" in observation_statuses or "failed" in chain_statuses
+        else "incomplete"
+        if expected in {"incomplete", "cancelled"}
+        or "incomplete" in observation_statuses
+        or "incomplete" in chain_statuses
+        else "passed"
+    )
+    if verdict["status"] != expected_e2e:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.status",
+            f"must equal the aggregate cross-domain status {expected_e2e!r}",
+        )
+
+
+def _validate_zenoh_channel(document: Mapping[str, Any]) -> None:
+    schema_name = "zenoh-channel.v1"
+    source = document["source"]
+    destination = document["destination"]
+    if source["domain_id"] == destination["domain_id"]:
+        _fail(
+            schema_name,
+            "$.destination.domain_id",
+            "must differ from source.domain_id",
+        )
+    if source["ros_domain_id"] == destination["ros_domain_id"]:
+        _fail(
+            schema_name,
+            "$.destination.ros_domain_id",
+            "must differ from source.ros_domain_id",
+        )
+    if source["message_type"] != destination["message_type"]:
+        _fail(
+            schema_name,
+            "$.destination.message_type",
+            "must equal source.message_type",
+        )
+    if source["type_hash"] != destination["type_hash"]:
+        _fail(
+            schema_name,
+            "$.destination.type_hash",
+            "must equal source.type_hash",
+        )
+    trace = document["trace"]
+    if trace["producer_span_name"] == trace["consumer_span_name"]:
+        _fail(
+            schema_name,
+            "$.trace.consumer_span_name",
+            "must differ from producer_span_name",
+        )
+
+
+def _validate_zenoh_channel_observation(document: Mapping[str, Any]) -> None:
+    schema_name = "zenoh-channel-observation.v1"
+    started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
+    finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
+    if finished_at <= started_at:
+        _fail(schema_name, "$.finished_at", "must be later than started_at")
+    sent = document["sent_count"]
+    received = document["received_count"]
+    lost = document["lost_count"]
+    duplicates = document["duplicate_count"]
+    if lost > sent:
+        _fail(schema_name, "$.lost_count", "must not exceed sent_count")
+    expected_received = sent - lost + duplicates
+    if received != expected_received:
+        _fail(
+            schema_name,
+            "$.received_count",
+            "must equal sent_count - lost_count + duplicate_count",
+        )
+    matched_count = sent - lost
+    if document["out_of_order_count"] > matched_count:
+        _fail(
+            schema_name,
+            "$.out_of_order_count",
+            "must not exceed the number of matched messages",
+        )
+    if document["status"] == "passed" and sent == 0:
+        _fail(
+            schema_name,
+            "$.status",
+            "passed observation requires at least one source message",
+        )
+    expected_ratio = lost / sent if sent else 0.0
+    if abs(document["loss_ratio"] - expected_ratio) > 1e-12:
+        _fail(
+            schema_name,
+            "$.loss_ratio",
+            "must equal lost_count / sent_count",
+        )
+
+
+def _validate_causal_chain(document: Mapping[str, Any]) -> None:
+    schema_name = "causal-chain.v1"
+    contracts = document["channel_contracts"]
+    _require_unique(schema_name, contracts, "channel_id", "$.channel_contracts")
+
+
+def _validate_qualification_bundle(document: Mapping[str, Any]) -> None:
+    schema_name = "qualification-bundle.v1"
+    subjects = document["subject"]
+    _require_unique(schema_name, subjects, "name", "$.subject")
+    subject_names = {item["name"] for item in subjects}
+    artifacts = document["predicate"]["artifacts"]
+    _require_unique(schema_name, artifacts, "subject_name", "$.predicate.artifacts")
+    artifact_names = {item["subject_name"] for item in artifacts}
+    if artifact_names != subject_names:
+        _fail(
+            schema_name,
+            "$.predicate.artifacts",
+            "must classify every statement subject exactly once",
+        )
+    kinds = {item["kind"] for item in artifacts}
+    required = {
+        "scenario",
+        "runtime_manifest",
+        "acceptance_run",
+        "domain_result",
+        "acceptance_aggregate",
+        "evidence_index",
+        "mcap_summary",
+    }
+    missing = required - kinds
+    if missing:
+        _fail(
+            schema_name,
+            "$.predicate.artifacts",
+            f"missing required artifact kinds: {sorted(missing)}",
+        )
+
+
+def _validate_mcap_summary(document: Mapping[str, Any]) -> None:
+    schema_name = "mcap-summary.v1"
+    channels = document["channels"]
+    _require_unique(schema_name, channels, "topic", "$.channels")
+    statistics = document["statistics"]
+    if statistics["channel_count"] != len(channels):
+        _fail(
+            schema_name,
+            "$.statistics.channel_count",
+            "must equal the number of summarized channels",
+        )
+    if statistics["message_end_time_ns"] < statistics["message_start_time_ns"]:
+        _fail(
+            schema_name,
+            "$.statistics.message_end_time_ns",
+            "must not be earlier than message_start_time_ns",
+        )
+
+
+def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
+    _require_unique(
+        "acceptance-run.v1",
+        document["domains"],
+        "domain_id",
+        "$.domains",
+    )
 
 
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-scenario.v1": _validate_acceptance_scenario,
+    "acceptance-scenario.v2": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
     "acceptance-result.v1": _validate_result,
+    "acceptance-result.v2": _validate_result,
     "evidence-index.v1": _validate_evidence_index,
+    "evidence-index.v2": _validate_evidence_index,
+    "acceptance-run.v1": _validate_acceptance_run,
+    "acceptance-aggregate.v1": _validate_acceptance_aggregate,
+    "acceptance-aggregate.v2": _validate_acceptance_aggregate,
+    "mcap-summary.v1": _validate_mcap_summary,
+    "qualification-bundle.v1": _validate_qualification_bundle,
+    "zenoh-channel.v1": _validate_zenoh_channel,
+    "zenoh-channel-observation.v1": _validate_zenoh_channel_observation,
+    "causal-chain.v1": _validate_causal_chain,
 }
 
 

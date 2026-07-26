@@ -193,6 +193,54 @@ def test_hardware_clock_source_must_match_protocol() -> None:
         validate_document(result)
 
 
+def test_v2_hardware_clock_evidence_must_be_listed() -> None:
+    result = load_fixture("hil-result.yaml")
+    result.update(
+        {
+            "schema_version": "acceptance-result.v2",
+            "result_id": "result-01234567-89ab-4def-8123-456789abcdef",
+            "run_id": "run-01234567-89ab-4def-8123-456789abcdef",
+            "scenario_id": "org.example.hil-run-001",
+            "domain_id": "primary",
+            "verdict_scope": "domain",
+            "unevaluated": [],
+            "time_authority_observation": {
+                "source_id": "hardware-clock",
+                "sample_count": 30,
+                "window_start_ns": 1,
+                "window_end_ns": 30,
+                "p50_offset_ms": 0.1,
+                "p95_offset_ms": 0.2,
+                "max_offset_ms": 0.3,
+                "within_policy": True,
+                "evidence_sha256": result["evidence"][0]["sha256"],
+            },
+        }
+    )
+    result["assertion_results"] = [
+        {
+            "assertion_id": "hardware-clock",
+            "status": "passed",
+            "observed_value": 0.5,
+            "unit": "ms",
+        }
+    ]
+
+    validate_document(result)
+    result["hardware_clock_observation"]["evidence_sha256"] = "9" * 64
+
+    with pytest.raises(SemanticValidationError) as caught:
+        validate_document(result)
+    assert caught.value.json_path == "$.hardware_clock_observation.evidence_sha256"
+
+
+def test_v1_hardware_clock_evidence_keeps_published_behavior() -> None:
+    result = load_fixture("hil-result.yaml")
+    result["hardware_clock_observation"]["evidence_sha256"] = "9" * 64
+
+    validate_document(result)
+
+
 def test_passed_result_rejects_forbidden_interface_violation() -> None:
     result = load_fixture("hil-result.yaml")
     result["forbidden_graph_observation"] = {

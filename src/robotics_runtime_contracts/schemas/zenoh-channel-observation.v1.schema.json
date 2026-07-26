@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:zenoh-channel-observation:v1",
+  "title": "Robotics Zenoh channel observation v1",
+  "description": "Measured delivery outcome for one Zenoh channel contract and run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "run_id",
+    "channel_id",
+    "channel_contract_sha256",
+    "started_at",
+    "finished_at",
+    "sent_count",
+    "received_count",
+    "lost_count",
+    "duplicate_count",
+    "out_of_order_count",
+    "loss_ratio",
+    "max_message_age_ms",
+    "status",
+    "violations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "zenoh-channel-observation.v1"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^observation-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "channel_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "channel_contract_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sent_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "received_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lost_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "out_of_order_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "loss_ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "max_message_age_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete",
+        "error"
+      ]
+    },
+    "violations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/violation"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "violations": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "violations": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "insufficient_messages",
+            "loss_ratio_exceeded",
+            "duplicate_count_exceeded",
+            "out_of_order_count_exceeded",
+            "message_age_exceeded",
+            "observation_window_exceeded",
+            "ambiguous_message_id",
+            "invalid_observation"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

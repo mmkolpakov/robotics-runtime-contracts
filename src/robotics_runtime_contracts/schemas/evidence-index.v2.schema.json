@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:evidence-index:v2",
+  "title": "Robotics evidence index v2",
+  "description": "Finalized evidence index with a content-addressed deterministic summary for every MCAP segment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "generated_at",
+    "finalized",
+    "policy_observation",
+    "segments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "evidence-index.v2"
+    },
+    "run_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finalized": {
+      "const": true
+    },
+    "policy_observation": {
+      "$ref": "#/$defs/policyObservation"
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "media_type",
+        "sha256",
+        "size_bytes",
+        "retention_class",
+        "segment_index",
+        "upload_status",
+        "checksum_verified"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:file|s3|oci|https)://[^\\s]+$"
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "local_path": {
+          "type": "string",
+          "pattern": "^/[^*?]+$"
+        },
+        "media_type": {
+          "enum": [
+            "application/mcap",
+            "application/json",
+            "application/x-ndjson",
+            "application/junit+xml",
+            "text/plain",
+            "application/vnd.in-toto+json"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retention_class": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,63}$"
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upload_status": {
+          "enum": [
+            "local",
+            "confirmed"
+          ]
+        },
+        "checksum_verified": {
+          "type": "boolean"
+        },
+        "mcap_summary": {
+          "$ref": "#/$defs/mcapSummaryReference"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "media_type"
+            ],
+            "properties": {
+              "media_type": {
+                "const": "application/mcap"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "mcap_summary"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "uri"
+            ],
+            "properties": {
+              "uri": {
+                "pattern": "^s3://"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "version_id"
+            ],
+            "properties": {
+              "upload_status": {
+                "const": "confirmed"
+              },
+              "checksum_verified": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "upload_status"
+            ],
+            "properties": {
+              "upload_status": {
+                "const": "local"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "local_path"
+            ],
+            "properties": {
+              "uri": {
+                "pattern": "^file://"
+              },
+              "checksum_verified": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mcapSummaryReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "sha256",
+        "size_bytes",
+        "media_type"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:file|s3|oci|https)://[^\\s]+$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "media_type": {
+          "const": "application/vnd.robotics.mcap-summary.v1+json"
+        }
+      }
+    },
+    "policyObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recording_mode",
+        "compression",
+        "upload_mode",
+        "remote_sink_used",
+        "spool_peak_size_bytes",
+        "upload_lag_max_sec"
+      ],
+      "properties": {
+        "recording_mode": {
+          "enum": [
+            "bounded",
+            "snapshot",
+            "on_failure"
+          ]
+        },
+        "compression": {
+          "const": "zstd"
+        },
+        "upload_mode": {
+          "enum": [
+            "local_only",
+            "closed_segments_during_run"
+          ]
+        },
+        "remote_sink_used": {
+          "type": "boolean"
+        },
+        "spool_peak_size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upload_lag_max_sec": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

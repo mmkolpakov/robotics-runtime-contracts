@@ -1,0 +1,10 @@
+{
+  "source_id": "simulation-clock",
+  "sample_count": 30,
+  "window_start_ns": 1000000000,
+  "window_end_ns": 30000000000,
+  "p50_offset_ms": 0.1,
+  "p95_offset_ms": 0.2,
+  "max_offset_ms": 0.3,
+  "within_policy": true
+}

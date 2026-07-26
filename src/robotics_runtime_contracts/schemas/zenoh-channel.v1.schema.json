@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:zenoh-channel:v1",
+  "title": "Robotics Zenoh channel contract v1",
+  "description": "A traceable ROS 2 topic routed between isolated DDS domains by zenoh-bridge-ros2dds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "channel_id",
+    "source",
+    "destination",
+    "bridge",
+    "qos",
+    "delivery",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "zenoh-channel.v1"
+    },
+    "channel_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "source": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "destination": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "bridge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "version",
+        "configuration_sha256",
+        "dds_discovery_scope",
+        "zenoh_key_expression"
+      ],
+      "properties": {
+        "implementation": {
+          "const": "zenoh-bridge-ros2dds"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$",
+          "maxLength": 64
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dds_discovery_scope": {
+          "const": "local_domain_only"
+        },
+        "zenoh_key_expression": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "qos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reliability",
+        "durability",
+        "history",
+        "liveliness",
+        "liveliness_lease_duration_ms",
+        "deadline_ms",
+        "lifespan_ms"
+      ],
+      "properties": {
+        "reliability": {
+          "enum": [
+            "reliable",
+            "best_effort"
+          ]
+        },
+        "durability": {
+          "enum": [
+            "volatile",
+            "transient_local"
+          ]
+        },
+        "history": {
+          "enum": [
+            "keep_last",
+            "keep_all"
+          ]
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "liveliness": {
+          "enum": [
+            "automatic",
+            "manual_by_topic"
+          ]
+        },
+        "liveliness_lease_duration_ms": {
+          "$ref": "#/$defs/duration"
+        },
+        "deadline_ms": {
+          "$ref": "#/$defs/duration"
+        },
+        "lifespan_ms": {
+          "$ref": "#/$defs/duration"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "history": {
+                "const": "keep_last"
+              }
+            },
+            "required": [
+              "history"
+            ]
+          },
+          "then": {
+            "required": [
+              "depth"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "depth"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_window_sec",
+        "minimum_source_messages",
+        "message_id_attribute",
+        "max_loss_ratio",
+        "max_duplicate_count",
+        "max_out_of_order_count",
+        "max_message_age_ms"
+      ],
+      "properties": {
+        "observation_window_sec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_source_messages": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "message_id_attribute": {
+          "const": "messaging.message.id"
+        },
+        "max_loss_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_duplicate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_out_of_order_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_message_age_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "carrier_field",
+        "relationship",
+        "producer_span_name",
+        "consumer_span_name"
+      ],
+      "properties": {
+        "carrier_field": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)*$",
+          "maxLength": 128
+        },
+        "relationship": {
+          "enum": [
+            "link",
+            "parent"
+          ]
+        },
+        "producer_span_name": {
+          "$ref": "#/$defs/spanName"
+        },
+        "consumer_span_name": {
+          "$ref": "#/$defs/spanName"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "ros_domain_id",
+        "topic",
+        "message_type",
+        "type_hash"
+      ],
+      "properties": {
+        "domain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "ros_domain_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 232
+        },
+        "topic": {
+          "$ref": "#/$defs/rosName"
+        },
+        "message_type": {
+          "$ref": "#/$defs/rosType"
+        },
+        "type_hash": {
+          "type": "string",
+          "pattern": "^RIHS01_[a-f0-9]{64}$"
+        }
+      }
+    },
+    "duration": {
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "const": "infinite"
+        }
+      ]
+    },
+    "rosName": {
+      "type": "string",
+      "pattern": "^/[A-Za-z0-9_~/]+$",
+      "maxLength": 512
+    },
+    "rosType": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*/msg/[A-Za-z][A-Za-z0-9_]*$",
+      "maxLength": 256
+    },
+    "spanName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  }
+}

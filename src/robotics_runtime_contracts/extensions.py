@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from hashlib import sha256
-from typing import Any
+from typing import Any, NoReturn
 
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -14,7 +14,7 @@ class ExtensionValidationError(SemanticValidationError):
     """Raised when a declared domain extension cannot be verified."""
 
 
-def _fail(schema_name: str, path: str, message: str) -> None:
+def _fail(schema_name: str, path: str, message: str) -> NoReturn:
     raise ExtensionValidationError(schema_name, path, message)
 
 
@@ -39,7 +39,7 @@ def validate_extensions(
 ) -> None:
     """Validate declared scenario extensions without performing network access."""
 
-    if schema_name != "acceptance-scenario.v1":
+    if schema_name not in {"acceptance-scenario.v1", "acceptance-scenario.v2"}:
         return
 
     declarations = document.get("extension_schemas", [])
@@ -119,9 +119,13 @@ def validate_extensions(
             key=lambda error: tuple(str(part) for part in error.path),
         )
         if errors:
-            error = errors[0]
-            suffix = error.json_path.removeprefix("$")
-            _fail(schema_name, f"$.extensions.{namespace}{suffix}", error.message)
+            validation_error = errors[0]
+            suffix = validation_error.json_path.removeprefix("$")
+            _fail(
+                schema_name,
+                f"$.extensions.{namespace}{suffix}",
+                validation_error.message,
+            )
 
 
 __all__ = ["ExtensionValidationError", "validate_extensions"]

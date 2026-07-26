@@ -1,0 +1,21 @@
+schema_version: evidence-index.v2
+run_id: run-01234567-89ab-4def-8123-456789abcdef
+generated_at: "2026-07-26T12:02:00Z"
+finalized: true
+policy_observation:
+  recording_mode: bounded
+  compression: zstd
+  upload_mode: local_only
+  remote_sink_used: false
+  spool_peak_size_bytes: 222
+  upload_lag_max_sec: 0
+segments:
+  - uri: file:///evidence/time-authority.json
+    local_path: /evidence/time-authority.json
+    media_type: application/json
+    sha256: 91c55c1da055f1378f3d73e05535ebadd2d876b14a5d2fdd92285908c87b5b5b
+    size_bytes: 222
+    retention_class: pull-request-7d
+    segment_index: 0
+    upload_status: local
+    checksum_verified: true

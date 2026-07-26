@@ -1,6 +1,6 @@
 [project]
 name = "robotics-runtime-contracts"
-version = "0.6.0"
+version = "0.7.0"
 description = "Canonical acceptance and evidence contracts for robotics runtimes."
 requires-python = ">=3.12"
 readme = "README.md"
@@ -13,8 +13,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "jsonschema>=4.26,<5",
-  "referencing>=0.37,<1",
+  "jsonschema[format-nongpl]>=4.26,<5",
 ]
 
 [project.urls]
@@ -25,10 +24,12 @@ Issues = "https://github.com/mmkolpakov/robotics-runtime-contracts/issues"
 [dependency-groups]
 dev = [
   "check-jsonschema==0.37.4",
+  "mypy==2.3.0",
   "pre-commit==4.6.0",
   "pytest==9.1.1",
   "pyyaml>=6.0.2,<7",
   "ruff==0.15.21",
+  "types-jsonschema==4.26.0.20260518",
   "yamllint==1.38.0",
 ]
 
@@ -53,3 +54,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/robotics_runtime_contracts"]

@@ -8,7 +8,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from robotics_runtime_contracts import ExtensionValidationError, validate_document
+from robotics_runtime_contracts import (
+    ExtensionValidationError,
+    migrate_scenario_v1_to_v2,
+    validate_document,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "scenario" / "valid" / "simulation-realtime.yaml"
 SCHEMA_URI = "https://schemas.example.org/sorting-item.v1.schema.json"
@@ -40,6 +44,17 @@ def scenario_with_extension() -> dict[str, object]:
     return scenario
 
 
+def migrated_scenario_with_extension() -> dict[str, object]:
+    return migrate_scenario_v1_to_v2(
+        scenario_with_extension(),
+        metric_attributes={"camera-age": {"topic": "/camera/image"}},
+        time_authority_min_samples=30,
+        max_clock_offset_p50_ms=1,
+        max_clock_offset_p95_ms=2,
+        max_clock_offset_ms=5,
+    )
+
+
 def test_namespaced_extension_is_validated_from_digest_pinned_json() -> None:
     validate_document(
         scenario_with_extension(),
@@ -62,6 +77,16 @@ def test_extension_schema_digest_is_verified() -> None:
 
 def test_extension_payload_must_satisfy_its_schema() -> None:
     scenario = scenario_with_extension()
+    scenario["extensions"]["org.example.sorting"] = {"item_id": ""}
+    with pytest.raises(ExtensionValidationError) as caught:
+        validate_document(scenario, extension_schemas={SCHEMA_URI: extension_schema()})
+    assert caught.value.json_path == "$.extensions.org.example.sorting.item_id"
+
+
+def test_migrated_v2_extension_remains_validated() -> None:
+    scenario = migrated_scenario_with_extension()
+    validate_document(scenario, extension_schemas={SCHEMA_URI: extension_schema()})
+
     scenario["extensions"]["org.example.sorting"] = {"item_id": ""}
     with pytest.raises(ExtensionValidationError) as caught:
         validate_document(scenario, extension_schemas={SCHEMA_URI: extension_schema()})
