@@ -40,3 +40,33 @@ def test_cli_quiet_mode_has_no_success_output(capsys: pytest.CaptureFixture[str]
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
+
+
+def test_cli_validates_multiple_documents_in_one_process(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["validate", "--quiet", str(FIXTURE), str(FIXTURE)]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_cli_rejects_schema_override_for_a_batch(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        main(
+            [
+                "validate",
+                "--schema",
+                "acceptance-scenario.v1",
+                str(FIXTURE),
+                str(FIXTURE),
+            ]
+        )
+        == 1
+    )
+
+    captured = capsys.readouterr()
+    assert "--schema requires exactly one document" in captured.err

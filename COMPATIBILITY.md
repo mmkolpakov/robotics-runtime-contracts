@@ -37,7 +37,8 @@ Package `0.8.0` preserves both earlier result schemas byte for byte and adds
 `application/x-ndjson` evidence, aligning result documents with streaming trace
 segments already supported by `evidence-index.v2`.
 
-Package `0.9.0` preserves every earlier schema byte for byte and adds
+Package `0.9.1` preserves every earlier schema byte for byte, adds
+batch document validation to the CLI, and retains the `0.9.0` additions:
 `acceptance-scenario.v3`. Version 3 makes the skipped-step budget explicit for
 stepped simulation. It also adds a CLI over the same structural, semantic, and
 extension validation used by the Python API.

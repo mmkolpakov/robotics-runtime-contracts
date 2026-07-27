@@ -27,7 +27,11 @@ def _parser() -> argparse.ArgumentParser:
         "validate",
         help="validate a JSON or YAML document",
     )
-    validate.add_argument("document", help="document path, or - for standard input")
+    validate.add_argument(
+        "documents",
+        nargs="+",
+        help="one or more document paths; - reads one document from standard input",
+    )
     validate.add_argument(
         "--schema",
         help="override the schema declared by schema_version",
@@ -73,13 +77,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise AssertionError(f"unhandled command: {arguments.command}")
 
     try:
-        document = _read_document(arguments.document)
         extension_schemas = _read_extension_schemas(arguments.extension_schema)
-        validate_document(
-            document,
-            schema=arguments.schema,
-            extension_schemas=extension_schemas or None,
-        )
+        if arguments.schema is not None and len(arguments.documents) != 1:
+            raise ValueError("--schema requires exactly one document")
+        if arguments.documents.count("-") > 1:
+            raise ValueError("standard input may be selected only once")
+        documents = []
+        for path in arguments.documents:
+            document = _read_document(path)
+            validate_document(
+                document,
+                schema=arguments.schema,
+                extension_schemas=extension_schemas or None,
+            )
+            documents.append((path, document))
     except (
         ContractValidationError,
         ExtensionValidationError,
@@ -94,7 +105,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     if not arguments.quiet:
-        print(f"valid: {document['schema_version']}")
+        if len(documents) == 1:
+            print(f"valid: {documents[0][1]['schema_version']}")
+        else:
+            for path, document in documents:
+                print(f"valid: {path}: {document['schema_version']}")
     return 0
 
 
