@@ -37,6 +37,11 @@ Package `0.8.0` preserves both earlier result schemas byte for byte and adds
 `application/x-ndjson` evidence, aligning result documents with streaming trace
 segments already supported by `evidence-index.v2`.
 
+Package `0.9.0` preserves every earlier schema byte for byte and adds
+`acceptance-scenario.v3`. Version 3 makes the skipped-step budget explicit for
+stepped simulation. It also adds a CLI over the same structural, semantic, and
+extension validation used by the Python API.
+
 ## Reader and Writer Rules
 
 - Readers select the validator from the document's exact `schema_version`.
@@ -57,7 +62,8 @@ conversion.
 | Schema | Compatibility mode | Migration policy |
 | --- | --- | --- |
 | `acceptance-scenario.v1` | Exact read/write; forward migration | `migrate_scenario_v1_to_v2()` requires metric selectors and time-authority thresholds from the caller |
-| `acceptance-scenario.v2` | Exact read/write | Current scenario target; no downgrade |
+| `acceptance-scenario.v2` | Exact read/write | Coexists with v3; no automatic migration |
+| `acceptance-scenario.v3` | Exact read/write | Current scenario target; stepped simulation requires an explicit skip budget |
 | `acceptance-run.v1` | Exact read/write | No automatic migration |
 | `acceptance-result.v1` | Exact read/write | Coexists with v2; no lossless automatic migration |
 | `acceptance-result.v2` | Exact read/write | Coexists with v3; no automatic migration |
@@ -84,7 +90,8 @@ The package itself requires CPython 3.12 or newer. Runtime contracts deliberatel
 record a narrower robotics baseline where interoperability depends on it:
 
 - `runtime-manifest.v1` identifies ROS 2 Jazzy and Gazebo Harmonic.
-- `acceptance-scenario.v1`, `acceptance-scenario.v2`, and
+- `acceptance-scenario.v1`, `acceptance-scenario.v2`,
+  `acceptance-scenario.v3`, and
   `evidence-index.v2` require `zstd` evidence compression.
 - Other schemas remain independent of robot type, scene, model family, and
   product rules.
@@ -95,7 +102,8 @@ does not qualify a runtime or physical target.
 
 ## Domain Extensions
 
-`acceptance-scenario.v1` and `acceptance-scenario.v2` support digest-pinned,
+`acceptance-scenario.v1`, `acceptance-scenario.v2`, and
+`acceptance-scenario.v3` support digest-pinned,
 namespaced local extensions. Extension schemas are supplied by the caller, must
 use JSON Schema Draft 2020-12, and may contain only local references. They are
 not fetched from the network. Forward migration preserves extension
