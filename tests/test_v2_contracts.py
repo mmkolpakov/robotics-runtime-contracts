@@ -54,6 +54,23 @@ def result_v2() -> dict[str, Any]:
     return result
 
 
+def result_v3() -> dict[str, Any]:
+    result = result_v2()
+    result["schema_version"] = "acceptance-result.v3"
+    return result
+
+
+def ndjson_evidence() -> dict[str, Any]:
+    return {
+        "uri": "file:///evidence/traces.otlp.jsonl",
+        "media_type": "application/x-ndjson",
+        "sha256": "e" * 64,
+        "size_bytes": 512,
+        "retention_class": "pull-request-7d",
+        "segment_index": 1,
+    }
+
+
 def test_v1_scenario_migrates_to_valid_v2_without_inventing_selectors() -> None:
     scenario = load_yaml(FIXTURES / "scenario" / "valid" / "simulation-realtime.yaml")
     migrated = migrate_scenario_v1_to_v2(
@@ -131,6 +148,23 @@ def test_v2_passed_result_requires_complete_evaluation() -> None:
     with pytest.raises(ContractValidationError) as caught:
         validate_document(result)
     assert caught.value.json_path == "$.unevaluated"
+
+
+def test_v2_result_remains_immutable_and_rejects_ndjson_evidence() -> None:
+    result = result_v2()
+    result["evidence"].append(ndjson_evidence())
+
+    with pytest.raises(ContractValidationError) as caught:
+        validate_document(result)
+
+    assert caught.value.json_path == "$.evidence[1].media_type"
+
+
+def test_v3_result_accepts_verified_ndjson_evidence() -> None:
+    result = result_v3()
+    result["evidence"].append(ndjson_evidence())
+
+    validate_document(result)
 
 
 @pytest.mark.parametrize("status", ["failed", "error"])

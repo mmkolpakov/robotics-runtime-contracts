@@ -32,6 +32,11 @@ Package `0.7.0` preserves the validation behavior and schema bytes of
 sample uniqueness, and evidence binding are introduced only by
 `acceptance-result.v2`.
 
+Package `0.8.0` preserves both earlier result schemas byte for byte and adds
+`acceptance-result.v3`. Version 3 accepts verified
+`application/x-ndjson` evidence, aligning result documents with streaming trace
+segments already supported by `evidence-index.v2`.
+
 ## Reader and Writer Rules
 
 - Readers select the validator from the document's exact `schema_version`.
@@ -55,7 +60,8 @@ conversion.
 | `acceptance-scenario.v2` | Exact read/write | Current scenario target; no downgrade |
 | `acceptance-run.v1` | Exact read/write | No automatic migration |
 | `acceptance-result.v1` | Exact read/write | Coexists with v2; no lossless automatic migration |
-| `acceptance-result.v2` | Exact read/write | Current result target; no downgrade |
+| `acceptance-result.v2` | Exact read/write | Coexists with v3; no automatic migration |
+| `acceptance-result.v3` | Exact read/write | Current result target; no downgrade |
 | `acceptance-aggregate.v1` | Exact read/write | Coexists with v2; no automatic migration |
 | `acceptance-aggregate.v2` | Exact read/write | Current cross-domain aggregate target |
 | `causal-chain.v1` | Exact read/write | No automatic migration |
@@ -96,11 +102,12 @@ not fetched from the network. Forward migration preserves extension
 declarations and payloads; callers must supply the same pinned schema documents
 when validating the migrated scenario.
 
-An `acceptance-result.v2` document with status `passed` contains at least one
-assertion result and one evidence item. Its time-authority evidence digest must
-identify an item in that evidence list. A non-passing result may represent an
-early stop with zero time-authority samples and no evidence digest; measured
-observations and successful results require the digest.
+An `acceptance-result.v2` or `acceptance-result.v3` document with status
+`passed` contains at least one assertion result and one evidence item. Its
+time-authority evidence digest must identify an item in that evidence list. A
+non-passing result may represent an early stop with zero time-authority samples
+and no evidence digest; measured observations and successful results require
+the digest.
 
 An extension remains owned by its consumer until its semantics are broadly
 reusable and accepted through the normal schema-change process. Moving a field
