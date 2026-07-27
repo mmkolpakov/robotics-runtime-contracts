@@ -79,7 +79,7 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
             "physical observation must declare at least one forbidden ROS interface",
         )
 
-    if schema_name == "acceptance-scenario.v2":
+    if schema_name in {"acceptance-scenario.v2", "acceptance-scenario.v3"}:
         time_policy = document["time_policy"]
         p50 = time_policy["max_clock_offset_p50_ms"]
         p95 = time_policy["max_clock_offset_p95_ms"]
@@ -927,6 +927,7 @@ def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-scenario.v1": _validate_acceptance_scenario,
     "acceptance-scenario.v2": _validate_acceptance_scenario,
+    "acceptance-scenario.v3": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,

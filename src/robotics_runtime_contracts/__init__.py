@@ -19,6 +19,7 @@ SCHEMA_NAME = "acceptance-scenario.v1.schema.json"
 SCHEMA_FILES = {
     "acceptance-scenario.v1": SCHEMA_NAME,
     "acceptance-scenario.v2": "acceptance-scenario.v2.schema.json",
+    "acceptance-scenario.v3": "acceptance-scenario.v3.schema.json",
     "model-artifact-manifest.v1": "model-artifact-manifest.v1.schema.json",
     "dataset-manifest.v1": "dataset-manifest.v1.schema.json",
     "runtime-manifest.v1": "runtime-manifest.v1.schema.json",
@@ -42,6 +43,7 @@ SCHEMA_FILES = {
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
     "urn:robotics-runtime-contracts:acceptance-scenario:v2": "acceptance-scenario.v2",
+    "urn:robotics-runtime-contracts:acceptance-scenario:v3": "acceptance-scenario.v3",
     "urn:robotics-runtime-contracts:model-artifact-manifest:v1": "model-artifact-manifest.v1",
     "urn:robotics-runtime-contracts:dataset-manifest:v1": "dataset-manifest.v1",
     "urn:robotics-runtime-contracts:runtime-manifest:v1": "runtime-manifest.v1",
@@ -71,6 +73,7 @@ PUBLISHED_SCHEMA_SHA256 = {
     "acceptance-result.v3": "2207374ef34a9d86118933dd6fa3f716f5c5471530fcf79ed7fa04810ded930f",
     "acceptance-scenario.v1": "9d8958b44affce2f9058658e073f8342ac4280b87e3232c10d5bf86ad4f9ce34",
     "acceptance-scenario.v2": "eeaceba3f1ba9e212b97e4b4f98e49acfedc19c42600dd07bc3b1465f1ae53eb",
+    "acceptance-scenario.v3": "67ca63d66d8dc6e0e07559f3a4459a8bbb1b1661ff28990326b7a08494af6d24",
     "dataset-manifest.v1": "b768eb96ee26e4c646eac2ba8743ba4a25bc2b668f7fe1453a474de7c10c8f08",
     "evidence-index.v1": "29b8d93a5ead7cea35d6a7c4b8c66cffccb43a9202694781767b3550895b21af",
     "evidence-index.v2": "c71cb01eaea93909048a15c06821d6ccc484ca5c45bac1dd614f97c86ec75509",
@@ -197,7 +200,11 @@ def validate_scenario(scenario: Mapping[str, Any]) -> None:
     """Validate an acceptance scenario."""
 
     schema_version = scenario.get("schema_version")
-    if schema_version not in {"acceptance-scenario.v1", "acceptance-scenario.v2"}:
+    if schema_version not in {
+        "acceptance-scenario.v1",
+        "acceptance-scenario.v2",
+        "acceptance-scenario.v3",
+    }:
         raise UnknownSchemaError(f"Unknown acceptance scenario schema: {schema_version}")
     validate_document(
         scenario,

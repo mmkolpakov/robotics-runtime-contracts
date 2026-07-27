@@ -51,7 +51,7 @@ uses the same contracts to validate inputs and emit a result.
 
 | Goal | Start here |
 | --- | --- |
-| Validate an application document | [`validate_document()`](#python-api) |
+| Validate an application document | [`robotics-contracts validate`](#quick-start) or [`validate_document()`](#python-api) |
 | Embed a published schema | [`load_schema()` or `schema_path()`](#python-api) |
 | Review the public document set | [Schema Catalog](#schema-catalog) |
 | Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
@@ -60,12 +60,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.8.0. Install its attested wheel directly from the
+The current package line is 0.9.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.8.0/robotics_runtime_contracts-0.8.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.9.0/robotics_runtime_contracts-0.9.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -73,28 +73,17 @@ distribution. GitHub stores build-provenance attestations for both artifacts.
 
 ## Quick Start
 
-Run a version-controlled fixture through the same structural, semantic, and
-extension validation used by consumers. This example uses
-[uv](https://docs.astral.sh/uv/) from a checkout:
+Run a JSON or YAML document through the same structural, semantic, and
+extension validation used by the Python API:
 
 ```bash
-git clone https://github.com/mmkolpakov/robotics-runtime-contracts.git
-cd robotics-runtime-contracts
-uv sync --locked --all-groups
-uv run python - <<'PY'
-import yaml
-from pathlib import Path
-from robotics_runtime_contracts import validate_document
-
-path = Path("tests/fixtures/scenario/valid/simulation-realtime.yaml")
-validate_document(yaml.safe_load(path.read_text(encoding="utf-8")))
-print("valid")
-PY
+robotics-contracts validate scenario.yaml
 ```
 
-Expected output is `valid`. The fixture is intentionally loaded by the caller:
-the package accepts parsed mappings and does not impose a JSON or YAML loading
-policy on applications.
+Expected output identifies the validated schema. Use `--quiet` in gates and
+`--schema` only when validating a document that cannot declare
+`schema_version`. Digest-pinned domain schemas can be supplied with repeated
+`--extension-schema URI=PATH` options.
 
 ## Schema Catalog
 
@@ -102,6 +91,7 @@ policy on applications.
 | --- | --- |
 | `acceptance-scenario.v1` | Execution intent, ROS readiness, timing, evidence, authorization, and forbidden interfaces |
 | `acceptance-scenario.v2` | Attributed metrics and measured time-authority policy |
+| `acceptance-scenario.v3` | Explicit skip budget for stepped simulation |
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
 | `acceptance-result.v1` | Domain acceptance verdict and observed evidence |
 | `acceptance-result.v2` | Run-scoped result with explicit domain, coverage, and time-authority evidence |
@@ -148,7 +138,8 @@ and semantic failures include an exact JSON path. `validate_scenario()` and
 
 ## Domain Extensions
 
-`acceptance-scenario.v1` and `acceptance-scenario.v2` support independently
+`acceptance-scenario.v1`, `acceptance-scenario.v2`, and
+`acceptance-scenario.v3` support independently
 versioned, namespaced extension schemas without weakening common safety, time,
 or evidence rules. The caller supplies the digest-pinned schema bytes;
 validation never fetches a schema from the network. Migrating a scenario to v2
