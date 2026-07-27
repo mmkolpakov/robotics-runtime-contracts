@@ -1,4 +1,4 @@
-schema_version: acceptance-result.v2
+schema_version: acceptance-result.v3
 result_id: result-01234567-89ab-4def-8123-456789abcdef
 run_id: run-01234567-89ab-4def-8123-456789abcdef
 scenario_id: org.example.camera-stream

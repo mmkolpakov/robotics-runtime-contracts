@@ -60,12 +60,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.7.0. Install its attested wheel directly from the
+The current package line is 0.8.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.7.0/robotics_runtime_contracts-0.7.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.8.0/robotics_runtime_contracts-0.8.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -105,6 +105,7 @@ policy on applications.
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
 | `acceptance-result.v1` | Domain acceptance verdict and observed evidence |
 | `acceptance-result.v2` | Run-scoped result with explicit domain, coverage, and time-authority evidence |
+| `acceptance-result.v3` | Run-scoped result with verified streaming trace evidence |
 | `acceptance-aggregate.v1` | Per-domain result aggregation with unevaluated cross-domain status |
 | `acceptance-aggregate.v2` | Cross-domain channel and causal-chain verdict |
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |

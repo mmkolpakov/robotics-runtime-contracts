@@ -293,6 +293,7 @@ def _validate_execution_verification(document: Mapping[str, Any]) -> None:
 
 def _validate_result(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
+    run_scoped = schema_name in {"acceptance-result.v2", "acceptance-result.v3"}
     started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
     finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
     if finished_at < started_at:
@@ -304,7 +305,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "assertion_id",
         "$.assertion_results",
     )
-    if schema_name == "acceptance-result.v2":
+    if run_scoped:
         status_priority = {
             "passed": 0,
             "skipped": 0,
@@ -326,7 +327,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
     graph = document["observed_ros_graph"]
     for key in ("topics", "services", "actions"):
         _require_unique(schema_name, graph[key], "name", f"$.observed_ros_graph.{key}")
-    if schema_name == "acceptance-result.v2":
+    if run_scoped:
         lifecycle_keys = [
             (item["node"], item["observed_at_ns"]) for item in document["lifecycle_states"]
         ]
@@ -376,10 +377,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.source",
                 "must match sync_protocol",
             )
-        if (
-            schema_name == "acceptance-result.v2"
-            and clock["evidence_sha256"] not in evidence_digests
-        ):
+        if run_scoped and clock["evidence_sha256"] not in evidence_digests:
             _fail(
                 schema_name,
                 "$.hardware_clock_observation.evidence_sha256",
@@ -431,17 +429,14 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.within_policy",
                 "passed physical result requires hardware timing within policy",
             )
-        if (
-            schema_name == "acceptance-result.v2"
-            and not document["time_authority_observation"]["within_policy"]
-        ):
+        if run_scoped and not document["time_authority_observation"]["within_policy"]:
             _fail(
                 schema_name,
                 "$.time_authority_observation.within_policy",
                 "passed result requires time-authority evidence within policy",
             )
 
-    if schema_name == "acceptance-result.v2":
+    if run_scoped:
         observation = document["time_authority_observation"]
         if observation["window_end_ns"] < observation["window_start_ns"]:
             _fail(
@@ -939,6 +934,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "execution-verification.v1": _validate_execution_verification,
     "acceptance-result.v1": _validate_result,
     "acceptance-result.v2": _validate_result,
+    "acceptance-result.v3": _validate_result,
     "evidence-index.v1": _validate_evidence_index,
     "evidence-index.v2": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
