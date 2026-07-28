@@ -7,14 +7,14 @@ policy_observation:
   compression: zstd
   upload_mode: local_only
   remote_sink_used: false
-  spool_peak_size_bytes: 222
+  spool_peak_size_bytes: 252
   upload_lag_max_sec: 0
 segments:
   - uri: file:///evidence/time-authority.json
     local_path: /evidence/time-authority.json
     media_type: application/json
-    sha256: 91c55c1da055f1378f3d73e05535ebadd2d876b14a5d2fdd92285908c87b5b5b
-    size_bytes: 222
+    sha256: 57c087f21f9185e09d3bf8e6592332451c8d5a57760807f011ee44d804bef598
+    size_bytes: 252
     retention_class: pull-request-7d
     segment_index: 0
     upload_status: local

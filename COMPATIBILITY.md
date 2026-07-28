@@ -43,6 +43,12 @@ batch document validation to the CLI, and retains the `0.9.0` additions:
 stepped simulation. It also adds a CLI over the same structural, semantic, and
 extension validation used by the Python API.
 
+Package `0.10.0` preserves every earlier schema byte for byte and adds
+`acceptance-scenario.v4`, `acceptance-result.v4`, and
+`transport-qualification-result.v1`. Scenario and result version 4 name
+RMW source-to-reception measurements as delivery latency, leaving hardware
+clock offset to the dedicated physical-timing fields.
+
 ## Reader and Writer Rules
 
 - Readers select the validator from the document's exact `schema_version`.
@@ -63,12 +69,14 @@ conversion.
 | Schema | Compatibility mode | Migration policy |
 | --- | --- | --- |
 | `acceptance-scenario.v1` | Exact read/write; forward migration | `migrate_scenario_v1_to_v2()` requires metric selectors and time-authority thresholds from the caller |
-| `acceptance-scenario.v2` | Exact read/write | Coexists with v3; no automatic migration |
-| `acceptance-scenario.v3` | Exact read/write | Current scenario target; stepped simulation requires an explicit skip budget |
+| `acceptance-scenario.v2` | Exact read/write | Coexists with later versions; no automatic migration |
+| `acceptance-scenario.v3` | Exact read/write | Stepped simulation requires an explicit skip budget |
+| `acceptance-scenario.v4` | Exact read/write | Current scenario target; delivery latency and hardware clock offset are separate |
 | `acceptance-run.v1` | Exact read/write | No automatic migration |
 | `acceptance-result.v1` | Exact read/write | Coexists with v2; no lossless automatic migration |
-| `acceptance-result.v2` | Exact read/write | Coexists with v3; no automatic migration |
-| `acceptance-result.v3` | Exact read/write | Current result target; no downgrade |
+| `acceptance-result.v2` | Exact read/write | Coexists with later versions; no automatic migration |
+| `acceptance-result.v3` | Exact read/write | Verified streaming trace evidence |
+| `acceptance-result.v4` | Exact read/write | Current result target; explicit delivery-latency observation |
 | `acceptance-aggregate.v1` | Exact read/write | Coexists with v2; no automatic migration |
 | `acceptance-aggregate.v2` | Exact read/write | Current cross-domain aggregate target |
 | `causal-chain.v1` | Exact read/write | No automatic migration |
@@ -82,6 +90,7 @@ conversion.
 | `qualification-bundle.v1` | Exact read/write | No automatic migration |
 | `qualification-policy.v1` | Exact read/write | No automatic migration |
 | `runtime-manifest.v1` | Exact read/write | No automatic migration |
+| `transport-qualification-result.v1` | Exact read/write | Neutral transport qualification without a product scenario |
 | `zenoh-channel.v1` | Exact read/write | No automatic migration |
 | `zenoh-channel-observation.v1` | Exact read/write | No automatic migration |
 
@@ -91,8 +100,7 @@ The package itself requires CPython 3.12 or newer. Runtime contracts deliberatel
 record a narrower robotics baseline where interoperability depends on it:
 
 - `runtime-manifest.v1` identifies ROS 2 Jazzy and Gazebo Harmonic.
-- `acceptance-scenario.v1`, `acceptance-scenario.v2`,
-  `acceptance-scenario.v3`, and
+- `acceptance-scenario.v1` through `acceptance-scenario.v4`, and
   `evidence-index.v2` require `zstd` evidence compression.
 - Other schemas remain independent of robot type, scene, model family, and
   product rules.
@@ -103,15 +111,14 @@ does not qualify a runtime or physical target.
 
 ## Domain Extensions
 
-`acceptance-scenario.v1`, `acceptance-scenario.v2`, and
-`acceptance-scenario.v3` support digest-pinned,
+`acceptance-scenario.v1` through `acceptance-scenario.v4` support digest-pinned,
 namespaced local extensions. Extension schemas are supplied by the caller, must
 use JSON Schema Draft 2020-12, and may contain only local references. They are
 not fetched from the network. Forward migration preserves extension
 declarations and payloads; callers must supply the same pinned schema documents
 when validating the migrated scenario.
 
-An `acceptance-result.v2` or `acceptance-result.v3` document with status
+An `acceptance-result.v2` through `acceptance-result.v4` document with status
 `passed` contains at least one assertion result and one evidence item. Its
 time-authority evidence digest must identify an item in that evidence list. A
 non-passing result may represent an early stop with zero time-authority samples

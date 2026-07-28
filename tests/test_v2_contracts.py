@@ -60,6 +60,26 @@ def result_v3() -> dict[str, Any]:
     return result
 
 
+def result_v4() -> dict[str, Any]:
+    result = result_v3()
+    result["schema_version"] = "acceptance-result.v4"
+    observation = result["time_authority_observation"]
+    observation["p50_delivery_latency_ms"] = observation.pop("p50_offset_ms")
+    observation["p95_delivery_latency_ms"] = observation.pop("p95_offset_ms")
+    observation["max_delivery_latency_ms"] = observation.pop("max_offset_ms")
+    return result
+
+
+def test_v4_time_authority_success_requires_at_least_one_sample() -> None:
+    result = result_v4()
+    result["time_authority_observation"]["sample_count"] = 0
+
+    with pytest.raises(ContractValidationError) as caught:
+        validate_document(result)
+
+    assert caught.value.json_path == "$.time_authority_observation.sample_count"
+
+
 def ndjson_evidence() -> dict[str, Any]:
     return {
         "uri": "file:///evidence/traces.otlp.jsonl",
@@ -165,6 +185,30 @@ def test_v3_result_accepts_verified_ndjson_evidence() -> None:
     result["evidence"].append(ndjson_evidence())
 
     validate_document(result)
+
+
+def test_v4_result_uses_delivery_latency_observation() -> None:
+    validate_document(result_v4())
+
+
+def test_v4_result_rejects_legacy_offset_observation() -> None:
+    result = result_v4()
+    observation = result["time_authority_observation"]
+    observation["p50_offset_ms"] = observation.pop("p50_delivery_latency_ms")
+
+    with pytest.raises(ContractValidationError) as caught:
+        validate_document(result)
+
+    assert caught.value.json_path == "$.time_authority_observation"
+
+
+def test_v4_result_rejects_unsorted_delivery_latency_statistics() -> None:
+    result = result_v4()
+    result["time_authority_observation"]["p50_delivery_latency_ms"] = 1
+    result["time_authority_observation"]["p95_delivery_latency_ms"] = 0.5
+
+    with pytest.raises(SemanticValidationError, match="p50 <= p95 <= max"):
+        validate_document(result)
 
 
 @pytest.mark.parametrize("status", ["failed", "error"])

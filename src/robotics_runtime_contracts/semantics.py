@@ -90,6 +90,17 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
                 "$.time_policy",
                 "clock offset thresholds must satisfy p50 <= p95 <= max",
             )
+    elif schema_name == "acceptance-scenario.v4":
+        time_policy = document["time_policy"]
+        p50 = time_policy["max_time_authority_delivery_latency_p50_ms"]
+        p95 = time_policy["max_time_authority_delivery_latency_p95_ms"]
+        maximum = time_policy["max_time_authority_delivery_latency_ms"]
+        if not p50 <= p95 <= maximum:
+            _fail(
+                schema_name,
+                "$.time_policy",
+                "time-authority delivery-latency thresholds must satisfy p50 <= p95 <= max",
+            )
 
 
 def _validate_model_artifact(document: Mapping[str, Any]) -> None:
@@ -293,7 +304,11 @@ def _validate_execution_verification(document: Mapping[str, Any]) -> None:
 
 def _validate_result(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    run_scoped = schema_name in {"acceptance-result.v2", "acceptance-result.v3"}
+    run_scoped = schema_name in {
+        "acceptance-result.v2",
+        "acceptance-result.v3",
+        "acceptance-result.v4",
+    }
     started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
     finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
     if finished_at < started_at:
@@ -444,15 +459,21 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.time_authority_observation.window_end_ns",
                 "must not be earlier than window_start_ns",
             )
-        if not (
-            observation["p50_offset_ms"]
-            <= observation["p95_offset_ms"]
-            <= observation["max_offset_ms"]
-        ):
+        if schema_name == "acceptance-result.v4":
+            p50 = observation["p50_delivery_latency_ms"]
+            p95 = observation["p95_delivery_latency_ms"]
+            maximum = observation["max_delivery_latency_ms"]
+            measurement = "delivery-latency"
+        else:
+            p50 = observation["p50_offset_ms"]
+            p95 = observation["p95_offset_ms"]
+            maximum = observation["max_offset_ms"]
+            measurement = "offset"
+        if not p50 <= p95 <= maximum:
             _fail(
                 schema_name,
                 "$.time_authority_observation",
-                "offset statistics must satisfy p50 <= p95 <= max",
+                f"{measurement} statistics must satisfy p50 <= p95 <= max",
             )
         evidence_sha256 = observation.get("evidence_sha256")
         if evidence_sha256 is not None and evidence_sha256 not in evidence_digests:
@@ -521,6 +542,27 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
         )
     if schema_name != "acceptance-aggregate.v2":
         return
+    _validate_trace_topology(
+        document,
+        schema_name=schema_name,
+        expected_domains=result_domains,
+        base_status=expected,
+        verdict_key="cross_domain_e2e",
+        verdict_path="$.cross_domain_e2e",
+    )
+
+
+def _validate_trace_topology(
+    document: Mapping[str, Any],
+    *,
+    schema_name: str,
+    expected_domains: set[str],
+    base_status: str,
+    verdict_key: str,
+    verdict_path: str,
+) -> None:
+    result_domains = expected_domains
+    expected = base_status
 
     trace_evidence = document["trace_evidence"]
     _require_unique(schema_name, trace_evidence, "domain_id", "$.trace_evidence")
@@ -528,7 +570,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
         _fail(
             schema_name,
             "$.trace_evidence",
-            "must contain exactly one trace file for every result domain",
+            "must contain exactly one trace file for every qualification domain",
         )
 
     contracts = document["channel_contracts"]
@@ -545,13 +587,13 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
         _fail(
             schema_name,
             "$.channel_contracts",
-            f"references unknown result domains: {sorted(unknown_contract_domains)}",
+            f"references unknown qualification domains: {sorted(unknown_contract_domains)}",
         )
     if contract_domains != result_domains:
         _fail(
             schema_name,
             "$.channel_contracts",
-            "must traverse every result domain",
+            "must traverse every qualification domain",
         )
     for contract_index, contract in enumerate(contracts):
         if contract["source_domain_id"] == contract["destination_domain_id"]:
@@ -662,7 +704,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
                     _fail(
                         schema_name,
                         f"$.causal_chains[{index}].hops[{hop_index}]",
-                        f"references unknown result domains: {sorted(unknown_domains)}",
+                        f"references unknown qualification domains: {sorted(unknown_domains)}",
                     )
                 if hop["producer"]["domain_id"] == hop["consumer"]["domain_id"]:
                     _fail(
@@ -723,7 +765,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
             "must collectively cover every channel contract",
         )
 
-    verdict = document["cross_domain_e2e"]
+    verdict = document[verdict_key]
     passed_chains = sum(chain["status"] == "passed" for chain in chains)
     failed_chains = sum(chain["status"] == "failed" for chain in chains)
     incomplete_chains = sum(chain["status"] == "incomplete" for chain in chains)
@@ -731,31 +773,31 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
     if verdict["chain_count"] != len(chains):
         _fail(
             schema_name,
-            "$.cross_domain_e2e.chain_count",
+            f"{verdict_path}.chain_count",
             "must equal the number of causal chains",
         )
     if verdict["passed_chain_count"] != passed_chains:
         _fail(
             schema_name,
-            "$.cross_domain_e2e.passed_chain_count",
+            f"{verdict_path}.passed_chain_count",
             "must equal the number of passed causal chains",
         )
     if verdict["failed_chain_count"] != failed_chains:
         _fail(
             schema_name,
-            "$.cross_domain_e2e.failed_chain_count",
+            f"{verdict_path}.failed_chain_count",
             "must equal the number of failed causal chains",
         )
     if verdict["incomplete_chain_count"] != incomplete_chains:
         _fail(
             schema_name,
-            "$.cross_domain_e2e.incomplete_chain_count",
+            f"{verdict_path}.incomplete_chain_count",
             "must equal the number of incomplete causal chains",
         )
     if verdict["error_chain_count"] != error_chains:
         _fail(
             schema_name,
-            "$.cross_domain_e2e.error_chain_count",
+            f"{verdict_path}.error_chain_count",
             "must equal the number of errored causal chains",
         )
     observation_statuses = {item["status"] for item in observations}
@@ -774,9 +816,26 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
     if verdict["status"] != expected_e2e:
         _fail(
             schema_name,
-            "$.cross_domain_e2e.status",
-            f"must equal the aggregate cross-domain status {expected_e2e!r}",
+            f"{verdict_path}.status",
+            f"must equal the aggregate transport status {expected_e2e!r}",
         )
+
+
+def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
+    contracts = document["channel_contracts"]
+    expected_domains = {
+        domain_id
+        for item in contracts
+        for domain_id in (item["source_domain_id"], item["destination_domain_id"])
+    }
+    _validate_trace_topology(
+        document,
+        schema_name="transport-qualification-result.v1",
+        expected_domains=expected_domains,
+        base_status="passed",
+        verdict_key="verdict",
+        verdict_path="$.verdict",
+    )
 
 
 def _validate_zenoh_channel(document: Mapping[str, Any]) -> None:
@@ -928,6 +987,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-scenario.v1": _validate_acceptance_scenario,
     "acceptance-scenario.v2": _validate_acceptance_scenario,
     "acceptance-scenario.v3": _validate_acceptance_scenario,
+    "acceptance-scenario.v4": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
@@ -936,6 +996,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-result.v1": _validate_result,
     "acceptance-result.v2": _validate_result,
     "acceptance-result.v3": _validate_result,
+    "acceptance-result.v4": _validate_result,
     "evidence-index.v1": _validate_evidence_index,
     "evidence-index.v2": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
@@ -946,6 +1007,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "zenoh-channel.v1": _validate_zenoh_channel,
     "zenoh-channel-observation.v1": _validate_zenoh_channel_observation,
     "causal-chain.v1": _validate_causal_chain,
+    "transport-qualification-result.v1": _validate_transport_qualification,
 }
 
 
