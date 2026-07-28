@@ -15,9 +15,11 @@ requirements. It is a maintainer assessment, not an independent certification.
 | Source distribution (`.tar.gz`) | `v*` tag whose commit is reachable from `origin/main`; `.github/workflows/release.yml`; GitHub-hosted Ubuntu 24.04; `uv build --no-sources` | `actions/attest` creates signed SLSA build provenance bound to the artifact digest | Build L2 |
 
 Both distributions are built and tested once in a job without OIDC authority.
-The resulting workflow artifact is consumed unchanged by two separate jobs:
+The resulting workflow artifact is consumed unchanged by the enabled
+publication jobs:
 
-- the `publish-pypi` job publishes to PyPI through Trusted Publishing;
+- the optional `publish-pypi` job publishes to PyPI through Trusted
+  Publishing when `PYPI_PUBLISH_ENABLED` is `true`;
 - the `github-release` job attests the distributions and creates the GitHub
   Release.
 
@@ -56,7 +58,9 @@ qualify a robotics runtime, dataset, model, or physical target.
 - The Git tag must equal `v` followed by the installed package version.
 - The release job fetches `origin/main` and fails before building when the
   tagged commit is not reachable from that branch.
-- PyPI publication uses the protected GitHub environment named `pypi`.
+- PyPI publication requires the repository variable
+  `PYPI_PUBLISH_ENABLED=true` and uses the protected GitHub environment named
+  `pypi`.
 
 Any change to the builder boundary, attestation action, release trigger, or
 artifact set requires updating this table.
@@ -85,9 +89,13 @@ values:
 | Environment | `pypi` |
 
 Create and protect the `pypi` environment in GitHub before registering the
-publisher. No `PYPI_API_TOKEN` secret is required. Until this external setup is
-complete, the `publish-pypi` job is expected to fail closed.
+publisher. No `PYPI_API_TOKEN` secret is required. After the Trusted Publisher
+is active, set the repository variable `PYPI_PUBLISH_ENABLED` to `true`.
+Until then, the PyPI job remains skipped and the attested GitHub Release is the
+canonical distribution channel. Once enabled, a PyPI publication failure fails
+the release workflow.
 
 Release `robotics-runtime-contracts` before releasing a version of
 `robotics-acceptance-harness` that depends on it. Create and push the protected
-version tag only after the contracts release is visible on PyPI.
+version tag only after the contracts GitHub Release and build-provenance
+attestation are available.
