@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:transport-qualification-result:v1",
+  "title": "Robotics transport qualification result v1",
+  "description": "A domain-neutral result for measured channel delivery and verified W3C Trace Context continuity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "qualification_id",
+    "run_id",
+    "generated_at",
+    "evaluator",
+    "trace_evidence",
+    "causal_chain_contracts",
+    "channel_contracts",
+    "channel_observations",
+    "causal_chains",
+    "verdict"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "transport-qualification-result.v1"
+    },
+    "qualification_id": {
+      "type": "string",
+      "pattern": "^qualification-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "version"
+      ],
+      "properties": {
+        "implementation": {
+          "const": "robotics-acceptance-harness"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$",
+          "maxLength": 64
+        }
+      }
+    },
+    "trace_evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/traceEvidence"
+      }
+    },
+    "causal_chain_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/causalChainContract"
+      }
+    },
+    "channel_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channelContract"
+      }
+    },
+    "channel_observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channelObservation"
+      }
+    },
+    "causal_chains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/causalChain"
+      }
+    },
+    "verdict": {
+      "$ref": "#/$defs/verdict"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete",
+        "error"
+      ]
+    },
+    "traceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "evidence_index_sha256",
+        "segment_index",
+        "uri",
+        "media_type",
+        "format",
+        "signal",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "domain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "evidence_index_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "media_type": {
+          "const": "application/x-ndjson"
+        },
+        "format": {
+          "const": "otlp-jsonl"
+        },
+        "signal": {
+          "const": "traces"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "causalChainContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chain_id",
+        "sha256"
+      ],
+      "properties": {
+        "chain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "channelContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "source_domain_id",
+        "destination_domain_id",
+        "sha256"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "source_domain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "destination_domain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "channelObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "observation_id",
+        "sha256",
+        "status"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "observation_id": {
+          "type": "string",
+          "pattern": "^observation-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "spanReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "trace_id",
+        "span_id",
+        "message_id"
+      ],
+      "properties": {
+        "domain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "span_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{16}$"
+        },
+        "message_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "missing_trace_evidence",
+            "missing_span",
+            "trace_id_mismatch",
+            "relationship_mismatch",
+            "temporal_order_mismatch",
+            "message_id_mismatch",
+            "channel_observation_failed",
+            "evaluation_error"
+          ]
+        },
+        "channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "hop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "relationship",
+        "producer",
+        "consumer",
+        "status",
+        "violations"
+      ],
+      "properties": {
+        "channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "relationship": {
+          "enum": [
+            "link",
+            "parent"
+          ]
+        },
+        "producer": {
+          "$ref": "#/$defs/spanReference"
+        },
+        "consumer": {
+          "$ref": "#/$defs/spanReference"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "violations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/violation"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "passed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "violations": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "violations": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "causalChain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chain_id",
+        "expected_contract_sha256",
+        "channel_ids",
+        "status",
+        "hops",
+        "violations"
+      ],
+      "properties": {
+        "chain_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "expected_contract_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "root_trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "trace_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$"
+          }
+        },
+        "channel_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "hops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hop"
+          }
+        },
+        "violations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/violation"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "passed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "root_trace_id",
+              "trace_ids"
+            ],
+            "properties": {
+              "hops": {
+                "minItems": 1
+              },
+              "violations": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "violations": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evaluated_at",
+        "chain_count",
+        "passed_chain_count",
+        "failed_chain_count",
+        "incomplete_chain_count",
+        "error_chain_count"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "chain_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "passed_chain_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_chain_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_chain_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_chain_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

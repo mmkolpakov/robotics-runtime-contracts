@@ -60,12 +60,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.9.1. Install its attested wheel directly from the
+The current package line is 0.10.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.9.1/robotics_runtime_contracts-0.9.1-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.10.0/robotics_runtime_contracts-0.10.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -92,10 +92,12 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 | `acceptance-scenario.v1` | Execution intent, ROS readiness, timing, evidence, authorization, and forbidden interfaces |
 | `acceptance-scenario.v2` | Attributed metrics and measured time-authority policy |
 | `acceptance-scenario.v3` | Explicit skip budget for stepped simulation |
+| `acceptance-scenario.v4` | Delivery-latency policy separated from hardware clock synchronization |
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
 | `acceptance-result.v1` | Domain acceptance verdict and observed evidence |
 | `acceptance-result.v2` | Run-scoped result with explicit domain, coverage, and time-authority evidence |
 | `acceptance-result.v3` | Run-scoped result with verified streaming trace evidence |
+| `acceptance-result.v4` | Run-scoped result with explicit time-authority delivery-latency observations |
 | `acceptance-aggregate.v1` | Per-domain result aggregation with unevaluated cross-domain status |
 | `acceptance-aggregate.v2` | Cross-domain channel and causal-chain verdict |
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
@@ -111,6 +113,7 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 | `qualification-policy.v1` | Trust policy for qualification-bundle verification |
 | `zenoh-channel.v1` | Cross-domain channel contract |
 | `zenoh-channel-observation.v1` | Observed cross-domain channel delivery and trace evidence |
+| `transport-qualification-result.v1` | Domain-neutral channel-delivery and causal-trace qualification verdict |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
 versioned `$id`, and is included in the Python wheel.
@@ -138,8 +141,7 @@ and semantic failures include an exact JSON path. `validate_scenario()` and
 
 ## Domain Extensions
 
-`acceptance-scenario.v1`, `acceptance-scenario.v2`, and
-`acceptance-scenario.v3` support independently
+`acceptance-scenario.v1` through `acceptance-scenario.v4` support independently
 versioned, namespaced extension schemas without weakening common safety, time,
 or evidence rules. The caller supplies the digest-pinned schema bytes;
 validation never fetches a schema from the network. Migrating a scenario to v2

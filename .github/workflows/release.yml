@@ -65,7 +65,7 @@ jobs:
           from jsonschema import Draft202012Validator
           from robotics_runtime_contracts import load_schema, schema_names
 
-          assert version("robotics-runtime-contracts") == "0.9.1"
+          assert version("robotics-runtime-contracts") == "0.10.0"
           for schema_name in schema_names():
               Draft202012Validator.check_schema(load_schema(schema_name))
           PY

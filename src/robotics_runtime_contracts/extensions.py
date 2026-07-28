@@ -39,11 +39,7 @@ def validate_extensions(
 ) -> None:
     """Validate declared scenario extensions without performing network access."""
 
-    if schema_name not in {
-        "acceptance-scenario.v1",
-        "acceptance-scenario.v2",
-        "acceptance-scenario.v3",
-    }:
+    if not schema_name.startswith("acceptance-scenario."):
         return
 
     declarations = document.get("extension_schemas", [])

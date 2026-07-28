@@ -216,6 +216,23 @@ def acceptance_aggregate() -> dict[str, object]:
     }
 
 
+def transport_qualification() -> dict[str, object]:
+    aggregate = acceptance_aggregate()
+    return {
+        "schema_version": "transport-qualification-result.v1",
+        "qualification_id": "qualification-00000000-0000-4000-8000-000000000001",
+        "run_id": aggregate["run_id"],
+        "generated_at": aggregate["generated_at"],
+        "evaluator": aggregate["evaluator"],
+        "trace_evidence": aggregate["trace_evidence"],
+        "causal_chain_contracts": aggregate["causal_chain_contracts"],
+        "channel_contracts": aggregate["channel_contracts"],
+        "channel_observations": aggregate["channel_observations"],
+        "causal_chains": aggregate["causal_chains"],
+        "verdict": aggregate["cross_domain_e2e"],
+    }
+
+
 def qualification_bundle() -> dict[str, object]:
     artifact_kinds = (
         "scenario",
@@ -441,7 +458,7 @@ def test_cross_domain_aggregate_rejects_unknown_hop_domain() -> None:
     document = deepcopy(acceptance_aggregate())
     document["causal_chains"][0]["hops"][0]["producer"]["domain_id"] = "ghost-control"
 
-    with pytest.raises(SemanticValidationError, match="unknown result domains"):
+    with pytest.raises(SemanticValidationError, match="unknown qualification domains"):
         validate_document(document)
 
 
@@ -644,7 +661,53 @@ def test_cross_domain_passed_rejects_failed_chain() -> None:
     verdict["passed_chain_count"] = 0
     verdict["failed_chain_count"] = 1
 
-    with pytest.raises(SemanticValidationError, match="aggregate cross-domain status"):
+    with pytest.raises(SemanticValidationError, match="aggregate transport status"):
+        validate_document(document)
+
+
+def test_transport_qualification_is_domain_neutral_and_valid() -> None:
+    document = transport_qualification()
+
+    validate_document(document)
+
+    assert "per_domain_results" not in document
+    assert "acceptance_run_sha256" not in document
+    assert "runtime_manifest_sha256" not in document
+
+
+def test_transport_qualification_requires_trace_for_every_channel_domain() -> None:
+    document = transport_qualification()
+    document["trace_evidence"][1]["domain_id"] = "observer"
+
+    with pytest.raises(SemanticValidationError, match="qualification domain"):
+        validate_document(document)
+
+
+def test_transport_qualification_rejects_incorrect_verdict() -> None:
+    document = transport_qualification()
+    document["causal_chains"][0]["status"] = "failed"
+    document["causal_chains"][0]["hops"] = []
+    document["causal_chains"][0]["violations"] = [
+        {
+            "code": "relationship_mismatch",
+            "channel_id": "control.commands",
+            "message": "producer relationship differs",
+        }
+    ]
+    document["verdict"].update(
+        passed_chain_count=0,
+        failed_chain_count=1,
+    )
+
+    with pytest.raises(SemanticValidationError, match="aggregate transport status"):
+        validate_document(document)
+
+
+def test_transport_qualification_rejects_domain_acceptance_fields() -> None:
+    document = transport_qualification()
+    document["per_domain_aggregate"] = "passed"
+
+    with pytest.raises(ContractValidationError):
         validate_document(document)
 
 

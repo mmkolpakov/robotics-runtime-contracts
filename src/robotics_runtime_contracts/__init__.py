@@ -20,6 +20,7 @@ SCHEMA_FILES = {
     "acceptance-scenario.v1": SCHEMA_NAME,
     "acceptance-scenario.v2": "acceptance-scenario.v2.schema.json",
     "acceptance-scenario.v3": "acceptance-scenario.v3.schema.json",
+    "acceptance-scenario.v4": "acceptance-scenario.v4.schema.json",
     "model-artifact-manifest.v1": "model-artifact-manifest.v1.schema.json",
     "dataset-manifest.v1": "dataset-manifest.v1.schema.json",
     "runtime-manifest.v1": "runtime-manifest.v1.schema.json",
@@ -28,6 +29,7 @@ SCHEMA_FILES = {
     "acceptance-result.v1": "acceptance-result.v1.schema.json",
     "acceptance-result.v2": "acceptance-result.v2.schema.json",
     "acceptance-result.v3": "acceptance-result.v3.schema.json",
+    "acceptance-result.v4": "acceptance-result.v4.schema.json",
     "evidence-index.v1": "evidence-index.v1.schema.json",
     "evidence-index.v2": "evidence-index.v2.schema.json",
     "acceptance-run.v1": "acceptance-run.v1.schema.json",
@@ -39,11 +41,13 @@ SCHEMA_FILES = {
     "qualification-policy.v1": "qualification-policy.v1.schema.json",
     "zenoh-channel.v1": "zenoh-channel.v1.schema.json",
     "zenoh-channel-observation.v1": "zenoh-channel-observation.v1.schema.json",
+    "transport-qualification-result.v1": ("transport-qualification-result.v1.schema.json"),
 }
 SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
     "urn:robotics-runtime-contracts:acceptance-scenario:v2": "acceptance-scenario.v2",
     "urn:robotics-runtime-contracts:acceptance-scenario:v3": "acceptance-scenario.v3",
+    "urn:robotics-runtime-contracts:acceptance-scenario:v4": "acceptance-scenario.v4",
     "urn:robotics-runtime-contracts:model-artifact-manifest:v1": "model-artifact-manifest.v1",
     "urn:robotics-runtime-contracts:dataset-manifest:v1": "dataset-manifest.v1",
     "urn:robotics-runtime-contracts:runtime-manifest:v1": "runtime-manifest.v1",
@@ -52,6 +56,7 @@ SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:acceptance-result:v1": "acceptance-result.v1",
     "urn:robotics-runtime-contracts:acceptance-result:v2": "acceptance-result.v2",
     "urn:robotics-runtime-contracts:acceptance-result:v3": "acceptance-result.v3",
+    "urn:robotics-runtime-contracts:acceptance-result:v4": "acceptance-result.v4",
     "urn:robotics-runtime-contracts:evidence-index:v1": "evidence-index.v1",
     "urn:robotics-runtime-contracts:evidence-index:v2": "evidence-index.v2",
     "urn:robotics-runtime-contracts:acceptance-run:v1": "acceptance-run.v1",
@@ -63,6 +68,9 @@ SCHEMA_IDS = {
     "urn:robotics-runtime-contracts:qualification-policy:v1": "qualification-policy.v1",
     "urn:robotics-runtime-contracts:zenoh-channel:v1": "zenoh-channel.v1",
     "urn:robotics-runtime-contracts:zenoh-channel-observation:v1": ("zenoh-channel-observation.v1"),
+    "urn:robotics-runtime-contracts:transport-qualification-result:v1": (
+        "transport-qualification-result.v1"
+    ),
 }
 PUBLISHED_SCHEMA_SHA256 = {
     "acceptance-aggregate.v1": ("8e540fd5ee307767cd95d998ac1339d70a760da99e2840dd79bc71a047d9c322"),
@@ -71,9 +79,11 @@ PUBLISHED_SCHEMA_SHA256 = {
     "acceptance-result.v1": "ce2322787a615839c3a3e21b00ce51ea08236d780ba4c482d205fb7330d0ba0a",
     "acceptance-result.v2": "6a5f7f9083dc2cf370afe1d4098ee99d74779509cf5f6af558aa152ed0b3d1fd",
     "acceptance-result.v3": "2207374ef34a9d86118933dd6fa3f716f5c5471530fcf79ed7fa04810ded930f",
+    "acceptance-result.v4": "e794245312ae763169296dcb0449c3947e3fa5dcd97ba2f588608c2045579107",
     "acceptance-scenario.v1": "9d8958b44affce2f9058658e073f8342ac4280b87e3232c10d5bf86ad4f9ce34",
     "acceptance-scenario.v2": "eeaceba3f1ba9e212b97e4b4f98e49acfedc19c42600dd07bc3b1465f1ae53eb",
     "acceptance-scenario.v3": "67ca63d66d8dc6e0e07559f3a4459a8bbb1b1661ff28990326b7a08494af6d24",
+    "acceptance-scenario.v4": "e1c7e2479112c33a3d67ff5de3e5c48499389a2cf9fde765af5c06af6c8a3bff",
     "dataset-manifest.v1": "b768eb96ee26e4c646eac2ba8743ba4a25bc2b668f7fe1453a474de7c10c8f08",
     "evidence-index.v1": "29b8d93a5ead7cea35d6a7c4b8c66cffccb43a9202694781767b3550895b21af",
     "evidence-index.v2": "c71cb01eaea93909048a15c06821d6ccc484ca5c45bac1dd614f97c86ec75509",
@@ -92,6 +102,9 @@ PUBLISHED_SCHEMA_SHA256 = {
     "zenoh-channel.v1": "2febfa242150f1ceda98d4efac4b9ecfaa4c74bbba873d22d41810a619ca185b",
     "zenoh-channel-observation.v1": (
         "3596ee9478e74d27d5403536a88366ec335e77a22543cad83266db48b0f1c45f"
+    ),
+    "transport-qualification-result.v1": (
+        "3dc2bd38f2b9ea1015fb66f28b4569cac344f30b86c6af3e2d8434bcb73a897e"
     ),
 }
 
@@ -200,11 +213,11 @@ def validate_scenario(scenario: Mapping[str, Any]) -> None:
     """Validate an acceptance scenario."""
 
     schema_version = scenario.get("schema_version")
-    if schema_version not in {
-        "acceptance-scenario.v1",
-        "acceptance-scenario.v2",
-        "acceptance-scenario.v3",
-    }:
+    if (
+        not isinstance(schema_version, str)
+        or not schema_version.startswith("acceptance-scenario.")
+        or schema_version not in SCHEMA_FILES
+    ):
         raise UnknownSchemaError(f"Unknown acceptance scenario schema: {schema_version}")
     validate_document(
         scenario,

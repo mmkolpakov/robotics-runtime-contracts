@@ -1,0 +1,1050 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:acceptance-result:v4",
+  "title": "Robotics acceptance result v4",
+  "description": "Per-domain acceptance result with distinct run, scenario, domain, and result identities, explicit evaluation coverage, measured time-authority delivery latency, and verified streaming trace evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "run_id",
+    "scenario_id",
+    "domain_id",
+    "verdict_scope",
+    "unevaluated",
+    "time_authority_observation",
+    "scenario_sha256",
+    "runtime_manifest_sha256",
+    "started_at",
+    "finished_at",
+    "monotonic_duration_sec",
+    "status",
+    "assertion_results",
+    "observed_ros_graph",
+    "forbidden_graph_observation",
+    "execution",
+    "authorization",
+    "workload",
+    "lifecycle_states",
+    "clock_observation",
+    "shutdown",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "acceptance-result.v4"
+    },
+    "result_id": {
+      "type": "string",
+      "pattern": "^result-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "scenario_id": {
+      "$ref": "#/$defs/imported__acceptance-result__identifier"
+    },
+    "domain_id": {
+      "$ref": "#/$defs/imported__acceptance-result__identifier"
+    },
+    "verdict_scope": {
+      "const": "domain"
+    },
+    "unevaluated": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\$\\.[A-Za-z0-9_.\\[\\]-]+$"
+      },
+      "uniqueItems": true
+    },
+    "time_authority_observation": {
+      "$ref": "#/$defs/timeAuthorityObservation"
+    },
+    "scenario_sha256": {
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
+    },
+    "runtime_manifest_sha256": {
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
+    },
+    "model_manifest_sha256": {
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
+    },
+    "dataset_manifest_sha256": {
+      "$ref": "#/$defs/imported__acceptance-result__sha256"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "monotonic_duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete",
+        "error",
+        "cancelled"
+      ]
+    },
+    "assertion_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/imported__acceptance-result__assertionResult"
+      }
+    },
+    "observed_ros_graph": {
+      "$ref": "#/$defs/imported__acceptance-result__observedRosGraph"
+    },
+    "forbidden_graph_observation": {
+      "$ref": "#/$defs/forbiddenGraphObservation"
+    },
+    "execution": {
+      "$ref": "#/$defs/imported__acceptance-result__execution"
+    },
+    "authorization": {
+      "$ref": "#/$defs/authorization"
+    },
+    "workload": {
+      "$ref": "#/$defs/imported__acceptance-result__workload"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/imported__acceptance-result__lifecycleState"
+      }
+    },
+    "clock_observation": {
+      "$ref": "#/$defs/imported__acceptance-result__clockObservation"
+    },
+    "hardware_clock_observation": {
+      "$ref": "#/$defs/hardwareClockObservation"
+    },
+    "shutdown": {
+      "$ref": "#/$defs/imported__acceptance-result__shutdown"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/imported__acceptance-result__evidence"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/imported__acceptance-result__extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "assertion_results": {
+            "minItems": 1
+          },
+          "evidence": {
+            "minItems": 1
+          },
+          "time_authority_observation": {
+            "required": [
+              "evidence_sha256"
+            ],
+            "properties": {
+              "sample_count": {
+                "minimum": 1
+              }
+            }
+          },
+          "unevaluated": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "incomplete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "unevaluated": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "assertion_results": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "passed"
+                }
+              }
+            }
+          },
+          "forbidden_graph_observation": {
+            "properties": {
+              "passed": {
+                "const": true
+              },
+              "violations": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "target_environment"
+            ],
+            "properties": {
+              "target_environment": {
+                "const": "simulation"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "none"
+              }
+            }
+          }
+        },
+        "not": {
+          "required": [
+            "hardware_clock_observation"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "execution"
+        ],
+        "properties": {
+          "execution": {
+            "required": [
+              "target_environment"
+            ],
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "hardware_clock_observation"
+        ],
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "verified_execution_permit"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "data_source": {
+                "const": "live_target"
+              },
+              "plant_backend": {
+                "const": "real_hardware"
+              },
+              "time_mode": {
+                "const": "hardware_realtime"
+              },
+              "data_plane_profile": {
+                "const": "secure_shared_memory"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "workload"
+        ],
+        "properties": {
+          "workload": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "inference"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "model_manifest_sha256"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "timeAuthorityObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "sample_count",
+        "window_start_ns",
+        "window_end_ns",
+        "p50_delivery_latency_ms",
+        "p95_delivery_latency_ms",
+        "max_delivery_latency_ms",
+        "within_policy"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/$defs/imported__acceptance-result__identifier"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_end_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p50_delivery_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_delivery_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_delivery_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "within_policy": {
+          "type": "boolean"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/imported__acceptance-result__sha256"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "sample_count"
+            ],
+            "properties": {
+              "sample_count": {
+                "minimum": 1
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "evidence_sha256"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "within_policy"
+            ],
+            "properties": {
+              "within_policy": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "evidence_sha256"
+            ],
+            "properties": {
+              "sample_count": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "authorization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "permit_sha256",
+            "execution_verification_sha256",
+            "trust_policy_sha256",
+            "target"
+          ],
+          "properties": {
+            "mode": {
+              "const": "verified_execution_permit"
+            },
+            "permit_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "execution_verification_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "trust_policy_sha256": {
+              "$ref": "#/$defs/imported__acceptance-result__sha256"
+            },
+            "target": {
+              "$ref": "#/$defs/imported__execution-permit__target"
+            }
+          }
+        }
+      ]
+    },
+    "forbiddenGraphObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "checked_topics",
+        "checked_services",
+        "checked_actions",
+        "violations"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "checked_topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "checked_services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "checked_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+          },
+          "uniqueItems": true
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "name"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "topic",
+                  "service",
+                  "action"
+                ]
+              },
+              "name": {
+                "$ref": "#/$defs/imported__acceptance-scenario__rosName"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hardwareClockObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sync_protocol",
+        "source",
+        "measured_at",
+        "sample_count",
+        "offset_ms",
+        "jitter_ms",
+        "drift_ppm",
+        "max_sample_age_ms",
+        "within_policy",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "sync_protocol": {
+          "enum": [
+            "ptp",
+            "chrony_ntp",
+            "mavlink_timesync",
+            "micro_xrce_dds",
+            "external"
+          ]
+        },
+        "source": {
+          "enum": [
+            "pmc",
+            "chronyc_tracking",
+            "mavlink_timesync_status",
+            "controller_telemetry",
+            "external_attestation"
+          ]
+        },
+        "measured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "jitter_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "drift_ppm": {
+          "type": "number"
+        },
+        "max_sample_age_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "within_policy": {
+          "type": "boolean"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/imported__acceptance-result__sha256"
+        }
+      }
+    },
+    "imported__acceptance-result__identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "imported__acceptance-result__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__acceptance-result__assertionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_id",
+        "status",
+        "observed_value",
+        "unit"
+      ],
+      "properties": {
+        "assertion_id": {
+          "$ref": "#/$defs/imported__acceptance-result__identifier"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "error",
+            "skipped"
+          ]
+        },
+        "observed_value": {
+          "type": [
+            "number",
+            "integer",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "imported__acceptance-result__observedRosGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_for_sec",
+        "topics",
+        "services",
+        "actions"
+      ],
+      "properties": {
+        "stable_for_sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedTopic"
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedEndpoint"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__acceptance-result__observedEndpoint"
+          }
+        }
+      }
+    },
+    "imported__acceptance-result__observedTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "publishers",
+        "subscribers",
+        "first_message_at_ns"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/msg/[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "publishers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subscribers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_message_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "imported__acceptance-result__rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
+    },
+    "imported__acceptance-result__observedEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "servers"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*/(?:srv|action)/[A-Za-z][A-Za-z0-9_]*$"
+        },
+        "servers": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "imported__acceptance-result__execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_environment",
+        "data_source",
+        "plant_backend",
+        "time_mode",
+        "data_plane_profile"
+      ],
+      "properties": {
+        "target_environment": {
+          "enum": [
+            "simulation",
+            "hil",
+            "real_robot"
+          ]
+        },
+        "data_source": {
+          "enum": [
+            "gazebo",
+            "mcap_playback",
+            "live_target"
+          ]
+        },
+        "plant_backend": {
+          "enum": [
+            "interface_mock",
+            "gazebo_physics",
+            "recorded_data",
+            "real_hardware"
+          ]
+        },
+        "time_mode": {
+          "enum": [
+            "simulation_realtime",
+            "simulation_stepped",
+            "playback_clocked",
+            "hardware_realtime"
+          ]
+        },
+        "data_plane_profile": {
+          "enum": [
+            "standard_isolated",
+            "local_high_throughput",
+            "secure_shared_memory"
+          ]
+        }
+      }
+    },
+    "imported__acceptance-result__workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "runtime_family",
+            "actual_provider",
+            "model_format",
+            "fallback_count"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "runtime_family": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actual_provider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "model_format": {
+              "enum": [
+                "onnx",
+                "tensorrt_engine",
+                "rknn"
+              ]
+            },
+            "fallback_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "imported__acceptance-result__lifecycleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "state",
+        "observed_at_ns"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/imported__acceptance-result__rosName"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "unconfigured",
+            "inactive",
+            "active",
+            "finalized"
+          ]
+        },
+        "observed_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "imported__acceptance-result__clockObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monotonic",
+        "offset_ms",
+        "drift_ppm",
+        "real_time_factor",
+        "deadline_miss_ratio"
+      ],
+      "properties": {
+        "monotonic": {
+          "type": "boolean"
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "drift_ppm": {
+          "type": "number"
+        },
+        "real_time_factor": {
+          "type": "number",
+          "minimum": 0
+        },
+        "deadline_miss_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "imported__acceptance-result__shutdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer_detached",
+        "recorders_closed",
+        "evidence_index_finalized"
+      ],
+      "properties": {
+        "observer_detached": {
+          "type": "boolean"
+        },
+        "recorders_closed": {
+          "type": "boolean"
+        },
+        "evidence_index_finalized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "imported__acceptance-result__evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "media_type",
+        "sha256",
+        "size_bytes",
+        "retention_class"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "pattern": "^(?:file|s3|oci|https)://[^\\s]+$"
+        },
+        "version_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "media_type": {
+          "enum": [
+            "application/mcap",
+            "application/json",
+            "application/x-ndjson",
+            "application/junit+xml",
+            "text/plain",
+            "application/vnd.in-toto+json"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/imported__acceptance-result__sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retention_class": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,63}$"
+        },
+        "segment_index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "uri": {
+                "pattern": "^s3://"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "version_id"
+            ]
+          }
+        }
+      ]
+    },
+    "imported__acceptance-result__extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "imported__execution-permit__target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "target_id",
+        "identity_kind",
+        "identity_sha256"
+      ],
+      "properties": {
+        "environment": {
+          "enum": [
+            "hil",
+            "real_robot"
+          ]
+        },
+        "target_id": {
+          "$ref": "#/$defs/imported__execution-permit__identifier"
+        },
+        "identity_kind": {
+          "enum": [
+            "udev_serial",
+            "pci_device",
+            "mavlink_system_component",
+            "x509_spki",
+            "tpm_ek",
+            "vendor_soc"
+          ]
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/imported__execution-permit__sha256"
+        }
+      }
+    },
+    "imported__execution-permit__identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "imported__execution-permit__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__acceptance-scenario__rosName": {
+      "type": "string",
+      "pattern": "^/[^\\s]+$"
+    }
+  }
+}
