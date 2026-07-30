@@ -11,81 +11,25 @@ from typing import Any, cast
 from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
-from robotics_runtime_contracts.extensions import ExtensionValidationError, validate_extensions
-from robotics_runtime_contracts.migration import migrate_scenario_v1_to_v2
-from robotics_runtime_contracts.semantics import SemanticValidationError, validate_semantics
+from robotics_runtime_contracts.extensions import (
+    ExtensionValidationError,
+)
+from robotics_runtime_contracts.extensions import (
+    validate_extensions as _validate_extensions,
+)
+from robotics_runtime_contracts.semantics import (
+    SemanticValidationError,
+)
+from robotics_runtime_contracts.semantics import (
+    validate_semantics as _validate_semantics,
+)
 
-SCHEMA_NAME = "acceptance-scenario.v1.schema.json"
-SCHEMA_FILES = {
-    "acceptance-scenario.v1": SCHEMA_NAME,
-    "acceptance-scenario.v2": "acceptance-scenario.v2.schema.json",
-    "acceptance-scenario.v3": "acceptance-scenario.v3.schema.json",
-    "acceptance-scenario.v4": "acceptance-scenario.v4.schema.json",
-    "model-artifact-manifest.v1": "model-artifact-manifest.v1.schema.json",
-    "dataset-manifest.v1": "dataset-manifest.v1.schema.json",
-    "runtime-manifest.v1": "runtime-manifest.v1.schema.json",
-    "execution-permit.v1": "execution-permit.v1.schema.json",
-    "execution-verification.v1": "execution-verification.v1.schema.json",
-    "acceptance-result.v1": "acceptance-result.v1.schema.json",
-    "acceptance-result.v2": "acceptance-result.v2.schema.json",
-    "acceptance-result.v3": "acceptance-result.v3.schema.json",
-    "acceptance-result.v4": "acceptance-result.v4.schema.json",
-    "evidence-index.v1": "evidence-index.v1.schema.json",
-    "evidence-index.v2": "evidence-index.v2.schema.json",
-    "acceptance-run.v1": "acceptance-run.v1.schema.json",
-    "acceptance-aggregate.v1": "acceptance-aggregate.v1.schema.json",
-    "acceptance-aggregate.v2": "acceptance-aggregate.v2.schema.json",
-    "mcap-summary.v1": "mcap-summary.v1.schema.json",
-    "causal-chain.v1": "causal-chain.v1.schema.json",
-    "qualification-bundle.v1": "qualification-bundle.v1.schema.json",
-    "qualification-policy.v1": "qualification-policy.v1.schema.json",
-    "zenoh-channel.v1": "zenoh-channel.v1.schema.json",
-    "zenoh-channel-observation.v1": "zenoh-channel-observation.v1.schema.json",
-    "transport-qualification-result.v1": ("transport-qualification-result.v1.schema.json"),
-}
-SCHEMA_IDS = {
-    "urn:robotics-runtime-contracts:acceptance-scenario:v1": "acceptance-scenario.v1",
-    "urn:robotics-runtime-contracts:acceptance-scenario:v2": "acceptance-scenario.v2",
-    "urn:robotics-runtime-contracts:acceptance-scenario:v3": "acceptance-scenario.v3",
-    "urn:robotics-runtime-contracts:acceptance-scenario:v4": "acceptance-scenario.v4",
-    "urn:robotics-runtime-contracts:model-artifact-manifest:v1": "model-artifact-manifest.v1",
-    "urn:robotics-runtime-contracts:dataset-manifest:v1": "dataset-manifest.v1",
-    "urn:robotics-runtime-contracts:runtime-manifest:v1": "runtime-manifest.v1",
-    "urn:robotics-runtime-contracts:execution-permit:v1": "execution-permit.v1",
-    "urn:robotics-runtime-contracts:execution-verification:v1": "execution-verification.v1",
-    "urn:robotics-runtime-contracts:acceptance-result:v1": "acceptance-result.v1",
-    "urn:robotics-runtime-contracts:acceptance-result:v2": "acceptance-result.v2",
-    "urn:robotics-runtime-contracts:acceptance-result:v3": "acceptance-result.v3",
-    "urn:robotics-runtime-contracts:acceptance-result:v4": "acceptance-result.v4",
-    "urn:robotics-runtime-contracts:evidence-index:v1": "evidence-index.v1",
-    "urn:robotics-runtime-contracts:evidence-index:v2": "evidence-index.v2",
-    "urn:robotics-runtime-contracts:acceptance-run:v1": "acceptance-run.v1",
-    "urn:robotics-runtime-contracts:acceptance-aggregate:v1": "acceptance-aggregate.v1",
-    "urn:robotics-runtime-contracts:acceptance-aggregate:v2": "acceptance-aggregate.v2",
-    "urn:robotics-runtime-contracts:mcap-summary:v1": "mcap-summary.v1",
-    "urn:robotics-runtime-contracts:causal-chain:v1": "causal-chain.v1",
-    "urn:robotics-runtime-contracts:qualification-bundle:v1": "qualification-bundle.v1",
-    "urn:robotics-runtime-contracts:qualification-policy:v1": "qualification-policy.v1",
-    "urn:robotics-runtime-contracts:zenoh-channel:v1": "zenoh-channel.v1",
-    "urn:robotics-runtime-contracts:zenoh-channel-observation:v1": ("zenoh-channel-observation.v1"),
-    "urn:robotics-runtime-contracts:transport-qualification-result:v1": (
-        "transport-qualification-result.v1"
-    ),
-}
 PUBLISHED_SCHEMA_SHA256 = {
-    "acceptance-aggregate.v1": ("8e540fd5ee307767cd95d998ac1339d70a760da99e2840dd79bc71a047d9c322"),
-    "acceptance-aggregate.v2": "1aa05fcfde950b27ae70e167287527cd3bbc61ecb972fd2381dc716c15704b7a",
+    "acceptance-aggregate.v3": "27700d629c6658282cd4aab3f8f0e8cbf326bc54cba0066299539dd3cd91a07e",
     "acceptance-run.v1": "541e5594aba482f14b2f644d9195c2fa6356be60aa8e5a9c1ce8c41d3e13e6c2",
-    "acceptance-result.v1": "ce2322787a615839c3a3e21b00ce51ea08236d780ba4c482d205fb7330d0ba0a",
-    "acceptance-result.v2": "6a5f7f9083dc2cf370afe1d4098ee99d74779509cf5f6af558aa152ed0b3d1fd",
-    "acceptance-result.v3": "2207374ef34a9d86118933dd6fa3f716f5c5471530fcf79ed7fa04810ded930f",
     "acceptance-result.v4": "e794245312ae763169296dcb0449c3947e3fa5dcd97ba2f588608c2045579107",
-    "acceptance-scenario.v1": "9d8958b44affce2f9058658e073f8342ac4280b87e3232c10d5bf86ad4f9ce34",
-    "acceptance-scenario.v2": "eeaceba3f1ba9e212b97e4b4f98e49acfedc19c42600dd07bc3b1465f1ae53eb",
-    "acceptance-scenario.v3": "67ca63d66d8dc6e0e07559f3a4459a8bbb1b1661ff28990326b7a08494af6d24",
     "acceptance-scenario.v4": "e1c7e2479112c33a3d67ff5de3e5c48499389a2cf9fde765af5c06af6c8a3bff",
     "dataset-manifest.v1": "b768eb96ee26e4c646eac2ba8743ba4a25bc2b668f7fe1453a474de7c10c8f08",
-    "evidence-index.v1": "29b8d93a5ead7cea35d6a7c4b8c66cffccb43a9202694781767b3550895b21af",
     "evidence-index.v2": "c71cb01eaea93909048a15c06821d6ccc484ca5c45bac1dd614f97c86ec75509",
     "execution-permit.v1": "001b125fcc66dd7e01bb044ea858edbf9e2925ca20cfde75fd228b500be57c07",
     "execution-verification.v1": (
@@ -107,6 +51,11 @@ PUBLISHED_SCHEMA_SHA256 = {
         "3dc2bd38f2b9ea1015fb66f28b4569cac344f30b86c6af3e2d8434bcb73a897e"
     ),
 }
+_SCHEMA_FILES = {name: f"{name}.schema.json" for name in PUBLISHED_SCHEMA_SHA256}
+_SCHEMA_IDS = {
+    f"urn:robotics-runtime-contracts:{name.replace('.', ':', 1)}": name
+    for name in PUBLISHED_SCHEMA_SHA256
+}
 
 
 class ContractValidationError(ValueError):
@@ -119,10 +68,6 @@ class ContractValidationError(ValueError):
         super().__init__(f"{self.json_path}: {self.validation_message}")
 
 
-class ScenarioValidationError(ContractValidationError):
-    """Raised when an acceptance scenario does not satisfy its contract."""
-
-
 class UnknownSchemaError(ValueError):
     """Raised when a requested schema version or identifier is not published."""
 
@@ -130,17 +75,17 @@ class UnknownSchemaError(ValueError):
 def schema_names() -> tuple[str, ...]:
     """Return published schema versions in stable order."""
 
-    return tuple(SCHEMA_FILES)
+    return tuple(_SCHEMA_FILES)
 
 
 def resolve_schema_name(schema: str) -> str:
     """Resolve a schema version, file name, or canonical identifier."""
 
-    if schema in SCHEMA_FILES:
+    if schema in _SCHEMA_FILES:
         return schema
-    if schema in SCHEMA_IDS:
-        return SCHEMA_IDS[schema]
-    for schema_name, file_name in SCHEMA_FILES.items():
+    if schema in _SCHEMA_IDS:
+        return _SCHEMA_IDS[schema]
+    for schema_name, file_name in _SCHEMA_FILES.items():
         if schema == file_name:
             return schema_name
     raise UnknownSchemaError(f"Unknown schema: {schema}")
@@ -150,9 +95,9 @@ def schema_dir() -> Path:
     return Path(str(files("robotics_runtime_contracts").joinpath("schemas")))
 
 
-def schema_path(schema: str = "acceptance-scenario.v1") -> Path:
+def schema_path(schema: str) -> Path:
     schema_name = resolve_schema_name(schema)
-    path = schema_dir() / SCHEMA_FILES[schema_name]
+    path = schema_dir() / _SCHEMA_FILES[schema_name]
     if not path.is_file():
         raise FileNotFoundError(path)
     return path
@@ -167,7 +112,7 @@ def _load_schema(schema: str) -> dict[str, Any]:
     )
 
 
-def load_schema(schema: str = "acceptance-scenario.v1") -> dict[str, Any]:
+def load_schema(schema: str) -> dict[str, Any]:
     """Return an isolated copy of a published schema."""
 
     return deepcopy(_load_schema(resolve_schema_name(schema)))
@@ -188,7 +133,6 @@ def validate_document(
     document: Mapping[str, Any],
     schema: str | None = None,
     *,
-    error_type: type[ContractValidationError] = ContractValidationError,
     extension_schemas: Mapping[str, bytes | str] | None = None,
 ) -> None:
     """Validate a document against an explicit or declared schema version."""
@@ -204,46 +148,21 @@ def validate_document(
     )
     if errors:
         first_error = errors[0]
-        raise error_type(schema_name, first_error) from first_error
-    validate_semantics(schema_name, document)
-    validate_extensions(schema_name, document, extension_schemas)
-
-
-def validate_scenario(scenario: Mapping[str, Any]) -> None:
-    """Validate an acceptance scenario."""
-
-    schema_version = scenario.get("schema_version")
-    if (
-        not isinstance(schema_version, str)
-        or not schema_version.startswith("acceptance-scenario.")
-        or schema_version not in SCHEMA_FILES
-    ):
-        raise UnknownSchemaError(f"Unknown acceptance scenario schema: {schema_version}")
-    validate_document(
-        scenario,
-        schema=schema_version,
-        error_type=ScenarioValidationError,
-    )
+        raise ContractValidationError(schema_name, first_error) from first_error
+    _validate_semantics(schema_name, document)
+    _validate_extensions(schema_name, document, extension_schemas)
 
 
 __all__ = [
-    "SCHEMA_FILES",
-    "SCHEMA_IDS",
-    "SCHEMA_NAME",
     "PUBLISHED_SCHEMA_SHA256",
     "ContractValidationError",
     "ExtensionValidationError",
-    "ScenarioValidationError",
     "SemanticValidationError",
     "UnknownSchemaError",
     "load_schema",
-    "migrate_scenario_v1_to_v2",
     "resolve_schema_name",
     "schema_dir",
     "schema_names",
     "schema_path",
     "validate_document",
-    "validate_extensions",
-    "validate_semantics",
-    "validate_scenario",
 ]

@@ -1,12 +1,21 @@
-schema_version: acceptance-result.v1
-result_id: org.example.hil-run-001
+schema_version: acceptance-result.v4
+result_id: result-41234567-89ab-4def-8123-456789abcdef
+run_id: run-41234567-89ab-4def-8123-456789abcdef
+scenario_id: org.example.controller-hil-observation
+domain_id: controller-domain
+verdict_scope: domain
+unevaluated: []
 scenario_sha256: "1111111111111111111111111111111111111111111111111111111111111111"
 runtime_manifest_sha256: "7777777777777777777777777777777777777777777777777777777777777777"
 started_at: "2026-07-12T10:00:00Z"
 finished_at: "2026-07-12T10:02:00Z"
 monotonic_duration_sec: 120
 status: passed
-assertion_results: []
+assertion_results:
+  - assertion_id: telemetry-ready
+    status: passed
+    observed_value: 1
+    unit: count
 observed_ros_graph:
   stable_for_sec: 3
   topics:
@@ -49,6 +58,16 @@ clock_observation:
   drift_ppm: 2
   real_time_factor: 1
   deadline_miss_ratio: 0
+time_authority_observation:
+  source_id: controller-clock
+  sample_count: 120
+  window_start_ns: 1
+  window_end_ns: 120
+  p50_delivery_latency_ms: 0.5
+  p95_delivery_latency_ms: 1
+  max_delivery_latency_ms: 2
+  within_policy: true
+  evidence_sha256: "8888888888888888888888888888888888888888888888888888888888888888"
 hardware_clock_observation:
   sync_protocol: mavlink_timesync
   source: mavlink_timesync_status

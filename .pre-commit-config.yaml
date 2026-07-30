@@ -22,7 +22,7 @@ repos:
         files: ^tests/fixtures/scenario/valid/.*\.(json|ya?ml)$
         args:
           - --schemafile
-          - src/robotics_runtime_contracts/schemas/acceptance-scenario.v1.schema.json
+          - src/robotics_runtime_contracts/schemas/acceptance-scenario.v4.schema.json
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.21
     hooks:

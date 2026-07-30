@@ -1,143 +1,72 @@
 # Compatibility Policy
 
-This policy defines compatibility for the Python package and every JSON Schema
-contract published by this repository.
+This policy applies to the Python package and every JSON Schema contract in the
+repository.
 
-## Version Axes
+## Versioning
 
-The project has two independent version axes:
+The Python distribution follows [Semantic Versioning](https://semver.org/).
+Each document also declares an exact `schema_version`, and every schema has a
+versioned `$id`.
 
-1. The Python distribution follows
-   [Semantic Versioning](https://semver.org/) while it remains pre-1.0.
-2. Every document declares an exact schema version in `schema_version`, and
-   every schema has a versioned `$id`.
+Before package `1.0.0`, the current package exposes one canonical version of
+each document kind. Superseded schemas remain available from their tagged Git
+release; they are not carried as runtime compatibility code when there is no
+active consumer. `acceptance-aggregate.v3` represents both the unevaluated
+per-domain aggregate and its later cross-domain qualification; processing
+state does not create a second schema version.
 
-A package minor release may add a new schema version without changing existing
-schema bytes. Removing a schema, changing a public Python symbol, or changing
-validation behavior for an already published schema is a package-level breaking
-change.
+## Published Schemas
 
-## Published Schema Immutability
+A schema becomes immutable when it is included in a tagged release. Its bytes,
+`$id`, meaning, and recorded SHA-256 digest do not change in that release.
+Changing a published contract requires a new schema version and package minor
+release. Removing a schema from the current pre-1.0 package requires a package
+minor release and release notes.
 
-A schema is published when it is included in a tagged release. Its bytes,
-canonical `$id`, validation rules, and SHA-256 digest are immutable after that
-release. A changed field, constraint, or meaning requires a new schema version.
-The regression test in `tests/test_contracts.py` protects the recorded digests.
+`tests/test_contracts.py` verifies the digest of every schema shipped in the
+current wheel. Unreleased schemas may change on a development branch.
 
-Unreleased schema versions may change on a development branch. Their digest is
-fixed when the release containing them is tagged.
+## Readers And Writers
 
-Package `0.7.0` preserves the validation behavior and schema bytes of
-`acceptance-result.v1`. The stricter assertion-status hierarchy, lifecycle
-sample uniqueness, and evidence binding are introduced only by
-`acceptance-result.v2`.
-
-Package `0.8.0` preserves both earlier result schemas byte for byte and adds
-`acceptance-result.v3`. Version 3 accepts verified
-`application/x-ndjson` evidence, aligning result documents with streaming trace
-segments already supported by `evidence-index.v2`.
-
-Package `0.9.1` preserves every earlier schema byte for byte, adds
-batch document validation to the CLI, and retains the `0.9.0` additions:
-`acceptance-scenario.v3`. Version 3 makes the skipped-step budget explicit for
-stepped simulation. It also adds a CLI over the same structural, semantic, and
-extension validation used by the Python API.
-
-Package `0.10.0` preserves every earlier schema byte for byte and adds
-`acceptance-scenario.v4`, `acceptance-result.v4`, and
-`transport-qualification-result.v1`. Scenario and result version 4 name
-RMW source-to-reception measurements as delivery latency, leaving hardware
-clock offset to the dedicated physical-timing fields.
-
-## Reader and Writer Rules
-
-- Readers select the validator from the document's exact `schema_version`.
-- Writers emit one declared version and must not rely on a reader guessing a
-  version.
-- Readers may support multiple versions side by side.
-- Migration is explicit and creates a new document. Validation never mutates an
-  input document.
-- A migration that cannot preserve meaning requires caller-supplied values.
+- Readers select the validator from the document's declared `schema_version`.
+- Writers emit one explicit version; readers never guess.
+- Validation never mutates the input document.
+- Migrations are separate, explicit tools and are added only for an active
+  consumer that cannot migrate at its ownership boundary.
 - There is no implicit downgrade path.
 
-## Schema Matrix
+The current catalog is listed in [README.md](README.md). The package API and CLI
+reject superseded and unknown schema identifiers.
 
-`Exact` means that producers write the named version and consumers validate that
-same version. `Forward migration` identifies the only package-provided
-conversion.
+## Runtime Basis
 
-| Schema | Compatibility mode | Migration policy |
-| --- | --- | --- |
-| `acceptance-scenario.v1` | Exact read/write; forward migration | `migrate_scenario_v1_to_v2()` requires metric selectors and time-authority thresholds from the caller |
-| `acceptance-scenario.v2` | Exact read/write | Coexists with later versions; no automatic migration |
-| `acceptance-scenario.v3` | Exact read/write | Stepped simulation requires an explicit skip budget |
-| `acceptance-scenario.v4` | Exact read/write | Current scenario target; delivery latency and hardware clock offset are separate |
-| `acceptance-run.v1` | Exact read/write | No automatic migration |
-| `acceptance-result.v1` | Exact read/write | Coexists with v2; no lossless automatic migration |
-| `acceptance-result.v2` | Exact read/write | Coexists with later versions; no automatic migration |
-| `acceptance-result.v3` | Exact read/write | Verified streaming trace evidence |
-| `acceptance-result.v4` | Exact read/write | Current result target; explicit delivery-latency observation |
-| `acceptance-aggregate.v1` | Exact read/write | Coexists with v2; no automatic migration |
-| `acceptance-aggregate.v2` | Exact read/write | Current cross-domain aggregate target |
-| `causal-chain.v1` | Exact read/write | No automatic migration |
-| `dataset-manifest.v1` | Exact read/write | No automatic migration |
-| `evidence-index.v1` | Exact read/write | Coexists with v2; no automatic migration |
-| `evidence-index.v2` | Exact read/write | Current evidence-index target |
-| `execution-permit.v1` | Exact read/write | No automatic migration |
-| `execution-verification.v1` | Exact read/write | No automatic migration |
-| `mcap-summary.v1` | Exact read/write | No automatic migration |
-| `model-artifact-manifest.v1` | Exact read/write | No automatic migration |
-| `qualification-bundle.v1` | Exact read/write | No automatic migration |
-| `qualification-policy.v1` | Exact read/write | No automatic migration |
-| `runtime-manifest.v1` | Exact read/write | No automatic migration |
-| `transport-qualification-result.v1` | Exact read/write | Neutral transport qualification without a product scenario |
-| `zenoh-channel.v1` | Exact read/write | No automatic migration |
-| `zenoh-channel-observation.v1` | Exact read/write | No automatic migration |
+The package requires CPython 3.12 or newer. Runtime contracts record ROS 2
+Jazzy, Gazebo Harmonic, and zstd where interoperability depends on them.
+Schemas remain independent of robot type, scene, model family, and product
+rules. Package installation does not qualify a runtime or physical target.
 
-## Normative Runtime Basis
-
-The package itself requires CPython 3.12 or newer. Runtime contracts deliberately
-record a narrower robotics baseline where interoperability depends on it:
-
-- `runtime-manifest.v1` identifies ROS 2 Jazzy and Gazebo Harmonic.
-- `acceptance-scenario.v1` through `acceptance-scenario.v4`, and
-  `evidence-index.v2` require `zstd` evidence compression.
-- Other schemas remain independent of robot type, scene, model family, and
-  product rules.
-
-Changing a required ROS distribution, Gazebo collection, compression format, or
-the meaning of an enum value requires a new schema version. Package installation
-does not qualify a runtime or physical target.
+Changing a required runtime family, compression format, or enum meaning
+requires a new schema version.
 
 ## Domain Extensions
 
-`acceptance-scenario.v1` through `acceptance-scenario.v4` support digest-pinned,
-namespaced local extensions. Extension schemas are supplied by the caller, must
-use JSON Schema Draft 2020-12, and may contain only local references. They are
-not fetched from the network. Forward migration preserves extension
-declarations and payloads; callers must supply the same pinned schema documents
-when validating the migrated scenario.
+`acceptance-scenario.v4` supports digest-pinned, namespaced extensions. The
+caller supplies Draft 2020-12 schema bytes; validation performs no network
+fetches and permits only local references. An extension remains consumer-owned
+until its semantics are reusable enough for the common catalog.
 
-An `acceptance-result.v2` through `acceptance-result.v4` document with status
-`passed` contains at least one assertion result and one evidence item. Its
-time-authority evidence digest must identify an item in that evidence list. A
-non-passing result may represent an early stop with zero time-authority samples
-and no evidence digest; measured observations and successful results require
-the digest.
-
-An extension remains owned by its consumer until its semantics are broadly
-reusable and accepted through the normal schema-change process. Moving a field
-into the common catalog requires a new common schema version and explicit
-migration guidance.
+Moving an extension field into a common contract requires a new common schema
+version and an explicit consumer migration plan.
 
 ## Change Review
 
-Every contract change must state:
+Every contract change states:
 
-- affected schema versions;
-- reader and writer impact;
-- migration path;
+- affected readers and writers;
 - positive and negative examples;
-- whether any normative runtime basis changed.
+- migration or deliberate replacement policy;
+- runtime-basis impact;
+- evidence and safety impact.
 
 Architecture decisions are recorded in [`docs/decisions`](docs/decisions/).

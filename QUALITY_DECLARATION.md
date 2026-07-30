@@ -43,7 +43,7 @@ attribution are recorded in that license and repository history.
 CI performs:
 
 - JSON Schema Draft 2020-12 metaschema checks;
-- positive, negative, semantic, migration, and consumer-example tests;
+- positive, negative, semantic, compatibility, and consumer-example tests;
 - Ruff linting and formatting;
 - strict mypy analysis of the typed package;
 - wheel and source-distribution builds;

@@ -6,67 +6,18 @@ from typing import Any
 
 import pytest
 import yaml
-from jsonschema import Draft202012Validator
 
 from robotics_runtime_contracts import (
     ContractValidationError,
     SemanticValidationError,
-    load_schema,
     validate_document,
 )
 
-FIXTURE_ROOT = Path(__file__).parent / "fixtures"
-FIXTURES = FIXTURE_ROOT / "physical" / "valid"
-SCHEMAS = (
-    "acceptance-scenario.v1",
-    "runtime-manifest.v1",
-    "execution-permit.v1",
-    "execution-verification.v1",
-    "acceptance-result.v1",
-)
+FIXTURES = Path(__file__).parent / "fixtures" / "physical" / "valid"
 
 
 def load_fixture(name: str) -> dict[str, Any]:
     return yaml.safe_load((FIXTURES / name).read_text(encoding="utf-8"))
-
-
-@pytest.mark.parametrize("schema_name", SCHEMAS)
-def test_physical_schemas_satisfy_draft_2020_12(schema_name: str) -> None:
-    Draft202012Validator.check_schema(load_schema(schema_name))
-
-
-@pytest.mark.parametrize(
-    "fixture_name",
-    (
-        "hil-scenario.yaml",
-        "hil-runtime.yaml",
-        "hil-permit.yaml",
-        "hil-verification.yaml",
-        "hil-result.yaml",
-    ),
-)
-def test_valid_physical_documents(fixture_name: str) -> None:
-    validate_document(load_fixture(fixture_name))
-
-
-def test_canonical_contracts_accept_simulation_without_physical_authorization() -> None:
-    scenario = yaml.safe_load(
-        (FIXTURE_ROOT / "scenario" / "valid" / "simulation-realtime.yaml").read_text(
-            encoding="utf-8"
-        )
-    )
-
-    runtime = yaml.safe_load(
-        (FIXTURE_ROOT / "runtime" / "valid" / "no-inference-simulation.yaml").read_text(
-            encoding="utf-8"
-        )
-    )
-    result = yaml.safe_load(
-        (FIXTURE_ROOT / "result" / "valid" / "passed-no-inference.yaml").read_text(encoding="utf-8")
-    )
-    validate_document(scenario)
-    validate_document(runtime)
-    validate_document(result)
 
 
 def test_contracts_accept_real_target_only_as_observation() -> None:
@@ -193,52 +144,13 @@ def test_hardware_clock_source_must_match_protocol() -> None:
         validate_document(result)
 
 
-def test_v2_hardware_clock_evidence_must_be_listed() -> None:
+def test_hardware_clock_evidence_must_be_listed() -> None:
     result = load_fixture("hil-result.yaml")
-    result.update(
-        {
-            "schema_version": "acceptance-result.v2",
-            "result_id": "result-01234567-89ab-4def-8123-456789abcdef",
-            "run_id": "run-01234567-89ab-4def-8123-456789abcdef",
-            "scenario_id": "org.example.hil-run-001",
-            "domain_id": "primary",
-            "verdict_scope": "domain",
-            "unevaluated": [],
-            "time_authority_observation": {
-                "source_id": "hardware-clock",
-                "sample_count": 30,
-                "window_start_ns": 1,
-                "window_end_ns": 30,
-                "p50_offset_ms": 0.1,
-                "p95_offset_ms": 0.2,
-                "max_offset_ms": 0.3,
-                "within_policy": True,
-                "evidence_sha256": result["evidence"][0]["sha256"],
-            },
-        }
-    )
-    result["assertion_results"] = [
-        {
-            "assertion_id": "hardware-clock",
-            "status": "passed",
-            "observed_value": 0.5,
-            "unit": "ms",
-        }
-    ]
-
-    validate_document(result)
     result["hardware_clock_observation"]["evidence_sha256"] = "9" * 64
 
     with pytest.raises(SemanticValidationError) as caught:
         validate_document(result)
     assert caught.value.json_path == "$.hardware_clock_observation.evidence_sha256"
-
-
-def test_v1_hardware_clock_evidence_keeps_published_behavior() -> None:
-    result = load_fixture("hil-result.yaml")
-    result["hardware_clock_observation"]["evidence_sha256"] = "9" * 64
-
-    validate_document(result)
 
 
 def test_passed_result_rejects_forbidden_interface_violation() -> None:

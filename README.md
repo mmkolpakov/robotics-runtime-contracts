@@ -52,7 +52,7 @@ uses the same contracts to validate inputs and emit a result.
 | Goal | Start here |
 | --- | --- |
 | Validate an application document | [`robotics-contracts validate`](#quick-start) or [`validate_document()`](#python-api) |
-| Embed a published schema | [`load_schema()` or `schema_path()`](#python-api) |
+| Embed a published schema | [`load_schema(name)` or `schema_path(name)`](#python-api) |
 | Review the public document set | [Schema Catalog](#schema-catalog) |
 | Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
 | Add product-specific fields | [Domain Extensions](#domain-extensions) |
@@ -60,12 +60,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.10.0. Install its attested wheel directly from the
+The current package line is 0.11.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.10.0/robotics_runtime_contracts-0.10.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.11.0/robotics_runtime_contracts-0.11.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -89,24 +89,16 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 
 | Schema version | Purpose |
 | --- | --- |
-| `acceptance-scenario.v1` | Execution intent, ROS readiness, timing, evidence, authorization, and forbidden interfaces |
-| `acceptance-scenario.v2` | Attributed metrics and measured time-authority policy |
-| `acceptance-scenario.v3` | Explicit skip budget for stepped simulation |
 | `acceptance-scenario.v4` | Delivery-latency policy separated from hardware clock synchronization |
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
-| `acceptance-result.v1` | Domain acceptance verdict and observed evidence |
-| `acceptance-result.v2` | Run-scoped result with explicit domain, coverage, and time-authority evidence |
-| `acceptance-result.v3` | Run-scoped result with verified streaming trace evidence |
 | `acceptance-result.v4` | Run-scoped result with explicit time-authority delivery-latency observations |
-| `acceptance-aggregate.v1` | Per-domain result aggregation with unevaluated cross-domain status |
-| `acceptance-aggregate.v2` | Cross-domain channel and causal-chain verdict |
+| `acceptance-aggregate.v3` | Per-domain aggregation and optional qualified cross-domain causal verdict |
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
 | `runtime-manifest.v1` | Observed runtime, workload, accelerator, security, timing, and physical target facts |
 | `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
-| `evidence-index.v1` | Finalized local and confirmed remote evidence segments |
 | `evidence-index.v2` | Evidence policy observation and MCAP summary references |
 | `mcap-summary.v1` | Canonical MCAP statistics and channel summary |
 | `qualification-bundle.v1` | In-toto-shaped qualification evidence statement |
@@ -136,17 +128,14 @@ schema = load_schema("runtime-manifest.v1")
 ```
 
 `validate_document()` selects the contract from `schema_version`. Structural
-and semantic failures include an exact JSON path. `validate_scenario()` and
-`ScenarioValidationError` provide the scenario-specific validation path.
+and semantic failures include an exact JSON path.
 
 ## Domain Extensions
 
-`acceptance-scenario.v1` through `acceptance-scenario.v4` support independently
-versioned, namespaced extension schemas without weakening common safety, time,
-or evidence rules. The caller supplies the digest-pinned schema bytes;
-validation never fetches a schema from the network. Migrating a scenario to v2
-preserves the declarations and payload, and the migrated payload is validated
-against the same pinned schema.
+`acceptance-scenario.v4` supports independently versioned, namespaced extension
+schemas without weakening common safety, time, or evidence rules. The caller
+supplies the digest-pinned schema bytes; validation never fetches a schema from
+the network.
 
 ```python
 validate_document(

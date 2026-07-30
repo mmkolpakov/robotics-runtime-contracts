@@ -50,11 +50,6 @@ def load_fixture(path: str) -> dict[str, object]:
             "$.clock.sync_protocol",
         ),
         (
-            "physical/valid/hil-permit.yaml",
-            lambda value: value.update(approver_id=value["operator_id"]),
-            "$.approver_id",
-        ),
-        (
             "result/valid/passed.yaml",
             lambda value: value["clock_observation"].update(monotonic=False),
             "$.clock_observation.monotonic",

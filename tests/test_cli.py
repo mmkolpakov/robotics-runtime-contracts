@@ -13,7 +13,7 @@ def test_cli_validates_yaml_document(capsys: pytest.CaptureFixture[str]) -> None
     assert main(["validate", str(FIXTURE)]) == 0
 
     captured = capsys.readouterr()
-    assert captured.out == "valid: acceptance-scenario.v1\n"
+    assert captured.out == "valid: acceptance-scenario.v4\n"
     assert captured.err == ""
 
 
@@ -23,7 +23,7 @@ def test_cli_reports_contract_path_for_invalid_document(
 ) -> None:
     document = tmp_path / "invalid.yaml"
     document.write_text(
-        "schema_version: acceptance-scenario.v1\nunknown: true\n",
+        "schema_version: acceptance-scenario.v4\nunknown: true\n",
         encoding="utf-8",
     )
 
@@ -60,7 +60,7 @@ def test_cli_rejects_schema_override_for_a_batch(
             [
                 "validate",
                 "--schema",
-                "acceptance-scenario.v1",
+                "acceptance-scenario.v4",
                 str(FIXTURE),
                 str(FIXTURE),
             ]
