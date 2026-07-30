@@ -109,7 +109,7 @@ def acceptance_aggregate() -> dict[str, object]:
     trace_id = "1" * 32
     message_id = "message-1"
     return {
-        "schema_version": "acceptance-aggregate.v2",
+        "schema_version": "acceptance-aggregate.v3",
         "aggregate_id": "aggregate-00000000-0000-4000-8000-000000000001",
         "run_id": "run-00000000-0000-4000-8000-000000000001",
         "acceptance_run_sha256": SHA,
@@ -406,6 +406,14 @@ def test_causal_chain_rejects_duplicate_channel() -> None:
 
 def test_cross_domain_aggregate_is_valid() -> None:
     validate_document(acceptance_aggregate())
+
+
+def test_cross_domain_aggregate_rejects_incorrect_domain_status() -> None:
+    document = acceptance_aggregate()
+    document["per_domain_results"][0]["status"] = "failed"
+
+    with pytest.raises(SemanticValidationError, match="aggregate domain status"):
+        validate_document(document)
 
 
 def test_cross_domain_aggregate_requires_trace_for_every_domain() -> None:

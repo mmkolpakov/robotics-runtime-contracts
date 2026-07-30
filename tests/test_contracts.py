@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import json
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 from jsonschema import Draft202012Validator
 
 from robotics_runtime_contracts import (
     PUBLISHED_SCHEMA_SHA256,
-    SCHEMA_FILES,
-    SCHEMA_NAME,
-    ScenarioValidationError,
+    ContractValidationError,
     UnknownSchemaError,
     load_schema,
     resolve_schema_name,
@@ -21,8 +17,8 @@ from robotics_runtime_contracts import (
     schema_names,
     schema_path,
     validate_document,
-    validate_scenario,
 )
+from tests.support import load_fixture
 
 
 def test_package_declares_pep561_typing() -> None:
@@ -33,28 +29,17 @@ def test_package_declares_pep561_typing() -> None:
 FIXTURES = Path(__file__).parent / "fixtures" / "scenario"
 
 
-def load_fixture(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix == ".json":
-        return json.loads(text)
-    return yaml.safe_load(text)
-
-
-def test_schema_satisfies_draft_2020_12_metaschema() -> None:
-    schema = load_schema()
+@pytest.mark.parametrize("schema_name", schema_names())
+def test_schemas_satisfy_draft_2020_12_metaschema(schema_name: str) -> None:
+    schema = load_schema(schema_name)
     Draft202012Validator.check_schema(schema)
-    assert schema["$id"] == "urn:robotics-runtime-contracts:acceptance-scenario:v1"
+    family, version = schema_name.rsplit(".", 1)
+    assert schema["$id"] == f"urn:robotics-runtime-contracts:{family}:{version}"
 
 
 def test_all_published_schemas_are_byte_for_byte_stable() -> None:
-    assert set(PUBLISHED_SCHEMA_SHA256) == set(SCHEMA_FILES)
     for schema_name, expected_digest in PUBLISHED_SCHEMA_SHA256.items():
         assert sha256(schema_path(schema_name).read_bytes()).hexdigest() == expected_digest
-
-
-@pytest.mark.parametrize("fixture", sorted((FIXTURES / "valid").iterdir()))
-def test_valid_scenarios(fixture: Path) -> None:
-    validate_scenario(load_fixture(fixture))
 
 
 @pytest.mark.parametrize(
@@ -74,42 +59,38 @@ def test_invalid_scenarios_report_exact_path(
 ) -> None:
     scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
     mutation(scenario)
-    with pytest.raises(ScenarioValidationError) as caught:
-        validate_scenario(scenario)
+    with pytest.raises(ContractValidationError) as caught:
+        validate_document(scenario)
 
     assert caught.value.json_path == expected_path
     assert str(caught.value).startswith(f"{expected_path}:")
 
 
 def test_package_exposes_registered_schemas() -> None:
-    assert schema_path().name == SCHEMA_NAME
-    assert schema_path().is_file()
-    installed = sorted(path.name for path in schema_path().parent.glob("*.schema.json"))
-    assert installed == sorted(SCHEMA_FILES.values())
+    scenario_path = schema_path("acceptance-scenario.v4")
+    assert scenario_path.name == "acceptance-scenario.v4.schema.json"
+    assert scenario_path.is_file()
+    installed = sorted(path.name for path in scenario_path.parent.glob("*.schema.json"))
+    assert installed == sorted(f"{name}.schema.json" for name in schema_names())
 
 
 def test_catalog_resolves_name_file_and_id() -> None:
-    canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v1"
-    assert schema_names() == tuple(SCHEMA_FILES)
-    assert SCHEMA_FILES["acceptance-scenario.v1"] == SCHEMA_NAME
-    assert resolve_schema_name("acceptance-scenario.v1") == "acceptance-scenario.v1"
-    assert resolve_schema_name(SCHEMA_NAME) == "acceptance-scenario.v1"
-    assert resolve_schema_name(canonical_id) == "acceptance-scenario.v1"
-    assert schema_path(canonical_id) == schema_path()
-    assert load_schema(SCHEMA_NAME) == load_schema()
+    canonical_name = "acceptance-scenario.v4"
+    canonical_file = f"{canonical_name}.schema.json"
+    canonical_id = "urn:robotics-runtime-contracts:acceptance-scenario:v4"
+    assert resolve_schema_name(canonical_name) == canonical_name
+    assert resolve_schema_name(canonical_file) == canonical_name
+    assert resolve_schema_name(canonical_id) == canonical_name
+    assert schema_path(canonical_id) == schema_path(canonical_name)
+    assert load_schema(canonical_file) == load_schema(canonical_name)
 
 
 def test_load_schema_returns_an_isolated_copy() -> None:
-    schema = load_schema("acceptance-scenario.v1")
+    schema = load_schema("acceptance-scenario.v4")
     schema["properties"]["schema_version"]["const"] = "poisoned"
 
-    fresh = load_schema("acceptance-scenario.v1")
-    assert fresh["properties"]["schema_version"]["const"] == "acceptance-scenario.v1"
-
-
-def test_validate_document_uses_declared_schema_version() -> None:
-    scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
-    validate_document(scenario)
+    fresh = load_schema("acceptance-scenario.v4")
+    assert fresh["properties"]["schema_version"]["const"] == "acceptance-scenario.v4"
 
 
 def test_unknown_schema_is_rejected_before_validation() -> None:

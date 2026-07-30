@@ -62,10 +62,12 @@ jobs:
           test -n "$wheel"
           uv run --isolated --no-project --with "$wheel" python - <<'PY'
           from importlib.metadata import version
+          import os
+
           from jsonschema import Draft202012Validator
           from robotics_runtime_contracts import load_schema, schema_names
 
-          assert version("robotics-runtime-contracts") == "0.10.0"
+          assert f"v{version('robotics-runtime-contracts')}" == os.environ["GITHUB_REF_NAME"]
           for schema_name in schema_names():
               Draft202012Validator.check_schema(load_schema(schema_name))
           PY

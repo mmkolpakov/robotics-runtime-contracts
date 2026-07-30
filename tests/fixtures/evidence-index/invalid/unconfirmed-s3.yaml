@@ -1,7 +1,14 @@
-schema_version: evidence-index.v1
+schema_version: evidence-index.v2
 run_id: org.example.invalid
 generated_at: "2026-07-11T12:01:00Z"
 finalized: true
+policy_observation:
+  recording_mode: bounded
+  compression: zstd
+  upload_mode: closed_segments_during_run
+  remote_sink_used: true
+  spool_peak_size_bytes: 1024
+  upload_lag_max_sec: 1
 segments:
   - uri: s3://robotics-evidence/run-000.mcap
     media_type: application/mcap
@@ -11,3 +18,8 @@ segments:
     segment_index: 0
     upload_status: local
     checksum_verified: false
+    mcap_summary:
+      uri: s3://robotics-evidence/run-000.summary.json
+      sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      size_bytes: 256
+      media_type: application/vnd.robotics.mcap-summary.v1+json

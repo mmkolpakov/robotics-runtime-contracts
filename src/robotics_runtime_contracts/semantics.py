@@ -79,28 +79,16 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
             "physical observation must declare at least one forbidden ROS interface",
         )
 
-    if schema_name in {"acceptance-scenario.v2", "acceptance-scenario.v3"}:
-        time_policy = document["time_policy"]
-        p50 = time_policy["max_clock_offset_p50_ms"]
-        p95 = time_policy["max_clock_offset_p95_ms"]
-        maximum = time_policy["max_clock_offset_ms"]
-        if not p50 <= p95 <= maximum:
-            _fail(
-                schema_name,
-                "$.time_policy",
-                "clock offset thresholds must satisfy p50 <= p95 <= max",
-            )
-    elif schema_name == "acceptance-scenario.v4":
-        time_policy = document["time_policy"]
-        p50 = time_policy["max_time_authority_delivery_latency_p50_ms"]
-        p95 = time_policy["max_time_authority_delivery_latency_p95_ms"]
-        maximum = time_policy["max_time_authority_delivery_latency_ms"]
-        if not p50 <= p95 <= maximum:
-            _fail(
-                schema_name,
-                "$.time_policy",
-                "time-authority delivery-latency thresholds must satisfy p50 <= p95 <= max",
-            )
+    time_policy = document["time_policy"]
+    p50 = time_policy["max_time_authority_delivery_latency_p50_ms"]
+    p95 = time_policy["max_time_authority_delivery_latency_p95_ms"]
+    maximum = time_policy["max_time_authority_delivery_latency_ms"]
+    if not p50 <= p95 <= maximum:
+        _fail(
+            schema_name,
+            "$.time_policy",
+            "time-authority delivery-latency thresholds must satisfy p50 <= p95 <= max",
+        )
 
 
 def _validate_model_artifact(document: Mapping[str, Any]) -> None:
@@ -180,16 +168,9 @@ def _validate_dataset(document: Mapping[str, Any]) -> None:
 
 def _validate_runtime(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    if document["workload"]["kind"] == "inference":
-        inference = document["workload"]["inference"]
-        accelerator = document["workload"]["accelerator"]
-        inference_path = "$.workload.inference"
-        accelerator_path = "$.workload.accelerator"
-    else:
-        inference = None
-        accelerator = None
-        inference_path = "$.workload.inference"
-        accelerator_path = "$.workload.accelerator"
+    workload = document["workload"]
+    inference = workload.get("inference")
+    accelerator = workload.get("accelerator")
     execution = document["execution"]
     data_plane = document["data_plane"]
     security = document["security"]
@@ -199,11 +180,11 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         if inference["requested_provider"] != inference["actual_provider"]:
             _fail(
                 schema_name,
-                f"{inference_path}.actual_provider",
+                "$.workload.inference.actual_provider",
                 "must equal requested_provider; silent fallback is forbidden",
             )
         if inference["fallback_count"] != 0:
-            _fail(schema_name, f"{inference_path}.fallback_count", "must be zero")
+            _fail(schema_name, "$.workload.inference.fallback_count", "must be zero")
     if document["ros"]["rmw_implementation"] != data_plane["rmw_implementation"]:
         _fail(
             schema_name,
@@ -267,7 +248,7 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         if expected_vendor is not None and accelerator["vendor"] != expected_vendor:
             _fail(
                 schema_name,
-                f"{accelerator_path}.vendor",
+                "$.workload.accelerator.vendor",
                 f"{inference['actual_provider']} requires vendor {expected_vendor}",
             )
 
@@ -304,11 +285,6 @@ def _validate_execution_verification(document: Mapping[str, Any]) -> None:
 
 def _validate_result(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    run_scoped = schema_name in {
-        "acceptance-result.v2",
-        "acceptance-result.v3",
-        "acceptance-result.v4",
-    }
     started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
     finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
     if finished_at < started_at:
@@ -320,38 +296,36 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "assertion_id",
         "$.assertion_results",
     )
-    if run_scoped:
-        status_priority = {
-            "passed": 0,
-            "skipped": 0,
-            "cancelled": 1,
-            "incomplete": 2,
-            "failed": 3,
-            "error": 4,
-        }
-        assertion_priority = max(
-            (status_priority[item["status"]] for item in document["assertion_results"]),
-            default=0,
+    status_priority = {
+        "passed": 0,
+        "skipped": 0,
+        "cancelled": 1,
+        "incomplete": 2,
+        "failed": 3,
+        "error": 4,
+    }
+    assertion_priority = max(
+        (status_priority[item["status"]] for item in document["assertion_results"]),
+        default=0,
+    )
+    if assertion_priority > status_priority[document["status"]]:
+        _fail(
+            schema_name,
+            "$.status",
+            "must not be less severe than an assertion result",
         )
-        if assertion_priority > status_priority[document["status"]]:
-            _fail(
-                schema_name,
-                "$.status",
-                "must not be less severe than an assertion result",
-            )
     graph = document["observed_ros_graph"]
     for key in ("topics", "services", "actions"):
         _require_unique(schema_name, graph[key], "name", f"$.observed_ros_graph.{key}")
-    if run_scoped:
-        lifecycle_keys = [
-            (item["node"], item["observed_at_ns"]) for item in document["lifecycle_states"]
-        ]
-        if len(lifecycle_keys) != len(set(lifecycle_keys)):
-            _fail(
-                schema_name,
-                "$.lifecycle_states",
-                "node and observed_at_ns pairs must be unique",
-            )
+    lifecycle_keys = [
+        (item["node"], item["observed_at_ns"]) for item in document["lifecycle_states"]
+    ]
+    if len(lifecycle_keys) != len(set(lifecycle_keys)):
+        _fail(
+            schema_name,
+            "$.lifecycle_states",
+            "node and observed_at_ns pairs must be unique",
+        )
     evidence_digests = {item["sha256"] for item in document["evidence"]}
 
     forbidden = document["forbidden_graph_observation"]
@@ -392,7 +366,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.source",
                 "must match sync_protocol",
             )
-        if run_scoped and clock["evidence_sha256"] not in evidence_digests:
+        if clock["evidence_sha256"] not in evidence_digests:
             _fail(
                 schema_name,
                 "$.hardware_clock_observation.evidence_sha256",
@@ -411,16 +385,11 @@ def _validate_result(document: Mapping[str, Any]) -> None:
             )
 
     if document["status"] == "passed":
-        if document["workload"]["kind"] == "inference":
-            workload = document["workload"]
-            fallback_path = "$.workload.fallback_count"
-        else:
-            workload = None
-            fallback_path = "$.workload.fallback_count"
-        if workload is not None and workload["fallback_count"] != 0:
+        workload = document["workload"]
+        if workload["kind"] == "inference" and workload["fallback_count"] != 0:
             _fail(
                 schema_name,
-                fallback_path,
+                "$.workload.fallback_count",
                 "passed result cannot include fallback",
             )
         if not document["clock_observation"]["monotonic"]:
@@ -444,44 +413,36 @@ def _validate_result(document: Mapping[str, Any]) -> None:
                 "$.hardware_clock_observation.within_policy",
                 "passed physical result requires hardware timing within policy",
             )
-        if run_scoped and not document["time_authority_observation"]["within_policy"]:
+        if not document["time_authority_observation"]["within_policy"]:
             _fail(
                 schema_name,
                 "$.time_authority_observation.within_policy",
                 "passed result requires time-authority evidence within policy",
             )
 
-    if run_scoped:
-        observation = document["time_authority_observation"]
-        if observation["window_end_ns"] < observation["window_start_ns"]:
-            _fail(
-                schema_name,
-                "$.time_authority_observation.window_end_ns",
-                "must not be earlier than window_start_ns",
-            )
-        if schema_name == "acceptance-result.v4":
-            p50 = observation["p50_delivery_latency_ms"]
-            p95 = observation["p95_delivery_latency_ms"]
-            maximum = observation["max_delivery_latency_ms"]
-            measurement = "delivery-latency"
-        else:
-            p50 = observation["p50_offset_ms"]
-            p95 = observation["p95_offset_ms"]
-            maximum = observation["max_offset_ms"]
-            measurement = "offset"
-        if not p50 <= p95 <= maximum:
-            _fail(
-                schema_name,
-                "$.time_authority_observation",
-                f"{measurement} statistics must satisfy p50 <= p95 <= max",
-            )
-        evidence_sha256 = observation.get("evidence_sha256")
-        if evidence_sha256 is not None and evidence_sha256 not in evidence_digests:
-            _fail(
-                schema_name,
-                "$.time_authority_observation.evidence_sha256",
-                "must identify an item listed in evidence",
-            )
+    observation = document["time_authority_observation"]
+    if observation["window_end_ns"] < observation["window_start_ns"]:
+        _fail(
+            schema_name,
+            "$.time_authority_observation.window_end_ns",
+            "must not be earlier than window_start_ns",
+        )
+    p50 = observation["p50_delivery_latency_ms"]
+    p95 = observation["p95_delivery_latency_ms"]
+    maximum = observation["max_delivery_latency_ms"]
+    if not p50 <= p95 <= maximum:
+        _fail(
+            schema_name,
+            "$.time_authority_observation",
+            "delivery-latency statistics must satisfy p50 <= p95 <= max",
+        )
+    evidence_sha256 = observation.get("evidence_sha256")
+    if evidence_sha256 is not None and evidence_sha256 not in evidence_digests:
+        _fail(
+            schema_name,
+            "$.time_authority_observation.evidence_sha256",
+            "must identify an item listed in evidence",
+        )
 
     segment_keys: set[tuple[str, int]] = set()
     for index, item in enumerate(document["evidence"]):
@@ -505,15 +466,14 @@ def _validate_evidence_index(document: Mapping[str, Any]) -> None:
             _fail(schema_name, f"$.segments[{index}].uri", "evidence object is duplicated")
         indexes.add(segment["segment_index"])
         identities.add(identity)
-    if schema_name == "evidence-index.v2":
-        policy = document["policy_observation"]
-        remote = policy["upload_mode"] == "closed_segments_during_run"
-        if policy["remote_sink_used"] != remote:
-            _fail(
-                schema_name,
-                "$.policy_observation.remote_sink_used",
-                "must match whether upload_mode uses a remote sink",
-            )
+    policy = document["policy_observation"]
+    remote = policy["upload_mode"] == "closed_segments_during_run"
+    if policy["remote_sink_used"] != remote:
+        _fail(
+            schema_name,
+            "$.policy_observation.remote_sink_used",
+            "must match whether upload_mode uses a remote sink",
+        )
 
 
 def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
@@ -540,7 +500,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
             "$.per_domain_aggregate",
             f"must equal the aggregate domain status {expected!r}",
         )
-    if schema_name != "acceptance-aggregate.v2":
+    if document["cross_domain_e2e"]["status"] == "unevaluated":
         return
     _validate_trace_topology(
         document,
@@ -984,24 +944,16 @@ def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
 
 
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
-    "acceptance-scenario.v1": _validate_acceptance_scenario,
-    "acceptance-scenario.v2": _validate_acceptance_scenario,
-    "acceptance-scenario.v3": _validate_acceptance_scenario,
     "acceptance-scenario.v4": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
-    "acceptance-result.v1": _validate_result,
-    "acceptance-result.v2": _validate_result,
-    "acceptance-result.v3": _validate_result,
     "acceptance-result.v4": _validate_result,
-    "evidence-index.v1": _validate_evidence_index,
     "evidence-index.v2": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
-    "acceptance-aggregate.v1": _validate_acceptance_aggregate,
-    "acceptance-aggregate.v2": _validate_acceptance_aggregate,
+    "acceptance-aggregate.v3": _validate_acceptance_aggregate,
     "mcap-summary.v1": _validate_mcap_summary,
     "qualification-bundle.v1": _validate_qualification_bundle,
     "zenoh-channel.v1": _validate_zenoh_channel,

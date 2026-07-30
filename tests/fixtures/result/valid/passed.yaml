@@ -1,5 +1,10 @@
-schema_version: acceptance-result.v1
-result_id: org.example.camera-run-001
+schema_version: acceptance-result.v4
+result_id: result-01234567-89ab-4def-8123-456789abcdef
+run_id: run-01234567-89ab-4def-8123-456789abcdef
+scenario_id: org.example.camera-stream
+domain_id: camera-domain
+verdict_scope: domain
+unevaluated: []
 scenario_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 runtime_manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 model_manifest_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -49,6 +54,16 @@ clock_observation:
   drift_ppm: 0
   real_time_factor: 0.99
   deadline_miss_ratio: 0
+time_authority_observation:
+  source_id: simulation-clock
+  sample_count: 30
+  window_start_ns: 1
+  window_end_ns: 30
+  p50_delivery_latency_ms: 0.1
+  p95_delivery_latency_ms: 0.2
+  max_delivery_latency_ms: 0.3
+  within_policy: true
+  evidence_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 shutdown:
   observer_detached: true
   recorders_closed: true
