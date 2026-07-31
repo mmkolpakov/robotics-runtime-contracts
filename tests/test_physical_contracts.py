@@ -5,34 +5,30 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 
 from robotics_runtime_contracts import (
     ContractValidationError,
     SemanticValidationError,
     validate_document,
 )
+from tests.support import load_fixture
 
 FIXTURES = Path(__file__).parent / "fixtures" / "physical" / "valid"
 
 
-def load_fixture(name: str) -> dict[str, Any]:
-    return yaml.safe_load((FIXTURES / name).read_text(encoding="utf-8"))
-
-
 def test_contracts_accept_real_target_only_as_observation() -> None:
-    scenario = load_fixture("hil-scenario.yaml")
+    scenario = load_fixture(FIXTURES / "hil-scenario.yaml")
     scenario["execution"]["target_environment"] = "real_robot"
     scenario["execution"]["physical_effect"] = "observation"
 
-    permit = load_fixture("hil-permit.yaml")
+    permit = load_fixture(FIXTURES / "hil-permit.yaml")
     permit["target"]["environment"] = "real_robot"
     permit["allowed_physical_effect"] = "observation"
 
-    runtime = load_fixture("hil-runtime.yaml")
+    runtime = load_fixture(FIXTURES / "hil-runtime.yaml")
     runtime["execution"]["target_environment"] = "real_robot"
 
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["execution"]["target_environment"] = "real_robot"
     result["authorization"]["target"]["environment"] = "real_robot"
 
@@ -43,7 +39,7 @@ def test_contracts_accept_real_target_only_as_observation() -> None:
 
 
 def test_physical_scenario_requires_a_forbidden_interface() -> None:
-    scenario = load_fixture("hil-scenario.yaml")
+    scenario = load_fixture(FIXTURES / "hil-scenario.yaml")
     scenario["forbidden_ros_graph"] = {"topics": [], "services": [], "actions": []}
 
     with pytest.raises(SemanticValidationError, match="at least one forbidden"):
@@ -51,7 +47,7 @@ def test_physical_scenario_requires_a_forbidden_interface() -> None:
 
 
 def test_runtime_rejects_duplicate_target_identity() -> None:
-    runtime = load_fixture("hil-runtime.yaml")
+    runtime = load_fixture(FIXTURES / "hil-runtime.yaml")
     duplicate = deepcopy(runtime["physical_targets"][0])
     duplicate["target_id"] = "controller-beta"
     runtime["physical_targets"].append(duplicate)
@@ -61,7 +57,7 @@ def test_runtime_rejects_duplicate_target_identity() -> None:
 
 
 def test_permit_rejects_same_operator_and_approver() -> None:
-    permit = load_fixture("hil-permit.yaml")
+    permit = load_fixture(FIXTURES / "hil-permit.yaml")
     permit["approver_id"] = permit["operator_id"]
 
     with pytest.raises(SemanticValidationError, match="must differ from operator_id"):
@@ -69,7 +65,7 @@ def test_permit_rejects_same_operator_and_approver() -> None:
 
 
 def test_permit_is_bounded_to_thirty_minutes() -> None:
-    permit = load_fixture("hil-permit.yaml")
+    permit = load_fixture(FIXTURES / "hil-permit.yaml")
     permit["expires_at"] = "2026-07-12T10:30:01Z"
 
     with pytest.raises(SemanticValidationError, match="no more than 30 minutes"):
@@ -97,7 +93,7 @@ def test_foundation_rejects_actuation(
     fixture_name: str,
     mutation: Any,
 ) -> None:
-    document = load_fixture(fixture_name)
+    document = load_fixture(FIXTURES / fixture_name)
     mutation(document)
 
     with pytest.raises(ContractValidationError):
@@ -105,7 +101,7 @@ def test_foundation_rejects_actuation(
 
 
 def test_verification_requires_one_signer_for_each_role() -> None:
-    verification = load_fixture("hil-verification.yaml")
+    verification = load_fixture(FIXTURES / "hil-verification.yaml")
     verification["signers"][1]["role"] = "operator"
 
     with pytest.raises(SemanticValidationError, match="one operator and one approver"):
@@ -113,7 +109,7 @@ def test_verification_requires_one_signer_for_each_role() -> None:
 
 
 def test_verification_rejects_reused_signer_identity() -> None:
-    verification = load_fixture("hil-verification.yaml")
+    verification = load_fixture(FIXTURES / "hil-verification.yaml")
     verification["signers"][1]["identity"] = verification["signers"][0]["identity"]
 
     with pytest.raises(SemanticValidationError, match="identity values must be unique"):
@@ -121,7 +117,7 @@ def test_verification_rejects_reused_signer_identity() -> None:
 
 
 def test_result_target_environment_must_match_execution() -> None:
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["authorization"]["target"]["environment"] = "real_robot"
 
     with pytest.raises(SemanticValidationError, match="must match execution"):
@@ -129,7 +125,7 @@ def test_result_target_environment_must_match_execution() -> None:
 
 
 def test_passed_physical_result_requires_timing_within_policy() -> None:
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["hardware_clock_observation"]["within_policy"] = False
 
     with pytest.raises(SemanticValidationError, match="timing within policy"):
@@ -137,7 +133,7 @@ def test_passed_physical_result_requires_timing_within_policy() -> None:
 
 
 def test_hardware_clock_source_must_match_protocol() -> None:
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["hardware_clock_observation"]["source"] = "pmc"
 
     with pytest.raises(SemanticValidationError, match="must match sync_protocol"):
@@ -145,7 +141,7 @@ def test_hardware_clock_source_must_match_protocol() -> None:
 
 
 def test_hardware_clock_evidence_must_be_listed() -> None:
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["hardware_clock_observation"]["evidence_sha256"] = "9" * 64
 
     with pytest.raises(SemanticValidationError) as caught:
@@ -154,7 +150,7 @@ def test_hardware_clock_evidence_must_be_listed() -> None:
 
 
 def test_passed_result_rejects_forbidden_interface_violation() -> None:
-    result = load_fixture("hil-result.yaml")
+    result = load_fixture(FIXTURES / "hil-result.yaml")
     result["forbidden_graph_observation"] = {
         "passed": False,
         "checked_topics": ["/cmd_vel"],

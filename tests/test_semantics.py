@@ -4,19 +4,15 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
-import yaml
 
 from robotics_runtime_contracts import (
     ContractValidationError,
     SemanticValidationError,
     validate_document,
 )
+from tests.support import load_fixture
 
 FIXTURES = Path(__file__).parent / "fixtures"
-
-
-def load_fixture(path: str) -> dict[str, object]:
-    return yaml.safe_load((FIXTURES / path).read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize(
@@ -61,7 +57,7 @@ def test_cross_field_invariants(
     mutation: object,
     expected_path: str,
 ) -> None:
-    document = load_fixture(fixture)
+    document = load_fixture(FIXTURES / fixture)
     mutation(document)
 
     with pytest.raises(SemanticValidationError) as caught:
@@ -71,7 +67,7 @@ def test_cross_field_invariants(
 
 
 def test_invalid_date_time_reports_contract_path() -> None:
-    document = load_fixture("physical/valid/hil-permit.yaml")
+    document = load_fixture(FIXTURES / "physical/valid/hil-permit.yaml")
     document["issued_at"] = "not-a-date"
 
     with pytest.raises(ContractValidationError) as caught:
@@ -81,7 +77,7 @@ def test_invalid_date_time_reports_contract_path() -> None:
 
 
 def test_semantic_timestamp_parser_accepts_rfc3339_lowercase_utc_designator() -> None:
-    document = load_fixture("physical/valid/hil-permit.yaml")
+    document = load_fixture(FIXTURES / "physical/valid/hil-permit.yaml")
     document["issued_at"] = document["issued_at"].replace("Z", "z")
     document["expires_at"] = document["expires_at"].replace("Z", "z")
     document["interlock_check"]["checked_at"] = document["interlock_check"]["checked_at"].replace(
@@ -120,7 +116,7 @@ def test_schema_owned_invariants_remain_enforced(
     mutation: object,
     expected_path: str,
 ) -> None:
-    document = load_fixture(fixture)
+    document = load_fixture(FIXTURES / fixture)
     mutation(document)
 
     with pytest.raises(ContractValidationError) as caught:
