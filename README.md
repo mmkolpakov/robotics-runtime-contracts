@@ -60,12 +60,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.11.0. Install its attested wheel directly from the
+The current package line is 0.12.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.11.0/robotics_runtime_contracts-0.11.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.12.0/robotics_runtime_contracts-0.12.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -92,7 +92,7 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 | `acceptance-scenario.v4` | Delivery-latency policy separated from hardware clock synchronization |
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
 | `acceptance-result.v4` | Run-scoped result with explicit time-authority delivery-latency observations |
-| `acceptance-aggregate.v3` | Per-domain aggregation and optional qualified cross-domain causal verdict |
+| `acceptance-aggregate.v4` | Per-domain aggregation with an optional digest-pinned transport qualification |
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
@@ -101,8 +101,8 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
 | `evidence-index.v2` | Evidence policy observation and MCAP summary references |
 | `mcap-summary.v1` | Canonical MCAP statistics and channel summary |
-| `qualification-bundle.v1` | In-toto-shaped qualification evidence statement |
-| `qualification-policy.v1` | Trust policy for qualification-bundle verification |
+| `qualification-bundle.v2` | In-toto-shaped qualification evidence statement, including transport results when used |
+| `qualification-policy.v2` | Trust policy for qualification-bundle verification |
 | `zenoh-channel.v1` | Cross-domain channel contract |
 | `zenoh-channel-observation.v1` | Observed cross-domain channel delivery and trace evidence |
 | `transport-qualification-result.v1` | Domain-neutral channel-delivery and causal-trace qualification verdict |

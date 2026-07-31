@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
 
@@ -13,6 +13,21 @@ class SemanticValidationError(ValueError):
         self.json_path = json_path
         self.validation_message = message
         super().__init__(f"{json_path}: {message}")
+
+
+_STATUS_PRIORITY = {
+    "passed": 0,
+    "skipped": 0,
+    "cancelled": 1,
+    "incomplete": 2,
+    "failed": 3,
+    "error": 4,
+}
+
+
+def _worst_status(statuses: Iterable[str], *, collapse_cancelled: bool = False) -> str:
+    status = max(statuses, key=_STATUS_PRIORITY.__getitem__, default="passed")
+    return "incomplete" if collapse_cancelled and status == "cancelled" else status
 
 
 def _fail(schema_name: str, path: str, message: str) -> NoReturn:
@@ -296,19 +311,8 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "assertion_id",
         "$.assertion_results",
     )
-    status_priority = {
-        "passed": 0,
-        "skipped": 0,
-        "cancelled": 1,
-        "incomplete": 2,
-        "failed": 3,
-        "error": 4,
-    }
-    assertion_priority = max(
-        (status_priority[item["status"]] for item in document["assertion_results"]),
-        default=0,
-    )
-    if assertion_priority > status_priority[document["status"]]:
+    assertion_status = _worst_status(item["status"] for item in document["assertion_results"])
+    if _STATUS_PRIORITY[assertion_status] > _STATUS_PRIORITY[document["status"]]:
         _fail(
             schema_name,
             "$.status",
@@ -481,48 +485,36 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
     results = document["per_domain_results"]
     _require_unique(schema_name, results, "domain_id", "$.per_domain_results")
     _require_unique(schema_name, results, "result_id", "$.per_domain_results")
-    result_domains = {item["domain_id"] for item in results}
-    statuses = {item["status"] for item in results}
-    expected = (
-        "error"
-        if "error" in statuses
-        else "failed"
-        if "failed" in statuses
-        else "incomplete"
-        if "incomplete" in statuses
-        else "cancelled"
-        if "cancelled" in statuses
-        else "passed"
-    )
+    expected = _worst_status(item["status"] for item in results)
     if document["per_domain_aggregate"] != expected:
         _fail(
             schema_name,
             "$.per_domain_aggregate",
             f"must equal the aggregate domain status {expected!r}",
         )
-    if document["cross_domain_e2e"]["status"] == "unevaluated":
+    cross_domain = document["cross_domain_e2e"]
+    if cross_domain["status"] == "unevaluated":
         return
-    _validate_trace_topology(
-        document,
-        schema_name=schema_name,
-        expected_domains=result_domains,
-        base_status=expected,
-        verdict_key="cross_domain_e2e",
-        verdict_path="$.cross_domain_e2e",
+    qualification_status = cross_domain["transport_qualification"]["status"]
+    expected_cross_domain = _worst_status(
+        (expected, qualification_status),
+        collapse_cancelled=True,
     )
+    if cross_domain["status"] != expected_cross_domain:
+        _fail(
+            schema_name,
+            "$.cross_domain_e2e.status",
+            f"must equal the combined domain and transport status {expected_cross_domain!r}",
+        )
 
 
-def _validate_trace_topology(
-    document: Mapping[str, Any],
-    *,
-    schema_name: str,
-    expected_domains: set[str],
-    base_status: str,
-    verdict_key: str,
-    verdict_path: str,
-) -> None:
-    result_domains = expected_domains
-    expected = base_status
+def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
+    schema_name = "transport-qualification-result.v1"
+    result_domains = {
+        domain_id
+        for item in document["channel_contracts"]
+        for domain_id in (item["source_domain_id"], item["destination_domain_id"])
+    }
 
     trace_evidence = document["trace_evidence"]
     _require_unique(schema_name, trace_evidence, "domain_id", "$.trace_evidence")
@@ -725,7 +717,7 @@ def _validate_trace_topology(
             "must collectively cover every channel contract",
         )
 
-    verdict = document[verdict_key]
+    verdict = document["verdict"]
     passed_chains = sum(chain["status"] == "passed" for chain in chains)
     failed_chains = sum(chain["status"] == "failed" for chain in chains)
     incomplete_chains = sum(chain["status"] == "incomplete" for chain in chains)
@@ -733,69 +725,47 @@ def _validate_trace_topology(
     if verdict["chain_count"] != len(chains):
         _fail(
             schema_name,
-            f"{verdict_path}.chain_count",
+            "$.verdict.chain_count",
             "must equal the number of causal chains",
         )
     if verdict["passed_chain_count"] != passed_chains:
         _fail(
             schema_name,
-            f"{verdict_path}.passed_chain_count",
+            "$.verdict.passed_chain_count",
             "must equal the number of passed causal chains",
         )
     if verdict["failed_chain_count"] != failed_chains:
         _fail(
             schema_name,
-            f"{verdict_path}.failed_chain_count",
+            "$.verdict.failed_chain_count",
             "must equal the number of failed causal chains",
         )
     if verdict["incomplete_chain_count"] != incomplete_chains:
         _fail(
             schema_name,
-            f"{verdict_path}.incomplete_chain_count",
+            "$.verdict.incomplete_chain_count",
             "must equal the number of incomplete causal chains",
         )
     if verdict["error_chain_count"] != error_chains:
         _fail(
             schema_name,
-            f"{verdict_path}.error_chain_count",
+            "$.verdict.error_chain_count",
             "must equal the number of errored causal chains",
         )
-    observation_statuses = {item["status"] for item in observations}
-    chain_statuses = {item["status"] for item in chains}
-    expected_e2e = (
-        "error"
-        if expected == "error" or "error" in observation_statuses or "error" in chain_statuses
-        else "failed"
-        if expected == "failed" or "failed" in observation_statuses or "failed" in chain_statuses
-        else "incomplete"
-        if expected in {"incomplete", "cancelled"}
-        or "incomplete" in observation_statuses
-        or "incomplete" in chain_statuses
-        else "passed"
+    expected_e2e = _worst_status(
+        (
+            "passed",
+            *(item["status"] for item in observations),
+            *(item["status"] for item in chains),
+        ),
+        collapse_cancelled=True,
     )
     if verdict["status"] != expected_e2e:
         _fail(
             schema_name,
-            f"{verdict_path}.status",
+            "$.verdict.status",
             f"must equal the aggregate transport status {expected_e2e!r}",
         )
-
-
-def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
-    contracts = document["channel_contracts"]
-    expected_domains = {
-        domain_id
-        for item in contracts
-        for domain_id in (item["source_domain_id"], item["destination_domain_id"])
-    }
-    _validate_trace_topology(
-        document,
-        schema_name="transport-qualification-result.v1",
-        expected_domains=expected_domains,
-        base_status="passed",
-        verdict_key="verdict",
-        verdict_path="$.verdict",
-    )
 
 
 def _validate_zenoh_channel(document: Mapping[str, Any]) -> None:
@@ -883,7 +853,7 @@ def _validate_causal_chain(document: Mapping[str, Any]) -> None:
 
 
 def _validate_qualification_bundle(document: Mapping[str, Any]) -> None:
-    schema_name = "qualification-bundle.v1"
+    schema_name = "qualification-bundle.v2"
     subjects = document["subject"]
     _require_unique(schema_name, subjects, "name", "$.subject")
     subject_names = {item["name"] for item in subjects}
@@ -953,9 +923,9 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-result.v4": _validate_result,
     "evidence-index.v2": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
-    "acceptance-aggregate.v3": _validate_acceptance_aggregate,
+    "acceptance-aggregate.v4": _validate_acceptance_aggregate,
     "mcap-summary.v1": _validate_mcap_summary,
-    "qualification-bundle.v1": _validate_qualification_bundle,
+    "qualification-bundle.v2": _validate_qualification_bundle,
     "zenoh-channel.v1": _validate_zenoh_channel,
     "zenoh-channel-observation.v1": _validate_zenoh_channel_observation,
     "causal-chain.v1": _validate_causal_chain,

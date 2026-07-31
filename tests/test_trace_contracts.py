@@ -105,31 +105,14 @@ def causal_chain() -> dict[str, object]:
     }
 
 
-def acceptance_aggregate() -> dict[str, object]:
+def transport_qualification() -> dict[str, object]:
     trace_id = "1" * 32
     message_id = "message-1"
     return {
-        "schema_version": "acceptance-aggregate.v3",
-        "aggregate_id": "aggregate-00000000-0000-4000-8000-000000000001",
+        "schema_version": "transport-qualification-result.v1",
+        "qualification_id": "qualification-00000000-0000-4000-8000-000000000001",
         "run_id": "run-00000000-0000-4000-8000-000000000001",
-        "acceptance_run_sha256": SHA,
-        "base_aggregate_sha256": "9" * 64,
         "generated_at": "2026-07-26T12:00:00Z",
-        "per_domain_results": [
-            {
-                "domain_id": "control",
-                "result_id": "result-00000000-0000-4000-8000-000000000001",
-                "result_sha256": "b" * 64,
-                "status": "passed",
-            },
-            {
-                "domain_id": "worker",
-                "result_id": "result-00000000-0000-4000-8000-000000000002",
-                "result_sha256": "c" * 64,
-                "status": "passed",
-            },
-        ],
-        "per_domain_aggregate": "passed",
         "evaluator": {
             "implementation": "robotics-acceptance-harness",
             "version": "0.1.0",
@@ -204,7 +187,7 @@ def acceptance_aggregate() -> dict[str, object]:
                 "violations": [],
             }
         ],
-        "cross_domain_e2e": {
+        "verdict": {
             "status": "passed",
             "evaluated_at": "2026-07-26T12:01:00Z",
             "chain_count": 1,
@@ -216,20 +199,36 @@ def acceptance_aggregate() -> dict[str, object]:
     }
 
 
-def transport_qualification() -> dict[str, object]:
-    aggregate = acceptance_aggregate()
+def acceptance_aggregate() -> dict[str, object]:
     return {
-        "schema_version": "transport-qualification-result.v1",
-        "qualification_id": "qualification-00000000-0000-4000-8000-000000000001",
-        "run_id": aggregate["run_id"],
-        "generated_at": aggregate["generated_at"],
-        "evaluator": aggregate["evaluator"],
-        "trace_evidence": aggregate["trace_evidence"],
-        "causal_chain_contracts": aggregate["causal_chain_contracts"],
-        "channel_contracts": aggregate["channel_contracts"],
-        "channel_observations": aggregate["channel_observations"],
-        "causal_chains": aggregate["causal_chains"],
-        "verdict": aggregate["cross_domain_e2e"],
+        "schema_version": "acceptance-aggregate.v4",
+        "aggregate_id": "aggregate-00000000-0000-4000-8000-000000000001",
+        "run_id": "run-00000000-0000-4000-8000-000000000001",
+        "acceptance_run_sha256": SHA,
+        "generated_at": "2026-07-26T12:02:00Z",
+        "per_domain_results": [
+            {
+                "domain_id": "control",
+                "result_id": "result-00000000-0000-4000-8000-000000000001",
+                "result_sha256": "b" * 64,
+                "status": "passed",
+            },
+            {
+                "domain_id": "worker",
+                "result_id": "result-00000000-0000-4000-8000-000000000002",
+                "result_sha256": "c" * 64,
+                "status": "passed",
+            },
+        ],
+        "per_domain_aggregate": "passed",
+        "cross_domain_e2e": {
+            "status": "passed",
+            "transport_qualification": {
+                "qualification_id": "qualification-00000000-0000-4000-8000-000000000001",
+                "result_sha256": "9" * 64,
+                "status": "passed",
+            },
+        },
     }
 
 
@@ -240,6 +239,7 @@ def qualification_bundle() -> dict[str, object]:
         "acceptance_run",
         "domain_result",
         "acceptance_aggregate",
+        "transport_qualification",
         "evidence_index",
         "mcap_summary",
     )
@@ -254,10 +254,10 @@ def qualification_bundle() -> dict[str, object]:
         "_type": "https://in-toto.io/Statement/v1",
         "subject": subjects,
         "predicateType": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
         ),
         "predicate": {
-            "schema_version": "qualification-bundle.v1",
+            "schema_version": "qualification-bundle.v2",
             "run_id": "run-00000000-0000-4000-8000-000000000001",
             "generated_at": "2026-07-26T12:00:00Z",
             "artifacts": [
@@ -273,10 +273,10 @@ def qualification_bundle() -> dict[str, object]:
 
 def qualification_policy() -> dict[str, object]:
     return {
-        "schema_version": "qualification-policy.v1",
+        "schema_version": "qualification-policy.v2",
         "policy_id": "github-release-main",
         "predicate_type": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
         ),
         "certificate_identities": [
             (
@@ -416,16 +416,24 @@ def test_cross_domain_aggregate_rejects_incorrect_domain_status() -> None:
         validate_document(document)
 
 
-def test_cross_domain_aggregate_requires_trace_for_every_domain() -> None:
+def test_cross_domain_aggregate_rejects_incorrect_combined_status() -> None:
     document = acceptance_aggregate()
+    document["cross_domain_e2e"]["transport_qualification"]["status"] = "failed"
+
+    with pytest.raises(SemanticValidationError, match="combined domain and transport status"):
+        validate_document(document)
+
+
+def test_transport_qualification_requires_trace_for_every_domain() -> None:
+    document = transport_qualification()
     document["trace_evidence"] = document["trace_evidence"][:1]
 
     with pytest.raises(ContractValidationError):
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_uncovered_channel() -> None:
-    document = acceptance_aggregate()
+def test_transport_qualification_rejects_uncovered_channel() -> None:
+    document = transport_qualification()
     contracts = document["channel_contracts"]
     assert isinstance(contracts, list)
     contracts.append(
@@ -451,8 +459,8 @@ def test_cross_domain_aggregate_rejects_uncovered_channel() -> None:
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_cross_trace_parent_relationship() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_qualification_rejects_cross_trace_parent_relationship() -> None:
+    document = deepcopy(transport_qualification())
     hop = document["causal_chains"][0]["hops"][0]
     hop["relationship"] = "parent"
     hop["consumer"]["trace_id"] = "2" * 32
@@ -462,24 +470,24 @@ def test_cross_domain_aggregate_rejects_cross_trace_parent_relationship() -> Non
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_unknown_hop_domain() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_qualification_rejects_unknown_hop_domain() -> None:
+    document = deepcopy(transport_qualification())
     document["causal_chains"][0]["hops"][0]["producer"]["domain_id"] = "ghost-control"
 
     with pytest.raises(SemanticValidationError, match="unknown qualification domains"):
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_same_domain_hop() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_qualification_rejects_same_domain_hop() -> None:
+    document = deepcopy(transport_qualification())
     document["causal_chains"][0]["hops"][0]["consumer"]["domain_id"] = "control"
 
     with pytest.raises(SemanticValidationError, match="distinct producer and consumer"):
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_one_span_as_both_endpoints() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_qualification_rejects_one_span_as_both_endpoints() -> None:
+    document = deepcopy(transport_qualification())
     producer = document["causal_chains"][0]["hops"][0]["producer"]
     consumer = document["causal_chains"][0]["hops"][0]["consumer"]
     consumer["trace_id"] = producer["trace_id"]
@@ -489,8 +497,8 @@ def test_cross_domain_aggregate_rejects_one_span_as_both_endpoints() -> None:
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_transition_reused_for_another_channel() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_qualification_rejects_transition_reused_for_another_channel() -> None:
+    document = deepcopy(transport_qualification())
     document["channel_contracts"].append(
         {
             "channel_id": "control.retry",
@@ -518,24 +526,8 @@ def test_cross_domain_aggregate_rejects_transition_reused_for_another_channel() 
         validate_document(document)
 
 
-def test_cross_domain_aggregate_rejects_disconnected_channel_sequence() -> None:
-    document = deepcopy(acceptance_aggregate())
-    document["per_domain_results"].extend(
-        [
-            {
-                "domain_id": "isolated-source",
-                "result_id": "result-00000000-0000-4000-8000-000000000003",
-                "result_sha256": "1" * 64,
-                "status": "passed",
-            },
-            {
-                "domain_id": "isolated-target",
-                "result_id": "result-00000000-0000-4000-8000-000000000004",
-                "result_sha256": "2" * 64,
-                "status": "passed",
-            },
-        ]
-    )
+def test_transport_qualification_rejects_disconnected_channel_sequence() -> None:
+    document = deepcopy(transport_qualification())
     document["trace_evidence"].extend(
         [
             {
@@ -591,16 +583,8 @@ def test_cross_domain_aggregate_rejects_disconnected_channel_sequence() -> None:
         validate_document(document)
 
 
-def test_cross_domain_aggregate_accepts_branching_chains() -> None:
-    document = deepcopy(acceptance_aggregate())
-    document["per_domain_results"].append(
-        {
-            "domain_id": "observer",
-            "result_id": "result-00000000-0000-4000-8000-000000000003",
-            "result_sha256": "1" * 64,
-            "status": "passed",
-        }
-    )
+def test_transport_qualification_accepts_branching_chains() -> None:
+    document = deepcopy(transport_qualification())
     document["trace_evidence"].append(
         {
             "domain_id": "observer",
@@ -644,7 +628,7 @@ def test_cross_domain_aggregate_accepts_branching_chains() -> None:
     second_chain["hops"][0]["consumer"]["domain_id"] = "observer"
     second_chain["hops"][0]["consumer"]["span_id"] = "4" * 16
     document["causal_chains"].append(second_chain)
-    document["cross_domain_e2e"].update(
+    document["verdict"].update(
         chain_count=2,
         passed_chain_count=2,
     )
@@ -652,8 +636,8 @@ def test_cross_domain_aggregate_accepts_branching_chains() -> None:
     validate_document(document)
 
 
-def test_cross_domain_passed_rejects_failed_chain() -> None:
-    document = deepcopy(acceptance_aggregate())
+def test_transport_passed_rejects_failed_chain() -> None:
+    document = deepcopy(transport_qualification())
     chains = document["causal_chains"]
     assert isinstance(chains, list)
     chains[0]["status"] = "failed"
@@ -664,7 +648,7 @@ def test_cross_domain_passed_rejects_failed_chain() -> None:
             "message": "producer relationship differs",
         }
     ]
-    verdict = document["cross_domain_e2e"]
+    verdict = document["verdict"]
     assert isinstance(verdict, dict)
     verdict["passed_chain_count"] = 0
     verdict["failed_chain_count"] = 1
@@ -720,7 +704,7 @@ def test_transport_qualification_rejects_domain_acceptance_fields() -> None:
 
 
 def test_qualification_bundle_is_an_in_toto_statement() -> None:
-    validate_document(qualification_bundle(), schema="qualification-bundle.v1")
+    validate_document(qualification_bundle(), schema="qualification-bundle.v2")
 
 
 def test_qualification_bundle_rejects_embedded_trust_policy() -> None:
@@ -730,7 +714,7 @@ def test_qualification_bundle_rejects_embedded_trust_policy() -> None:
     predicate["trust_policy"] = {"certificate_identity": "self-authorized"}
 
     with pytest.raises(ContractValidationError):
-        validate_document(document, schema="qualification-bundle.v1")
+        validate_document(document, schema="qualification-bundle.v2")
 
 
 def test_qualification_policy_is_independent_and_valid() -> None:
@@ -744,4 +728,4 @@ def test_qualification_bundle_classifies_every_subject() -> None:
     subjects[-1]["name"] = "artifacts/unclassified.json"
 
     with pytest.raises(SemanticValidationError, match="classify every statement subject"):
-        validate_document(document, schema="qualification-bundle.v1")
+        validate_document(document, schema="qualification-bundle.v2")

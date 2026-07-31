@@ -11,3 +11,4 @@ they govern.
 | [0003](0003-separate-structural-and-semantic-validation.md) | Separate structural and semantic validation ownership |
 | [0004](0004-separate-device-and-workload-identities.md) | Keep device and workload identities distinct |
 | [0005](0005-keep-the-package-domain-neutral.md) | Keep the package domain neutral |
+| [0006](0006-separate-transport-qualification.md) | Separate transport qualification from acceptance aggregation |
