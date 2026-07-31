@@ -240,6 +240,9 @@ def qualification_bundle() -> dict[str, object]:
         "domain_result",
         "acceptance_aggregate",
         "transport_qualification",
+        "causal_chain_contract",
+        "channel_contract",
+        "channel_observation",
         "evidence_index",
         "mcap_summary",
     )

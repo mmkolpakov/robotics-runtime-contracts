@@ -109,6 +109,7 @@
             "metrics",
             "traces",
             "junit",
+            "causal_chain_contract",
             "channel_contract",
             "channel_observation",
             "other_evidence"

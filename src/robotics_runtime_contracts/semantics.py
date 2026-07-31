@@ -529,24 +529,6 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
     _require_unique(schema_name, contracts, "channel_id", "$.channel_contracts")
     contract_ids = {item["channel_id"] for item in contracts}
     contract_by_id = {item["channel_id"]: item for item in contracts}
-    contract_domains = {
-        domain_id
-        for item in contracts
-        for domain_id in (item["source_domain_id"], item["destination_domain_id"])
-    }
-    unknown_contract_domains = contract_domains - result_domains
-    if unknown_contract_domains:
-        _fail(
-            schema_name,
-            "$.channel_contracts",
-            f"references unknown qualification domains: {sorted(unknown_contract_domains)}",
-        )
-    if contract_domains != result_domains:
-        _fail(
-            schema_name,
-            "$.channel_contracts",
-            "must traverse every qualification domain",
-        )
     for contract_index, contract in enumerate(contracts):
         if contract["source_domain_id"] == contract["destination_domain_id"]:
             _fail(
