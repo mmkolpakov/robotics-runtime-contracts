@@ -34,8 +34,6 @@ jobs:
       - name: Run repository checks
         run: |
           uv run pre-commit run --all-files --show-diff-on-failure
-      - name: Validate consumer examples
-        run: uv run pytest tests/test_consumer_examples.py
       - name: Run tests
         run: |
           mkdir -p artifacts

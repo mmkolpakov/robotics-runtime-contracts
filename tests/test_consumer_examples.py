@@ -2,20 +2,15 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
 
 import pytest
-import yaml
 
 from robotics_runtime_contracts import validate_document
+from tests.support import load_fixture
 
 EXAMPLES = Path(__file__).parents[1] / "consumer-examples"
 MINIMAL_SIMULATION = EXAMPLES / "minimal-simulation"
 DOCUMENTS = sorted(EXAMPLES.rglob("*.yaml"))
-
-
-def load_document(path: Path) -> dict[str, Any]:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def file_sha256(path: Path) -> str:
@@ -24,7 +19,7 @@ def file_sha256(path: Path) -> str:
 
 @pytest.mark.parametrize("path", DOCUMENTS, ids=lambda path: str(path.relative_to(EXAMPLES)))
 def test_consumer_example(path: Path) -> None:
-    validate_document(load_document(path))
+    validate_document(load_fixture(path))
 
 
 def test_consumer_catalog_is_not_empty() -> None:
@@ -39,12 +34,12 @@ def test_minimal_simulation_uses_actual_artifact_digest_chain() -> None:
     evidence_index_path = MINIMAL_SIMULATION / "evidence-index.yaml"
     time_evidence_path = MINIMAL_SIMULATION / "evidence" / "time-authority.json"
 
-    scenario = load_document(scenario_path)
-    runtime = load_document(runtime_path)
-    run = load_document(run_path)
-    result = load_document(result_path)
-    aggregate = load_document(MINIMAL_SIMULATION / "acceptance-aggregate.yaml")
-    evidence_index = load_document(evidence_index_path)
+    scenario = load_fixture(scenario_path)
+    runtime = load_fixture(runtime_path)
+    run = load_fixture(run_path)
+    result = load_fixture(result_path)
+    aggregate = load_fixture(MINIMAL_SIMULATION / "acceptance-aggregate.yaml")
+    evidence_index = load_fixture(evidence_index_path)
 
     assert run["scenario_id"] == scenario["scenario_id"] == result["scenario_id"]
     assert run["run_id"] == result["run_id"] == aggregate["run_id"] == evidence_index["run_id"]
@@ -79,8 +74,8 @@ def test_minimal_simulation_uses_actual_artifact_digest_chain() -> None:
 
 
 def test_minimal_simulation_observed_graph_satisfies_expected_graph() -> None:
-    scenario = load_document(MINIMAL_SIMULATION / "scenario.yaml")
-    result = load_document(MINIMAL_SIMULATION / "acceptance-result.yaml")
+    scenario = load_fixture(MINIMAL_SIMULATION / "scenario.yaml")
+    result = load_fixture(MINIMAL_SIMULATION / "acceptance-result.yaml")
     observed_topics = {item["name"]: item for item in result["observed_ros_graph"]["topics"]}
 
     for expected in scenario["expected_ros_graph"]["topics"]:
