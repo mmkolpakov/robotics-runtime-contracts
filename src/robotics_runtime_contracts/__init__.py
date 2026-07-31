@@ -40,8 +40,8 @@ PUBLISHED_SCHEMA_SHA256 = {
     ),
     "mcap-summary.v1": "e2c8ff63268cedaf699649d39bd2fa7a6a9e49873502af72855b284a22511ccf",
     "causal-chain.v1": "67a66bec2c59956e22c4534e1300adba4c63d8fd950d7e20681e63f060ec3777",
-    "qualification-bundle.v2": "52994a8faed60f7fa7890e53a79f63218f13d999f7bce6d071c5ddc56bc60c38",
-    "qualification-policy.v2": "ce34cdcc52c76f5e93622d9fe797c14fa93308515e28cb3f522e4cafbcb346a4",
+    "qualification-bundle.v2": "66f1f2869c25e61e465aeb8eac30707f77d77458db810a98252b61e59f72fa53",
+    "qualification-policy.v2": "24101fbd567dfb550c5c154a41f64460653ad512ea0332c5244b97a2aadcf265",
     "runtime-manifest.v1": "0af0870a80c8071d2904423e50aa10af5643ce9ec2ca6afd6e07b0a586071a9d",
     "zenoh-channel.v1": "2febfa242150f1ceda98d4efac4b9ecfaa4c74bbba873d22d41810a619ca185b",
     "zenoh-channel-observation.v1": (
