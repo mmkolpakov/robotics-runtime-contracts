@@ -12,9 +12,8 @@ versioned `$id`.
 Before package `1.0.0`, the current package exposes one canonical version of
 each document kind. Superseded schemas remain available from their tagged Git
 release; they are not carried as runtime compatibility code when there is no
-active consumer. `acceptance-aggregate.v3` represents both the unevaluated
-per-domain aggregate and its later cross-domain qualification; processing
-state does not create a second schema version.
+active consumer. `acceptance-aggregate.v4` references an independently
+validated transport qualification instead of embedding its evidence graph.
 
 ## Published Schemas
 

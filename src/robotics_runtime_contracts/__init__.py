@@ -25,7 +25,7 @@ from robotics_runtime_contracts.semantics import (
 )
 
 PUBLISHED_SCHEMA_SHA256 = {
-    "acceptance-aggregate.v3": "27700d629c6658282cd4aab3f8f0e8cbf326bc54cba0066299539dd3cd91a07e",
+    "acceptance-aggregate.v4": "d68fa8bd7dee83411f920c90a325247938da4f634dc4c840167b13831b664c4d",
     "acceptance-run.v1": "541e5594aba482f14b2f644d9195c2fa6356be60aa8e5a9c1ce8c41d3e13e6c2",
     "acceptance-result.v4": "e794245312ae763169296dcb0449c3947e3fa5dcd97ba2f588608c2045579107",
     "acceptance-scenario.v4": "e1c7e2479112c33a3d67ff5de3e5c48499389a2cf9fde765af5c06af6c8a3bff",
@@ -40,8 +40,8 @@ PUBLISHED_SCHEMA_SHA256 = {
     ),
     "mcap-summary.v1": "e2c8ff63268cedaf699649d39bd2fa7a6a9e49873502af72855b284a22511ccf",
     "causal-chain.v1": "67a66bec2c59956e22c4534e1300adba4c63d8fd950d7e20681e63f060ec3777",
-    "qualification-bundle.v1": "3ccb3f8651b8cdfb2d1de661cdc03e0004d3b3bd4929d1ab2f6e4ddc3287defc",
-    "qualification-policy.v1": "4804d7035b5d1c8cf99bb3028a0d37b333b7d0da873cc90d6f81c1cb8baf528a",
+    "qualification-bundle.v2": "52994a8faed60f7fa7890e53a79f63218f13d999f7bce6d071c5ddc56bc60c38",
+    "qualification-policy.v2": "ce34cdcc52c76f5e93622d9fe797c14fa93308515e28cb3f522e4cafbcb346a4",
     "runtime-manifest.v1": "0af0870a80c8071d2904423e50aa10af5643ce9ec2ca6afd6e07b0a586071a9d",
     "zenoh-channel.v1": "2febfa242150f1ceda98d4efac4b9ecfaa4c74bbba873d22d41810a619ca185b",
     "zenoh-channel-observation.v1": (

@@ -8,7 +8,9 @@ extension, not in a common schema.
 
 Published schema versions are immutable. Follow
 [COMPATIBILITY.md](COMPATIBILITY.md): add a new schema version for a breaking
-field or semantic change and keep previous schema bytes unchanged.
+field or semantic change. Superseded pre-1.0 schemas remain immutable in their
+tagged releases and leave the current catalog only when no consumer requires
+them.
 
 Architectural changes to this package require an accepted
 [MADR](https://adr.github.io/madr/) record in
