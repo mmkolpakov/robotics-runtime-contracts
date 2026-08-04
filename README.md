@@ -52,6 +52,7 @@ uses the same contracts to validate inputs and emit a result.
 | Goal | Start here |
 | --- | --- |
 | Validate an application document | [`robotics-contracts validate`](#quick-start) or [`validate_document()`](#python-api) |
+| Validate qualification links | [`robotics-contracts validate-qualification`](#quick-start) |
 | Embed a published schema | [`load_schema(name)` or `schema_path(name)`](#python-api) |
 | Review the public document set | [Schema Catalog](#schema-catalog) |
 | Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
@@ -60,12 +61,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.12.1. Install its attested wheel directly from the
+The current package line is 0.13.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.12.1/robotics_runtime_contracts-0.12.1-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.13.0/robotics_runtime_contracts-0.13.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -84,6 +85,16 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 `--schema` only when validating a document that cannot declare
 `schema_version`. Digest-pinned domain schemas can be supplied with repeated
 `--extension-schema URI=PATH` options.
+
+Use `validate-qualification` with repeated
+`--artifact KIND:SUBJECT=PATH` arguments to validate a complete signed-subject
+set. It checks every document against its exact schema and then verifies the
+run, domain, digest, transport, trace, MCAP, and retained-evidence links. Add
+`--output validated-artifacts.json` when the caller needs the hashes and run
+metadata derived from those same validated file reads. Metadata remains
+compatible with `qualification-bundle.v2`: model, dataset, physical-authorization,
+policy, and raw-MCAP subjects use the public `other_evidence` kind while retaining
+their distinct subject names and exact digests.
 
 ## Schema Catalog
 
