@@ -61,12 +61,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.13.0. Install its attested wheel directly from the
+The current package line is 0.14.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.13.0/robotics_runtime_contracts-0.13.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.14.0/robotics_runtime_contracts-0.14.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -107,7 +107,8 @@ their distinct subject names and exact digests.
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
-| `runtime-manifest.v1` | Observed runtime, workload, accelerator, security, timing, and physical target facts |
+| `runtime-manifest.v2` | Observed runtime plus digest-linked provider, topology, and resource configuration |
+| `runtime-manifest.v1` | Compatible reader for the original runtime fact set |
 | `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
 | `evidence-index.v2` | Evidence policy observation and MCAP summary references |

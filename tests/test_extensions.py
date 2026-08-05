@@ -79,6 +79,20 @@ def test_external_references_are_rejected_without_network_access() -> None:
         validate_document(scenario, extension_schemas={SCHEMA_URI: raw_unsafe})
 
 
+def test_reference_shaped_domain_data_is_not_treated_as_a_schema_reference() -> None:
+    scenario = scenario_with_extension()
+    schema = json.loads(extension_schema())
+    schema["required"].append("metadata")
+    schema["properties"]["metadata"] = {"const": {"$ref": "https://example.org/domain-object/42"}}
+    scenario["extensions"]["org.example.sorting"]["metadata"] = {
+        "$ref": "https://example.org/domain-object/42"
+    }
+    raw_schema = json.dumps(schema, separators=(",", ":"), sort_keys=True).encode()
+    scenario["extension_schemas"][0]["sha256"] = sha256(raw_schema).hexdigest()
+
+    validate_document(scenario, extension_schemas={SCHEMA_URI: raw_schema})
+
+
 def test_extension_cannot_be_registered_without_matching_payload() -> None:
     scenario = deepcopy(scenario_with_extension())
     scenario["extensions"] = {}

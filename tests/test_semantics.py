@@ -46,6 +46,17 @@ FIXTURES = Path(__file__).parent / "fixtures"
             "$.clock.sync_protocol",
         ),
         (
+            "runtime/valid/no-inference-simulation.yaml",
+            lambda value: value.update(
+                schema_version="runtime-manifest.v2",
+                configuration_artifacts=[
+                    {"kind": "host_topology", "sha256": "a" * 64},
+                    {"kind": "host_topology", "sha256": "b" * 64},
+                ],
+            ),
+            "$.configuration_artifacts",
+        ),
+        (
             "result/valid/passed.yaml",
             lambda value: value["clock_observation"].update(monotonic=False),
             "$.clock_observation.monotonic",

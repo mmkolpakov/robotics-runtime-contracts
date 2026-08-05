@@ -1,0 +1,901 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:runtime-manifest:v2",
+  "title": "Robotics runtime manifest v2",
+  "description": "Observed runtime identity with cryptographically authorized physical target facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_id",
+    "generated_at",
+    "oci_image",
+    "components",
+    "host",
+    "ros",
+    "render",
+    "workload",
+    "execution",
+    "authorization",
+    "data_plane",
+    "security",
+    "lifecycle_states",
+    "physical_targets",
+    "clock"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "runtime-manifest.v2"
+    },
+    "runtime_id": {
+      "$ref": "#/$defs/imported__runtime-manifest__identifier"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "oci_image": {
+      "$ref": "#/$defs/imported__runtime-manifest__ociImage"
+    },
+    "components": {
+      "$ref": "#/$defs/imported__runtime-manifest__components"
+    },
+    "configuration_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/configurationArtifact"
+      },
+      "uniqueItems": true
+    },
+    "host": {
+      "$ref": "#/$defs/imported__runtime-manifest__host"
+    },
+    "ros": {
+      "$ref": "#/$defs/imported__runtime-manifest__ros"
+    },
+    "gazebo": {
+      "$ref": "#/$defs/imported__runtime-manifest__gazebo"
+    },
+    "render": {
+      "$ref": "#/$defs/imported__runtime-manifest__render"
+    },
+    "workload": {
+      "$ref": "#/$defs/imported__runtime-manifest__workload"
+    },
+    "execution": {
+      "$ref": "#/$defs/imported__runtime-manifest__execution"
+    },
+    "authorization": {
+      "$ref": "#/$defs/authorization"
+    },
+    "data_plane": {
+      "$ref": "#/$defs/imported__runtime-manifest__dataPlane"
+    },
+    "security": {
+      "$ref": "#/$defs/imported__runtime-manifest__security"
+    },
+    "lifecycle_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/imported__runtime-manifest__lifecycleState"
+      }
+    },
+    "physical_targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/physicalTarget"
+      }
+    },
+    "clock": {
+      "$ref": "#/$defs/imported__runtime-manifest__clock"
+    },
+    "extensions": {
+      "$ref": "#/$defs/imported__runtime-manifest__extensions"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "target_environment": {
+                "const": "simulation"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "none"
+              }
+            }
+          },
+          "physical_targets": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "target_environment": {
+                "enum": [
+                  "hil",
+                  "real_robot"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authorization": {
+            "properties": {
+              "mode": {
+                "const": "verified_execution_permit"
+              }
+            }
+          },
+          "security": {
+            "properties": {
+              "profile": {
+                "const": "sros2_enforce"
+              },
+              "strategy": {
+                "const": "Enforce"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "time_mode": {
+                "const": "hardware_realtime"
+              },
+              "data_source": {
+                "const": "live_target"
+              },
+              "plant_backend": {
+                "const": "real_hardware"
+              }
+            }
+          },
+          "physical_targets": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "authorization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "permit_sha256",
+            "execution_verification_sha256",
+            "trust_policy_sha256"
+          ],
+          "properties": {
+            "mode": {
+              "const": "verified_execution_permit"
+            },
+            "permit_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            },
+            "execution_verification_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            },
+            "trust_policy_sha256": {
+              "$ref": "#/$defs/imported__runtime-manifest__sha256"
+            }
+          }
+        }
+      ]
+    },
+    "physicalTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "scope",
+        "identity_kind",
+        "identity_sha256",
+        "preflight_evidence_sha256"
+      ],
+      "properties": {
+        "target_id": {
+          "$ref": "#/$defs/imported__runtime-manifest__identifier"
+        },
+        "scope": {
+          "enum": [
+            "compute",
+            "sensor",
+            "controller"
+          ]
+        },
+        "identity_kind": {
+          "enum": [
+            "udev_serial",
+            "pci_device",
+            "mavlink_system_component",
+            "x509_spki",
+            "tpm_ek",
+            "vendor_soc"
+          ]
+        },
+        "identity_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "preflight_evidence_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "stable_device_path": {
+          "type": "string",
+          "pattern": "^/dev/[^*?\\s]+$"
+        }
+      }
+    },
+    "configurationArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "inference_provider",
+            "host_topology",
+            "runtime_resources"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        }
+      }
+    },
+    "imported__runtime-manifest__identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "maxLength": 128
+    },
+    "imported__runtime-manifest__ociImage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "digest"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "pattern": "^[^\\s]+/[^\\s]+@sha256:[a-f0-9]{64}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "imported__runtime-manifest__components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contracts_revision",
+        "harness_revision",
+        "infra_revision"
+      ],
+      "properties": {
+        "contracts_revision": {
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
+        },
+        "harness_revision": {
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
+        },
+        "infra_revision": {
+          "$ref": "#/$defs/imported__runtime-manifest__gitRevision"
+        }
+      }
+    },
+    "imported__runtime-manifest__gitRevision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "imported__runtime-manifest__host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "os_version",
+        "architecture",
+        "kernel"
+      ],
+      "properties": {
+        "os": {
+          "enum": [
+            "ubuntu",
+            "linux",
+            "windows-wsl2",
+            "macos"
+          ]
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "architecture": {
+          "enum": [
+            "x86_64",
+            "aarch64",
+            "arm64"
+          ]
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "imported__runtime-manifest__ros": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution",
+        "rmw_implementation"
+      ],
+      "properties": {
+        "distribution": {
+          "const": "jazzy"
+        },
+        "rmw_implementation": {
+          "enum": [
+            "rmw_fastrtps_cpp",
+            "rmw_cyclonedds_cpp",
+            "rmw_zenoh_cpp"
+          ]
+        }
+      }
+    },
+    "imported__runtime-manifest__gazebo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collection",
+        "version",
+        "libraries"
+      ],
+      "properties": {
+        "collection": {
+          "const": "harmonic"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^8\\.[0-9]+\\.[0-9]+$"
+        },
+        "libraries": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$"
+          }
+        }
+      }
+    },
+    "imported__runtime-manifest__render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "renderer"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "none",
+            "software",
+            "egl"
+          ]
+        },
+        "renderer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "imported__runtime-manifest__workload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "model",
+            "inference",
+            "accelerator"
+          ],
+          "properties": {
+            "kind": {
+              "const": "inference"
+            },
+            "model": {
+              "$ref": "#/$defs/imported__runtime-manifest__model"
+            },
+            "inference": {
+              "$ref": "#/$defs/imported__runtime-manifest__inference"
+            },
+            "accelerator": {
+              "$ref": "#/$defs/imported__runtime-manifest__accelerator"
+            }
+          }
+        }
+      ]
+    },
+    "imported__runtime-manifest__model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "artifact_sha256",
+        "format"
+      ],
+      "properties": {
+        "manifest_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "format": {
+          "enum": [
+            "onnx",
+            "tensorrt_engine",
+            "rknn"
+          ]
+        }
+      }
+    },
+    "imported__runtime-manifest__sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "imported__runtime-manifest__inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_family",
+        "runtime_version",
+        "requested_provider",
+        "actual_provider",
+        "fallback_count"
+      ],
+      "properties": {
+        "runtime_family": {
+          "enum": [
+            "onnxruntime_cpu",
+            "onnxruntime_cuda",
+            "onnxruntime_openvino",
+            "onnxruntime_migraphx",
+            "onnxruntime_tensorrt",
+            "rknn_runtime",
+            "coreml_external"
+          ]
+        },
+        "runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requested_provider": {
+          "$ref": "#/$defs/imported__runtime-manifest__provider"
+        },
+        "actual_provider": {
+          "$ref": "#/$defs/imported__runtime-manifest__provider"
+        },
+        "fallback_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_cpu"
+            },
+            "actual_provider": {
+              "const": "CPUExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_cuda"
+            },
+            "actual_provider": {
+              "const": "CUDAExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_openvino"
+            },
+            "actual_provider": {
+              "const": "OpenVINOExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_migraphx"
+            },
+            "actual_provider": {
+              "const": "MIGraphXExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "onnxruntime_tensorrt"
+            },
+            "actual_provider": {
+              "const": "TensorrtExecutionProvider"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "rknn_runtime"
+            },
+            "actual_provider": {
+              "const": "RKNPU2"
+            }
+          }
+        },
+        {
+          "properties": {
+            "runtime_family": {
+              "const": "coreml_external"
+            },
+            "actual_provider": {
+              "const": "CoreMLExecutionProvider"
+            }
+          }
+        }
+      ]
+    },
+    "imported__runtime-manifest__provider": {
+      "enum": [
+        "CPUExecutionProvider",
+        "CUDAExecutionProvider",
+        "OpenVINOExecutionProvider",
+        "MIGraphXExecutionProvider",
+        "TensorrtExecutionProvider",
+        "RKNPU2",
+        "CoreMLExecutionProvider"
+      ]
+    },
+    "imported__runtime-manifest__accelerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vendor",
+        "device_class",
+        "device_id"
+      ],
+      "properties": {
+        "vendor": {
+          "enum": [
+            "none",
+            "generic",
+            "nvidia",
+            "intel",
+            "amd",
+            "apple",
+            "rockchip"
+          ]
+        },
+        "device_class": {
+          "enum": [
+            "cpu",
+            "discrete_gpu",
+            "integrated_gpu",
+            "jetson",
+            "npu",
+            "apple_neural_engine"
+          ]
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "driver_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "jetpack_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "l4t_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rocm_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "openvino_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rknn_runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rknpu_driver_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "imported__runtime-manifest__execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_environment",
+        "data_source",
+        "plant_backend",
+        "time_mode",
+        "data_plane_profile"
+      ],
+      "properties": {
+        "target_environment": {
+          "enum": [
+            "simulation",
+            "hil",
+            "real_robot"
+          ]
+        },
+        "data_source": {
+          "enum": [
+            "gazebo",
+            "mcap_playback",
+            "live_target"
+          ]
+        },
+        "plant_backend": {
+          "enum": [
+            "interface_mock",
+            "gazebo_physics",
+            "recorded_data",
+            "real_hardware"
+          ]
+        },
+        "time_mode": {
+          "enum": [
+            "simulation_realtime",
+            "simulation_stepped",
+            "playback_clocked",
+            "hardware_realtime"
+          ]
+        },
+        "data_plane_profile": {
+          "enum": [
+            "standard_isolated",
+            "local_high_throughput",
+            "secure_shared_memory"
+          ]
+        }
+      }
+    },
+    "imported__runtime-manifest__dataPlane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rmw_implementation",
+        "ipc_namespace",
+        "network_namespace",
+        "shm_transport",
+        "data_sharing",
+        "private_ipc"
+      ],
+      "properties": {
+        "rmw_implementation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fastdds_profile_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "ipc_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "network_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "shm_transport": {
+          "type": "boolean"
+        },
+        "data_sharing": {
+          "type": "boolean"
+        },
+        "private_ipc": {
+          "type": "boolean"
+        }
+      }
+    },
+    "imported__runtime-manifest__security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "strategy",
+        "enclaves",
+        "policy_digests"
+      ],
+      "properties": {
+        "profile": {
+          "enum": [
+            "none",
+            "sros2_enforce"
+          ]
+        },
+        "strategy": {
+          "enum": [
+            "none",
+            "Enforce"
+          ]
+        },
+        "enclaves": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/[^\\s]+$"
+          },
+          "uniqueItems": true
+        },
+        "policy_digests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/imported__runtime-manifest__sha256"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "imported__runtime-manifest__lifecycleState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node",
+        "state",
+        "observed_at_ns"
+      ],
+      "properties": {
+        "node": {
+          "type": "string",
+          "pattern": "^/[^\\s]+$"
+        },
+        "state": {
+          "enum": [
+            "unknown",
+            "unconfigured",
+            "inactive",
+            "active",
+            "finalized"
+          ]
+        },
+        "observed_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "imported__runtime-manifest__clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "sync_protocol",
+        "offset_ms",
+        "drift_ppm"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "ros_time",
+            "system_time",
+            "ptp_time"
+          ]
+        },
+        "sync_protocol": {
+          "enum": [
+            "sim_clock",
+            "playback_clock",
+            "ptp",
+            "chrony_ntp",
+            "mavlink_timesync",
+            "micro_xrce_dds",
+            "external"
+          ]
+        },
+        "offset_ms": {
+          "type": "number"
+        },
+        "drift_ppm": {
+          "type": "number"
+        }
+      }
+    },
+    "imported__runtime-manifest__extensions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

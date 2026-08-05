@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from robotics_runtime_contracts._qualification import validate_qualification_artifacts
 from robotics_runtime_contracts.cli import main
 from tests.support import qualification_specifications
 
@@ -134,3 +135,34 @@ def test_cli_rejects_a_noncanonical_qualification_subject(
     )
 
     assert "non-canonical qualification subject name" in capsys.readouterr().err
+
+
+def test_cli_schema_override_reports_the_resolved_schema_without_root_version(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    metadata = validate_qualification_artifacts(qualification_specifications("inference"))
+    statement = {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [
+            {"name": item["subject_name"], "digest": {"sha256": item["sha256"]}}
+            for item in metadata["artifacts"]
+        ],
+        "predicateType": (
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+        ),
+        "predicate": {
+            "schema_version": "qualification-bundle.v2",
+            "run_id": metadata["run_id"],
+            "generated_at": metadata["generated_at"],
+            "artifacts": [
+                {"kind": item["kind"], "subject_name": item["subject_name"]}
+                for item in metadata["artifacts"]
+            ],
+        },
+    }
+    path = tmp_path / "qualification-bundle.json"
+    path.write_text(json.dumps(statement), encoding="utf-8")
+
+    assert main(["validate", "--schema", "qualification-bundle.v2", str(path)]) == 0
+    assert capsys.readouterr().out == "valid: qualification-bundle.v2\n"

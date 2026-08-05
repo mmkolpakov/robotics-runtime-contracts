@@ -315,6 +315,76 @@ def test_result_evidence_segment_index_is_optional() -> None:
     _validate_links(items)
 
 
+@pytest.mark.parametrize(
+    ("status", "updates", "violations"),
+    [
+        ("passed", {}, []),
+        (
+            "failed",
+            {"lost_count": 1, "received_count": 19, "loss_ratio": 0.05},
+            [{"code": "loss_ratio_exceeded", "message": "delivery loss exceeded"}],
+        ),
+        (
+            "incomplete",
+            {"sent_count": 0, "received_count": 0},
+            [{"code": "insufficient_messages", "message": "no source messages"}],
+        ),
+        (
+            "error",
+            {},
+            [{"code": "ambiguous_message_id", "message": "message identity is ambiguous"}],
+        ),
+    ],
+)
+def test_complete_transport_qualification_accepts_every_canonical_observation_status(
+    status: str,
+    updates: Mapping[str, Any],
+    violations: list[dict[str, str]],
+) -> None:
+    items = artifacts("transport")
+    observation = document(items, "evidence/control-commands-observation.json")
+    transport = document(items, "transport-qualification.json")
+    aggregate = document(items, "acceptance-aggregate.json")
+    observation.update(updates, status=status, violations=violations)
+    transport["channel_observations"][0]["status"] = status
+    transport["verdict"]["status"] = status
+    aggregate["cross_domain_e2e"]["transport_qualification"]["status"] = status
+    aggregate["cross_domain_e2e"]["status"] = status
+    validate_mutation(observation, transport, aggregate)
+
+    _validate_links(items)
+
+
+def test_runtime_v2_configuration_artifact_is_digest_linked() -> None:
+    items = artifacts("transport")
+    runtime = document(items, "runtime-manifests/control.json")
+    runtime.update(
+        schema_version="runtime-manifest.v2",
+        configuration_artifacts=[
+            {
+                "kind": "runtime_resources",
+                "sha256": artifact(items, "config/bridge.json").sha256,
+            }
+        ],
+    )
+    validate_mutation(runtime)
+
+    _validate_links(items)
+
+
+def test_runtime_v2_configuration_artifact_requires_retained_bytes() -> None:
+    items = artifacts("transport")
+    runtime = document(items, "runtime-manifests/control.json")
+    runtime.update(
+        schema_version="runtime-manifest.v2",
+        configuration_artifacts=[{"kind": "host_topology", "sha256": "0" * 64}],
+    )
+    validate_mutation(runtime)
+
+    with pytest.raises(QualificationError, match="host_topology configuration"):
+        _validate_links(items)
+
+
 def test_mcap_summary_cannot_cover_different_sources() -> None:
     items = artifacts("transport")
     summary = artifact(items, "mcap-summaries/control.json")

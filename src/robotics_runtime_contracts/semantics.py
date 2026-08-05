@@ -4,6 +4,8 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
 
+from robotics_runtime_contracts.qualification_policy import RESERVED_ASSERTION_IDS
+
 
 class SemanticValidationError(ValueError):
     """Raised when structurally valid contract fields contradict each other."""
@@ -26,7 +28,7 @@ _STATUS_PRIORITY = {
 
 
 def _worst_status(statuses: Iterable[str], *, collapse_cancelled: bool = False) -> str:
-    status = max(statuses, key=_STATUS_PRIORITY.__getitem__, default="passed")
+    status = max(statuses, key=lambda item: _STATUS_PRIORITY.get(item, 5), default="passed")
     return "incomplete" if collapse_cancelled and status == "cancelled" else status
 
 
@@ -69,6 +71,13 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
 
     assertions = document["assertions"]
     _require_unique(schema_name, assertions, "assertion_id", "$.assertions")
+    for index, assertion in enumerate(assertions):
+        if assertion["assertion_id"] in RESERVED_ASSERTION_IDS:
+            _fail(
+                schema_name,
+                f"$.assertions[{index}].assertion_id",
+                "is reserved for a runtime qualification assertion",
+            )
 
     evidence = document["evidence_policy"]
     if evidence["max_segment_size_bytes"] > evidence["max_spool_size_bytes"]:
@@ -212,7 +221,10 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         "mcap_playback": ("simulation", "recorded_data", {"playback_clocked"}),
         "live_target": ({"hil", "real_robot"}, "real_hardware", {"hardware_realtime"}),
     }
-    target, plant, time_modes = source_modes[execution["data_source"]]
+    source_mode = source_modes.get(execution["data_source"])
+    if source_mode is None:
+        _fail(schema_name, "$.execution.data_source", "has no semantic execution mapping")
+    target, plant, time_modes = source_mode
     allowed_targets = target if isinstance(target, set) else {target}
     if execution["target_environment"] not in allowed_targets:
         _fail(schema_name, "$.execution.target_environment", "contradicts data_source")
@@ -238,6 +250,12 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     targets = document["physical_targets"]
     _require_unique(schema_name, targets, "target_id", "$.physical_targets")
     _require_unique(schema_name, targets, "identity_sha256", "$.physical_targets")
+    _require_unique(
+        schema_name,
+        document.get("configuration_artifacts", []),
+        "kind",
+        "$.configuration_artifacts",
+    )
 
     expected_clock = {
         "simulation_realtime": "sim_clock",
@@ -312,7 +330,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "$.assertion_results",
     )
     assertion_status = _worst_status(item["status"] for item in document["assertion_results"])
-    if _STATUS_PRIORITY[assertion_status] > _STATUS_PRIORITY[document["status"]]:
+    if _STATUS_PRIORITY.get(assertion_status, 5) > _STATUS_PRIORITY.get(document["status"], 5):
         _fail(
             schema_name,
             "$.status",
@@ -364,7 +382,14 @@ def _validate_result(document: Mapping[str, Any]) -> None:
             "micro_xrce_dds": {"controller_telemetry"},
             "external": {"external_attestation"},
         }
-        if clock["source"] not in expected_sources[clock["sync_protocol"]]:
+        protocol_sources = expected_sources.get(clock["sync_protocol"])
+        if protocol_sources is None:
+            _fail(
+                schema_name,
+                "$.hardware_clock_observation.sync_protocol",
+                "has no semantic source mapping",
+            )
+        if clock["source"] not in protocol_sources:
             _fail(
                 schema_name,
                 "$.hardware_clock_observation.source",
@@ -900,6 +925,7 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
+    "runtime-manifest.v2": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
     "acceptance-result.v4": _validate_result,

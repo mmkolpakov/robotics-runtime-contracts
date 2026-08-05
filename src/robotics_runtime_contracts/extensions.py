@@ -18,18 +18,63 @@ def _fail(schema_name: str, path: str, message: str) -> NoReturn:
     raise ExtensionValidationError(schema_name, path, message)
 
 
-def _reject_external_references(schema_name: str, value: object, path: str = "$") -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            child_path = f"{path}.{key}"
-            if key in {"$ref", "$dynamicRef"} and (
-                not isinstance(child, str) or not child.startswith("#")
-            ):
-                _fail(schema_name, child_path, "external schema references are not allowed")
-            _reject_external_references(schema_name, child, child_path)
-    elif isinstance(value, list):
-        for index, child in enumerate(value):
-            _reject_external_references(schema_name, child, f"{path}[{index}]")
+_SINGLE_SUBSCHEMA_KEYWORDS = frozenset(
+    {
+        "additionalProperties",
+        "contains",
+        "contentSchema",
+        "else",
+        "if",
+        "items",
+        "not",
+        "propertyNames",
+        "then",
+        "unevaluatedItems",
+        "unevaluatedProperties",
+    }
+)
+_SUBSCHEMA_ARRAY_KEYWORDS = frozenset({"allOf", "anyOf", "oneOf", "prefixItems"})
+_SUBSCHEMA_MAP_KEYWORDS = frozenset(
+    {"$defs", "definitions", "dependentSchemas", "patternProperties", "properties"}
+)
+
+
+def _reject_external_references(schema_name: str, schema: object, path: str = "$") -> None:
+    if isinstance(schema, bool) or not isinstance(schema, dict):
+        return
+
+    for keyword in ("$ref", "$dynamicRef"):
+        reference = schema.get(keyword)
+        if reference is not None and (
+            not isinstance(reference, str) or not reference.startswith("#")
+        ):
+            _fail(
+                schema_name,
+                f"{path}.{keyword}",
+                "external schema references are not allowed",
+            )
+
+    for keyword in _SINGLE_SUBSCHEMA_KEYWORDS:
+        if keyword in schema:
+            _reject_external_references(schema_name, schema[keyword], f"{path}.{keyword}")
+    for keyword in _SUBSCHEMA_ARRAY_KEYWORDS:
+        value = schema.get(keyword)
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                _reject_external_references(
+                    schema_name,
+                    child,
+                    f"{path}.{keyword}[{index}]",
+                )
+    for keyword in _SUBSCHEMA_MAP_KEYWORDS:
+        value = schema.get(keyword)
+        if isinstance(value, dict):
+            for name, child in value.items():
+                _reject_external_references(
+                    schema_name,
+                    child,
+                    f"{path}.{keyword}.{name}",
+                )
 
 
 def validate_extensions(
