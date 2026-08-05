@@ -67,3 +67,13 @@ def test_scenario_rejects_unsorted_delivery_latency_thresholds() -> None:
 
     with pytest.raises(SemanticValidationError, match="p50 <= p95 <= max"):
         validate_document(document)
+
+
+def test_scenario_rejects_runtime_owned_assertion_ids() -> None:
+    document = scenario()
+    document["assertions"][0]["assertion_id"] = "time-policy"
+
+    with pytest.raises(SemanticValidationError, match="reserved") as caught:
+        validate_document(document)
+
+    assert caught.value.json_path == "$.assertions[0].assertion_id"

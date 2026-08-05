@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from robotics_runtime_contracts import (
+    resolve_schema_name,
     validate_document,
 )
 from robotics_runtime_contracts._qualification import (
@@ -101,7 +102,7 @@ def _read_extension_schemas(values: Sequence[str]) -> dict[str, bytes]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
-    documents: list[tuple[str, Mapping[str, Any]]] = []
+    documents: list[tuple[str, str]] = []
 
     try:
         extension_schemas = _read_extension_schemas(arguments.extension_schema)
@@ -117,7 +118,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                     schema=arguments.schema,
                     extension_schemas=extension_schemas or None,
                 )
-                documents.append((path, document))
+                selected_schema = arguments.schema or document.get("schema_version")
+                if not isinstance(selected_schema, str):
+                    raise ValueError("document must declare schema_version")
+                documents.append((path, resolve_schema_name(selected_schema)))
         elif arguments.command == "validate-qualification":
             result = validate_qualification_artifacts(
                 arguments.artifact,
@@ -142,10 +146,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if arguments.command == "validate-qualification":
             print("valid: qualification artifact set")
         elif len(documents) == 1:
-            print(f"valid: {documents[0][1]['schema_version']}")
+            print(f"valid: {documents[0][1]}")
         else:
-            for path, document in documents:
-                print(f"valid: {path}: {document['schema_version']}")
+            for path, schema_name in documents:
+                print(f"valid: {path}: {schema_name}")
     return 0
 
 

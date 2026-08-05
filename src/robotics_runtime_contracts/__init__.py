@@ -17,6 +17,14 @@ from robotics_runtime_contracts.extensions import (
 from robotics_runtime_contracts.extensions import (
     validate_extensions as _validate_extensions,
 )
+from robotics_runtime_contracts.qualification_policy import (
+    CHANNEL_ERROR_VIOLATIONS,
+    CHANNEL_INCOMPLETE_VIOLATIONS,
+    RESERVED_ASSERTION_IDS,
+    ChannelObservationStatus,
+    channel_observation_status,
+    hardware_clock_within_policy,
+)
 from robotics_runtime_contracts.semantics import (
     SemanticValidationError,
 )
@@ -43,6 +51,7 @@ PUBLISHED_SCHEMA_SHA256 = {
     "qualification-bundle.v2": "66f1f2869c25e61e465aeb8eac30707f77d77458db810a98252b61e59f72fa53",
     "qualification-policy.v2": "24101fbd567dfb550c5c154a41f64460653ad512ea0332c5244b97a2aadcf265",
     "runtime-manifest.v1": "0af0870a80c8071d2904423e50aa10af5643ce9ec2ca6afd6e07b0a586071a9d",
+    "runtime-manifest.v2": "509a216b7d24010f19cf1781d6c4a7307315390060eb52e6ad128f6825e740e1",
     "zenoh-channel.v1": "2febfa242150f1ceda98d4efac4b9ecfaa4c74bbba873d22d41810a619ca185b",
     "zenoh-channel-observation.v1": (
         "3596ee9478e74d27d5403536a88366ec335e77a22543cad83266db48b0f1c45f"
@@ -154,7 +163,11 @@ def validate_document(
 
 
 __all__ = [
+    "CHANNEL_ERROR_VIOLATIONS",
+    "CHANNEL_INCOMPLETE_VIOLATIONS",
     "PUBLISHED_SCHEMA_SHA256",
+    "RESERVED_ASSERTION_IDS",
+    "ChannelObservationStatus",
     "ContractValidationError",
     "ExtensionValidationError",
     "SemanticValidationError",
@@ -164,5 +177,7 @@ __all__ = [
     "schema_dir",
     "schema_names",
     "schema_path",
+    "channel_observation_status",
+    "hardware_clock_within_policy",
     "validate_document",
 ]

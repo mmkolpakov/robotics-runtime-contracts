@@ -12,10 +12,15 @@ from typing import Any, NoReturn
 import yaml
 
 from robotics_runtime_contracts import validate_document
+from robotics_runtime_contracts.qualification_policy import (
+    CHANNEL_ERROR_VIOLATIONS,
+    channel_observation_status,
+    hardware_clock_within_policy,
+)
 
 _CONTRACT_SCHEMAS = {
     "scenario": "acceptance-scenario.v4",
-    "runtime_manifest": "runtime-manifest.v1",
+    "runtime_manifest": "runtime-manifest.v2",
     "acceptance_run": "acceptance-run.v1",
     "domain_result": "acceptance-result.v4",
     "acceptance_aggregate": "acceptance-aggregate.v4",
@@ -276,11 +281,10 @@ def _validate_execution_alignment(
             ("hardware clock drift", runtime_clock["drift_ppm"], hardware_clock["drift_ppm"]),
         ):
             _require_equal(f"result {domain_id} {label}", expected_value, actual_value)
-        hardware_within_policy = (
-            hardware_clock["sample_count"] >= time_policy["time_authority_min_samples"]
-            and abs(hardware_clock["offset_ms"]) <= time_policy["max_clock_offset_ms"]
-            and abs(hardware_clock["drift_ppm"]) <= time_policy["max_clock_drift_ppm"]
-            and hardware_clock["max_sample_age_ms"] <= time_policy["max_message_age_ms"]
+        hardware_within_policy = hardware_clock_within_policy(
+            time_policy,
+            hardware_clock,
+            monotonic=clock_observation["monotonic"],
         )
         _require_equal(
             f"result {domain_id} hardware-clock policy verdict",
@@ -383,12 +387,19 @@ def _validate_retained_configuration(
     if expected_fastdds is not None:
         _require_raw(grouped, expected_fastdds, "scenario Fast DDS profile")
     for domain_id, artifact in runtimes.items():
-        observed_fastdds = _document(artifact)["data_plane"].get("fastdds_profile_sha256")
+        runtime = _document(artifact)
+        observed_fastdds = runtime["data_plane"].get("fastdds_profile_sha256")
         if expected_fastdds is not None:
             _require_equal(
                 f"runtime manifest {domain_id} Fast DDS profile",
                 expected_fastdds,
                 observed_fastdds,
+            )
+        for configuration in runtime.get("configuration_artifacts", []):
+            _require_raw(
+                grouped,
+                configuration["sha256"],
+                f"runtime manifest {domain_id} {configuration['kind']} configuration",
             )
         if observed_fastdds is not None:
             _require_raw(
@@ -611,16 +622,10 @@ def _validate_channel_delivery(channel: Mapping[str, Any], observation: Mapping[
         )
         if not passed
     }
-    status = observation["status"]
-    if status == "incomplete":
-        failed_checks.add("ambiguous_message_id")
-    elif status == "error":
-        failed_checks.add("invalid_observation")
-    expected_status = (
-        status if status in {"incomplete", "error"} else "failed" if failed_checks else "passed"
-    )
     reported = {item["code"] for item in observation["violations"]}
-    if status != expected_status or reported != failed_checks:
+    expected_violations = failed_checks | (reported & CHANNEL_ERROR_VIOLATIONS)
+    expected_status = channel_observation_status(expected_violations)
+    if observation["status"] != expected_status or reported != expected_violations:
         _fail(f"channel observation {observation['observation_id']} contradicts its contract")
 
 
@@ -927,6 +932,8 @@ def _load_artifact(
         if not isinstance(document, Mapping):
             _fail(f"{path}: document root must be an object")
         schema = _CONTRACT_SCHEMAS[kind]
+        if kind == "runtime_manifest" and document.get("schema_version") == "runtime-manifest.v1":
+            schema = "runtime-manifest.v1"
         try:
             validate_document(
                 document,
