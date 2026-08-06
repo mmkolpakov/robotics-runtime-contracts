@@ -8,10 +8,16 @@ from typing import Any, NoReturn
 from jsonschema import Draft202012Validator, FormatChecker
 
 from robotics_runtime_contracts.semantics import SemanticValidationError
+from robotics_runtime_contracts.serialization import (
+    NonFiniteNumberError,
+    ensure_finite_numbers,
+)
 
 
 class ExtensionValidationError(SemanticValidationError):
     """Raised when a declared domain extension cannot be verified."""
+
+    error_id = "extension.validation_failed"
 
 
 def _fail(schema_name: str, path: str, message: str) -> NoReturn:
@@ -137,7 +143,8 @@ def validate_extensions(
 
         try:
             extension_schema = json.loads(raw_bytes)
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            ensure_finite_numbers(extension_schema)
+        except (UnicodeDecodeError, json.JSONDecodeError, NonFiniteNumberError) as error:
             _fail(
                 schema_name,
                 f"$.extension_schemas[{index}]",

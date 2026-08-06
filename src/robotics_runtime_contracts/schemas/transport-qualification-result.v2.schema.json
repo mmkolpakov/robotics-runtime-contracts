@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:transport-qualification-result:v2",
+  "title": "Transport qualification result v2",
+  "description": "Transport qualification with explicit cross-domain clock relations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "qualification_id", "run_id", "scenario_sha256", "generated_at", "evaluator",
+    "trace_evidence", "clock_relations", "causal_chain_contracts", "channel_contracts",
+    "channel_observations", "causal_chains", "verdict"
+  ],
+  "properties": {
+    "schema_version": {"const": "transport-qualification-result.v2"},
+    "qualification_id": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/qualification_id"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/run_id"},
+    "scenario_sha256": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/sha256"},
+    "generated_at": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/generated_at"},
+    "evaluator": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/evaluator"},
+    "trace_evidence": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/trace_evidence"},
+    "clock_relations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/clockRelationReference"}
+    },
+    "causal_chain_contracts": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/causal_chain_contracts"},
+    "channel_contracts": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/channel_contracts"},
+    "channel_observations": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/channel_observations"},
+    "causal_chains": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/causal_chains"},
+    "verdict": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/properties/verdict"}
+  },
+  "$defs": {
+    "clockRelationReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_id", "source_domain_id", "destination_domain_id", "sha256", "status"],
+      "properties": {
+        "relation_id": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/identifier"},
+        "source_domain_id": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/identifier"},
+        "destination_domain_id": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/identifier"},
+        "sha256": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/sha256"},
+        "status": {"$ref": "urn:robotics-runtime-contracts:transport-qualification-result:v1#/$defs/status"}
+      }
+    }
+  }
+}

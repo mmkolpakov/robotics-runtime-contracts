@@ -9,11 +9,11 @@ The Python distribution follows [Semantic Versioning](https://semver.org/).
 Each document also declares an exact `schema_version`, and every schema has a
 versioned `$id`.
 
-Before package `1.0.0`, the current package exposes one canonical version of
-each document kind. Superseded schemas remain available from their tagged Git
-release; they are not carried as runtime compatibility code when there is no
-active consumer. `acceptance-aggregate.v4` references an independently
-validated transport qualification instead of embedding its evidence graph.
+Before package `1.0.0`, writers emit one canonical version of each document
+kind. The package can retain earlier readers when they are cheap and covered by
+immutable-schema digest tests; no writer silently downgrades. `acceptance-aggregate.v4`
+references an independently validated transport qualification instead of
+embedding its evidence graph.
 
 ## Published Schemas
 
@@ -36,7 +36,8 @@ current wheel. Unreleased schemas may change on a development branch.
 - There is no implicit downgrade path.
 
 The current catalog is listed in [README.md](README.md). The package API and CLI
-reject superseded and unknown schema identifiers.
+reject unknown schema identifiers. Retained superseded readers remain available
+for explicit validation, while writers use only the current canonical version.
 
 ## Runtime Basis
 
@@ -50,7 +51,7 @@ requires a new schema version.
 
 ## Domain Extensions
 
-`acceptance-scenario.v4` supports digest-pinned, namespaced extensions. The
+`acceptance-scenario.v5` supports digest-pinned, namespaced extensions. The
 caller supplies Draft 2020-12 schema bytes; validation performs no network
 fetches and permits only local references. An extension remains consumer-owned
 until its semantics are reusable enough for the common catalog.

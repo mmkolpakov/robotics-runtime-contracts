@@ -4,11 +4,17 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
 
-from robotics_runtime_contracts.qualification_policy import RESERVED_ASSERTION_IDS
+from robotics_runtime_contracts.qualification_policy import (
+    RESERVED_ASSERTION_IDS,
+    RESERVED_METRIC_NAMES,
+    channel_observation_status,
+)
 
 
 class SemanticValidationError(ValueError):
     """Raised when structurally valid contract fields contradict each other."""
+
+    error_id = "semantic.validation_failed"
 
     def __init__(self, schema_name: str, json_path: str, message: str) -> None:
         self.schema_name = schema_name
@@ -78,6 +84,79 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
                 f"$.assertions[{index}].assertion_id",
                 "is reserved for a runtime qualification assertion",
             )
+
+    if schema_name == "acceptance-scenario.v5":
+        definitions = document["metric_definitions"]
+        _require_unique(schema_name, definitions, "metric_name", "$.metric_definitions")
+        definition_by_name = {item["metric_name"]: item for item in definitions}
+        for index, definition in enumerate(definitions):
+            metric_name = definition["metric_name"]
+            if metric_name.startswith("robotics.") and metric_name not in RESERVED_METRIC_NAMES:
+                _fail(
+                    schema_name,
+                    f"$.metric_definitions[{index}].metric_name",
+                    "uses the reserved robotics.* namespace",
+                )
+            if not metric_name.startswith("robotics.") and metric_name.count(".") < 2:
+                _fail(
+                    schema_name,
+                    f"$.metric_definitions[{index}].metric_name",
+                    "product metrics require a reverse-domain namespace",
+                )
+            kind = definition["instrument_kind"]
+            temporality = definition["temporality"]
+            if kind == "gauge" and temporality != "instantaneous":
+                _fail(
+                    schema_name,
+                    f"$.metric_definitions[{index}].temporality",
+                    "gauge instruments require instantaneous temporality",
+                )
+            if kind != "gauge" and temporality == "instantaneous":
+                _fail(
+                    schema_name,
+                    f"$.metric_definitions[{index}].temporality",
+                    "sum and histogram instruments require OTLP aggregation temporality",
+                )
+            if definition.get("monotonic", False) and kind != "sum":
+                _fail(
+                    schema_name,
+                    f"$.metric_definitions[{index}].monotonic",
+                    "only sum instruments can be monotonic",
+                )
+        for index, assertion in enumerate(assertions):
+            definition = definition_by_name.get(assertion["metric_name"])
+            if definition is None:
+                _fail(
+                    schema_name,
+                    f"$.assertions[{index}].metric_name",
+                    "has no metric_definitions entry",
+                )
+            if assertion["unit"] != definition["unit"]:
+                _fail(
+                    schema_name,
+                    f"$.assertions[{index}].unit",
+                    "must match the declared metric unit",
+                )
+            if assertion["kind"] == "metric_duration":
+                if definition["instrument_kind"] != "gauge":
+                    _fail(
+                        schema_name,
+                        f"$.assertions[{index}].metric_name",
+                        "duration predicates require a gauge instrument",
+                    )
+                duration = assertion["duration_requirement"]["duration_sec"]
+                if duration > assertion["window_sec"]:
+                    _fail(
+                        schema_name,
+                        f"$.assertions[{index}].duration_requirement.duration_sec",
+                        "must not exceed window_sec",
+                    )
+                if assertion["max_sample_gap_sec"] > assertion["window_sec"]:
+                    _fail(
+                        schema_name,
+                        f"$.assertions[{index}].max_sample_gap_sec",
+                        "must not exceed window_sec",
+                    )
 
     evidence = document["evidence_policy"]
     if evidence["max_segment_size_bytes"] > evidence["max_spool_size_bytes"]:
@@ -256,6 +335,16 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         "kind",
         "$.configuration_artifacts",
     )
+    if schema_name == "runtime-manifest.v3":
+        registered = {"inference_provider", "host_topology", "runtime_resources"}
+        for index, artifact in enumerate(document.get("configuration_artifacts", [])):
+            kind = artifact["kind"]
+            if kind not in registered and kind.count(".") < 2:
+                _fail(
+                    schema_name,
+                    f"$.configuration_artifacts[{index}].kind",
+                    "unregistered kinds require a reverse-domain namespace",
+                )
 
     expected_clock = {
         "simulation_realtime": "sim_clock",
@@ -349,6 +438,59 @@ def _validate_result(document: Mapping[str, Any]) -> None:
             "node and observed_at_ns pairs must be unique",
         )
     evidence_digests = {item["sha256"] for item in document["evidence"]}
+    if schema_name == "acceptance-result.v5":
+        if (
+            any(item["status"] == "skipped" for item in document["assertion_results"])
+            and document["status"] == "passed"
+        ):
+            _fail(
+                schema_name,
+                "$.status",
+                "skipped assertions require an incomplete or worse verdict",
+            )
+        if document["evaluation_mode"] == "offline":
+            required_unevaluated = {
+                "$.clock_observation",
+                "$.forbidden_graph_observation",
+                "$.observed_ros_graph",
+                "$.shutdown",
+            }
+            missing_unevaluated = required_unevaluated - set(document["unevaluated"])
+            if missing_unevaluated:
+                _fail(
+                    schema_name,
+                    "$.unevaluated",
+                    f"offline evaluation must declare {sorted(missing_unevaluated)}",
+                )
+            if document["status"] == "passed":
+                _fail(
+                    schema_name,
+                    "$.status",
+                    "offline evaluation cannot claim a complete passed verdict",
+                )
+        for index, assertion in enumerate(document["assertion_results"]):
+            if assertion["source"] == "core":
+                if "namespace" in assertion:
+                    _fail(
+                        schema_name,
+                        f"$.assertion_results[{index}].namespace",
+                        "core assertions must not claim a product namespace",
+                    )
+                continue
+            namespace = assertion["namespace"]
+            if not assertion["assertion_id"].startswith(f"{namespace}."):
+                _fail(
+                    schema_name,
+                    f"$.assertion_results[{index}].assertion_id",
+                    "product assertion_id must be owned by its namespace",
+                )
+            missing = set(assertion["evidence_sha256"]) - evidence_digests
+            if missing:
+                _fail(
+                    schema_name,
+                    f"$.assertion_results[{index}].evidence_sha256",
+                    f"references evidence not listed in the result: {sorted(missing)}",
+                )
 
     forbidden = document["forbidden_graph_observation"]
     violation_keys = [(item["kind"], item["name"]) for item in forbidden["violations"]]
@@ -534,7 +676,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
 
 
 def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
-    schema_name = "transport-qualification-result.v1"
+    schema_name = document["schema_version"]
     result_domains = {
         domain_id
         for item in document["channel_contracts"]
@@ -560,6 +702,28 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
                 schema_name,
                 f"$.channel_contracts[{contract_index}]",
                 "cross-domain channel requires distinct source and destination domains",
+            )
+    clock_relations = document.get("clock_relations", [])
+    if schema_name == "transport-qualification-result.v2":
+        _require_unique(schema_name, clock_relations, "relation_id", "$.clock_relations")
+        relation_by_domains = {
+            (item["source_domain_id"], item["destination_domain_id"]): item
+            for item in clock_relations
+        }
+        if len(relation_by_domains) != len(clock_relations):
+            _fail(
+                schema_name,
+                "$.clock_relations",
+                "source and destination domain pairs must be unique",
+            )
+        expected_relations = {
+            (item["source_domain_id"], item["destination_domain_id"]) for item in contracts
+        }
+        if not set(relation_by_domains) <= expected_relations:
+            _fail(
+                schema_name,
+                "$.clock_relations",
+                "contains a relation outside the channel domain pairs",
             )
     observations = document["channel_observations"]
     _require_unique(schema_name, observations, "channel_id", "$.channel_observations")
@@ -759,9 +923,15 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
             "$.verdict.error_chain_count",
             "must equal the number of errored causal chains",
         )
+    missing_clock_relations = (
+        schema_name == "transport-qualification-result.v2"
+        and set(relation_by_domains) != expected_relations
+    )
     expected_e2e = _worst_status(
         (
             "passed",
+            *(("incomplete",) if missing_clock_relations else ()),
+            *(item["status"] for item in clock_relations),
             *(item["status"] for item in observations),
             *(item["status"] for item in chains),
         ),
@@ -772,6 +942,76 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
             schema_name,
             "$.verdict.status",
             f"must equal the aggregate transport status {expected_e2e!r}",
+        )
+
+
+def _validate_clock_relation(document: Mapping[str, Any]) -> None:
+    schema_name = "clock-relation.v1"
+    if document["source_domain_id"] == document["destination_domain_id"]:
+        _fail(
+            schema_name,
+            "$.destination_domain_id",
+            "must differ from source_domain_id",
+        )
+    started = _timestamp(schema_name, "$.started_at", document["started_at"])
+    finished = _timestamp(schema_name, "$.finished_at", document["finished_at"])
+    if finished <= started:
+        _fail(schema_name, "$.finished_at", "must be later than started_at")
+    expected_violations: set[str] = set()
+    if document["method"] == "measured_skew":
+        policy = document["policy"]
+        if document["sample_count"] < policy["minimum_samples"]:
+            expected_violations.add("insufficient_samples")
+        if document["max_absolute_skew_ms"] > policy["maximum_absolute_skew_ms"]:
+            expected_violations.add("clock_skew_exceeded")
+    reported = set(document["violations"])
+    if "invalid_observation" in reported:
+        expected_violations.add("invalid_observation")
+    status_codes = {
+        "insufficient_samples": "insufficient_messages",
+        "clock_skew_exceeded": "clock_skew_exceeded",
+        "invalid_observation": "invalid_observation",
+    }
+    expected_status = channel_observation_status(status_codes[code] for code in expected_violations)
+    if reported != expected_violations or document["status"] != expected_status:
+        _fail(schema_name, "$.status", "contradicts measured clock skew and violations")
+
+
+def _validate_campaign_summary(document: Mapping[str, Any]) -> None:
+    schema_name = "campaign-summary.v1"
+    runs = document["runs"]
+    _require_unique(schema_name, runs, "run_id", "$.runs")
+    _require_unique(schema_name, runs, "acceptance_run_sha256", "$.runs")
+    _require_unique(schema_name, runs, "aggregate_sha256", "$.runs")
+    counts = {
+        status: sum(item["status"] == status for item in runs)
+        for status in ("passed", "failed", "incomplete", "error")
+    }
+    verdict = document["verdict"]
+    for field, expected in (
+        ("total_runs", len(runs)),
+        ("passed_runs", counts["passed"]),
+        ("failed_runs", counts["failed"]),
+        ("incomplete_runs", counts["incomplete"]),
+        ("error_runs", counts["error"]),
+    ):
+        if verdict[field] != expected:
+            _fail(schema_name, f"$.verdict.{field}", f"must equal {expected}")
+    acceptance = document["acceptance"]
+    passed = (
+        counts["passed"] >= acceptance["minimum_passed_runs"]
+        and counts["failed"] <= acceptance["maximum_failed_runs"]
+        and counts["incomplete"] <= acceptance["maximum_incomplete_runs"]
+        and counts["error"] <= acceptance["maximum_error_runs"]
+    )
+    expected_status = "passed" if passed else _worst_status(item["status"] for item in runs)
+    if expected_status == "passed" and not passed:
+        expected_status = "failed"
+    if verdict["status"] != expected_status:
+        _fail(
+            schema_name,
+            "$.verdict.status",
+            f"must equal campaign policy verdict {expected_status!r}",
         )
 
 
@@ -922,14 +1162,18 @@ def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
 
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "acceptance-scenario.v4": _validate_acceptance_scenario,
+    "acceptance-scenario.v5": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
     "runtime-manifest.v2": _validate_runtime,
+    "runtime-manifest.v3": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
     "acceptance-result.v4": _validate_result,
+    "acceptance-result.v5": _validate_result,
     "evidence-index.v2": _validate_evidence_index,
+    "evidence-index.v3": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
     "acceptance-aggregate.v4": _validate_acceptance_aggregate,
     "mcap-summary.v1": _validate_mcap_summary,
@@ -938,6 +1182,9 @@ _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
     "zenoh-channel-observation.v1": _validate_zenoh_channel_observation,
     "causal-chain.v1": _validate_causal_chain,
     "transport-qualification-result.v1": _validate_transport_qualification,
+    "transport-qualification-result.v2": _validate_transport_qualification,
+    "clock-relation.v1": _validate_clock_relation,
+    "campaign-summary.v1": _validate_campaign_summary,
 }
 
 

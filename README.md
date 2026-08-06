@@ -53,7 +53,10 @@ uses the same contracts to validate inputs and emit a result.
 | --- | --- |
 | Validate an application document | [`robotics-contracts validate`](#quick-start) or [`validate_document()`](#python-api) |
 | Validate qualification links | [`robotics-contracts validate-qualification`](#quick-start) |
-| Embed a published schema | [`load_schema(name)` or `schema_path(name)`](#python-api) |
+| Resolve scenario overlays | `robotics-contracts scenario resolve` |
+| Inspect or compare contracts | `robotics-contracts describe` and `robotics-contracts diff` |
+| Draft a short-lived permit | `robotics-contracts permit init` |
+| Embed published schemas | [`load_schema(name)` with `schema_registry()`](#python-api) |
 | Review the public document set | [Schema Catalog](#schema-catalog) |
 | Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
 | Add product-specific fields | [Domain Extensions](#domain-extensions) |
@@ -61,12 +64,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.14.1. Install its attested wheel directly from the
+The current package line is 0.15.0. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.14.1/robotics_runtime_contracts-0.14.1-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.15.0/robotics_runtime_contracts-0.15.0-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
@@ -86,6 +89,20 @@ Expected output identifies the validated schema. Use `--quiet` in gates and
 `schema_version`. Digest-pinned domain schemas can be supplied with repeated
 `--extension-schema URI=PATH` options.
 
+Materialize RFC 7396 YAML overlays before execution and retain the deterministic
+origin trace as a separate review artifact:
+
+```bash
+robotics-contracts scenario resolve base.yaml \
+  --overlay camera.yaml --overlay limits.yaml \
+  --output resolved.yaml --trace-output resolution-trace.json
+```
+
+`robotics-contracts --format json` emits stable `error_id` values for automation.
+`diff` emits the RFC 7396 merge patch between two documents; `describe` reports a
+schema's canonical identifier and digest. `permit init` creates a validated,
+unsigned permit draft. Signing and identity verification remain external duties.
+
 Use `validate-qualification` with repeated
 `--artifact KIND:SUBJECT=PATH` arguments to validate a complete signed-subject
 set. It checks every document against its exact schema and then verifies the
@@ -100,23 +117,30 @@ their distinct subject names and exact digests.
 
 | Schema version | Purpose |
 | --- | --- |
+| `acceptance-scenario.v5` | Declared OTLP instruments and fail-closed temporal predicates |
 | `acceptance-scenario.v4` | Delivery-latency policy separated from hardware clock synchronization |
 | `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
+| `acceptance-result.v5` | Live or offline result with attributed product assertions and symmetric ROS endpoints |
 | `acceptance-result.v4` | Run-scoped result with explicit time-authority delivery-latency observations |
 | `acceptance-aggregate.v4` | Per-domain aggregation with an optional digest-pinned transport qualification |
+| `campaign-summary.v1` | Digest-linked acceptance over a set of existing run aggregates |
 | `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
+| `clock-relation.v1` | Measured skew between two execution domains |
 | `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
 | `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
+| `runtime-manifest.v3` | Runtime facts with namespaced configuration-artifact kinds |
 | `runtime-manifest.v2` | Observed runtime plus digest-linked provider, topology, and resource configuration |
 | `runtime-manifest.v1` | Compatible reader for the original runtime fact set |
 | `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
 | `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
+| `evidence-index.v3` | Evidence index with standards-compliant vendor media types |
 | `evidence-index.v2` | Evidence policy observation and MCAP summary references |
 | `mcap-summary.v1` | Canonical MCAP statistics and channel summary |
 | `qualification-bundle.v2` | In-toto-shaped qualification evidence statement, including transport results when used |
 | `qualification-policy.v2` | Trust policy for qualification-bundle verification |
 | `zenoh-channel.v1` | Cross-domain channel contract |
 | `zenoh-channel-observation.v1` | Observed cross-domain channel delivery and trace evidence |
+| `transport-qualification-result.v2` | Transport verdict with digest-linked cross-domain clock relations |
 | `transport-qualification-result.v1` | Domain-neutral channel-delivery and causal-trace qualification verdict |
 
 Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
@@ -131,20 +155,25 @@ from robotics_runtime_contracts import (
     load_schema,
     schema_names,
     schema_path,
+    schema_registry,
     validate_document,
 )
+from jsonschema import Draft202012Validator
 
 print(schema_names())
 validate_document(document)
-schema = load_schema("runtime-manifest.v1")
+schema = load_schema("runtime-manifest.v3")
+validator = Draft202012Validator(schema, registry=schema_registry())
 ```
 
 `validate_document()` selects the contract from `schema_version`. Structural
-and semantic failures include an exact JSON path.
+and semantic failures include an exact JSON path. Newer schemas reuse immutable
+older definitions by canonical URN, so embedded JSON Schema validators must use
+the package's offline registry; no network retrieval occurs.
 
 ## Domain Extensions
 
-`acceptance-scenario.v4` supports independently versioned, namespaced extension
+`acceptance-scenario.v5` supports independently versioned, namespaced extension
 schemas without weakening common safety, time, or evidence rules. The caller
 supplies the digest-pinned schema bytes; validation never fetches a schema from
 the network.

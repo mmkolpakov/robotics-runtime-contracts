@@ -9,31 +9,41 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, NoReturn
 
-import yaml
-
-from robotics_runtime_contracts import validate_document
+from robotics_runtime_contracts import (
+    ClockEvidenceValidationError,
+    SchemaCompatibilityError,
+    loads_mapping,
+    validate_clock_relation_evidence,
+    validate_companion_schema,
+    validate_document,
+)
 from robotics_runtime_contracts.qualification_policy import (
-    CHANNEL_ERROR_VIOLATIONS,
     channel_observation_status,
+    derive_channel_violations,
     hardware_clock_within_policy,
 )
 
 _CONTRACT_SCHEMAS = {
-    "scenario": "acceptance-scenario.v4",
-    "runtime_manifest": "runtime-manifest.v2",
-    "acceptance_run": "acceptance-run.v1",
-    "domain_result": "acceptance-result.v4",
-    "acceptance_aggregate": "acceptance-aggregate.v4",
-    "transport_qualification": "transport-qualification-result.v1",
-    "causal_chain_contract": "causal-chain.v1",
-    "channel_contract": "zenoh-channel.v1",
-    "channel_observation": "zenoh-channel-observation.v1",
-    "evidence_index": "evidence-index.v2",
-    "mcap_summary": "mcap-summary.v1",
-    "model_manifest": "model-artifact-manifest.v1",
-    "dataset_manifest": "dataset-manifest.v1",
-    "execution_permit": "execution-permit.v1",
-    "execution_verification": "execution-verification.v1",
+    "scenario": frozenset({"acceptance-scenario.v4", "acceptance-scenario.v5"}),
+    "runtime_manifest": frozenset(
+        {"runtime-manifest.v1", "runtime-manifest.v2", "runtime-manifest.v3"}
+    ),
+    "acceptance_run": frozenset({"acceptance-run.v1"}),
+    "domain_result": frozenset({"acceptance-result.v4", "acceptance-result.v5"}),
+    "acceptance_aggregate": frozenset({"acceptance-aggregate.v4"}),
+    "transport_qualification": frozenset(
+        {"transport-qualification-result.v1", "transport-qualification-result.v2"}
+    ),
+    "causal_chain_contract": frozenset({"causal-chain.v1"}),
+    "channel_contract": frozenset({"zenoh-channel.v1"}),
+    "channel_observation": frozenset({"zenoh-channel-observation.v1"}),
+    "clock_relation": frozenset({"clock-relation.v1"}),
+    "evidence_index": frozenset({"evidence-index.v2", "evidence-index.v3"}),
+    "mcap_summary": frozenset({"mcap-summary.v1"}),
+    "model_manifest": frozenset({"model-artifact-manifest.v1"}),
+    "dataset_manifest": frozenset({"dataset-manifest.v1"}),
+    "execution_permit": frozenset({"execution-permit.v1"}),
+    "execution_verification": frozenset({"execution-verification.v1"}),
 }
 _RAW_ARTIFACT_KINDS = frozenset(
     {"metrics", "traces", "junit", "other_evidence", "policy", "raw_mcap"}
@@ -60,6 +70,20 @@ _EXECUTION_FIELDS = (
 
 class QualificationError(ValueError):
     """Raised when individually valid qualification documents contradict each other."""
+
+    error_id = "qualification.invalid"
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_id: str | None = None,
+        json_path: str | None = None,
+    ) -> None:
+        if error_id is not None:
+            self.error_id = error_id
+        self.json_path = json_path
+        super().__init__(message)
 
 
 @dataclass(frozen=True, slots=True)
@@ -598,32 +622,17 @@ def _validate_channel_delivery(channel: Mapping[str, Any], observation: Mapping[
     duration = (
         _timestamp(observation["finished_at"]) - _timestamp(observation["started_at"])
     ).total_seconds()
-    failed_checks = {
-        code
-        for code, passed in (
-            (
-                "insufficient_messages",
-                observation["sent_count"] >= delivery["minimum_source_messages"],
-            ),
-            ("loss_ratio_exceeded", observation["loss_ratio"] <= delivery["max_loss_ratio"]),
-            (
-                "duplicate_count_exceeded",
-                observation["duplicate_count"] <= delivery["max_duplicate_count"],
-            ),
-            (
-                "out_of_order_count_exceeded",
-                observation["out_of_order_count"] <= delivery["max_out_of_order_count"],
-            ),
-            (
-                "message_age_exceeded",
-                observation["max_message_age_ms"] <= delivery["max_message_age_ms"],
-            ),
-            ("observation_window_exceeded", duration <= delivery["observation_window_sec"]),
-        )
-        if not passed
-    }
     reported = {item["code"] for item in observation["violations"]}
-    expected_violations = failed_checks | (reported & CHANNEL_ERROR_VIOLATIONS)
+    expected_violations = derive_channel_violations(
+        delivery,
+        sent_count=observation["sent_count"],
+        loss_ratio=observation["loss_ratio"],
+        duplicate_count=observation["duplicate_count"],
+        out_of_order_count=observation["out_of_order_count"],
+        max_message_age_ms=observation["max_message_age_ms"],
+        observation_duration_sec=duration,
+        reported_violation_codes=reported,
+    )
     expected_status = channel_observation_status(expected_violations)
     if observation["status"] != expected_status or reported != expected_violations:
         _fail(f"channel observation {observation['observation_id']} contradicts its contract")
@@ -633,13 +642,19 @@ def _validate_transport(
     grouped: Mapping[str, Sequence[_Artifact]],
     run_id: str,
     run_domains: set[str],
+    scenario_artifact: _Artifact,
     aggregate: Mapping[str, Any],
     evidence_indexes: Mapping[str, _Artifact],
 ) -> None:
     transport_artifacts = grouped.get("transport_qualification", ())
     has_sources = any(
         grouped.get(kind)
-        for kind in ("causal_chain_contract", "channel_contract", "channel_observation")
+        for kind in (
+            "causal_chain_contract",
+            "channel_contract",
+            "channel_observation",
+            "clock_relation",
+        )
     )
     cross_domain = aggregate["cross_domain_e2e"]
     if cross_domain["status"] == "unevaluated":
@@ -652,6 +667,14 @@ def _validate_transport(
     if transport.subject_name != "transport-qualification.json":
         _fail("non-canonical transport qualification subject name")
     transport_document = _document(transport)
+    try:
+        validate_companion_schema(
+            _document(scenario_artifact)["schema_version"],
+            "transport_qualification",
+            transport_document["schema_version"],
+        )
+    except SchemaCompatibilityError as error:
+        _fail(str(error))
     if transport_document["run_id"] != run_id:
         _fail("transport qualification has a foreign run_id")
     expected_pointer = {
@@ -663,6 +686,84 @@ def _validate_transport(
         _fail("aggregate transport qualification pointer does not match local result")
 
     chains, channels, observations = _transport_sources(grouped, run_id)
+    relation_artifacts = grouped.get("clock_relation", ())
+    if transport_document["schema_version"] == "transport-qualification-result.v1":
+        if relation_artifacts:
+            _fail("transport qualification v1 must not include clock relations")
+    else:
+        scenario = _document(scenario_artifact)
+        _require_equal(
+            "transport qualification scenario digest",
+            scenario_artifact.sha256,
+            transport_document["scenario_sha256"],
+        )
+        clock_policy = scenario["time_policy"].get("cross_domain_clock")
+        if clock_policy is None:
+            _fail("evaluated cross-domain transport requires time_policy.cross_domain_clock")
+        relations: dict[str, _Artifact] = {}
+        evidence_sha256_by_domain = {
+            domain_id: {str(segment["sha256"]) for segment in _document(artifact)["segments"]}
+            for domain_id, artifact in evidence_indexes.items()
+        }
+        for artifact in relation_artifacts:
+            relation = _document(artifact)
+            relation_id = relation["relation_id"]
+            if relation_id in relations:
+                _fail(f"duplicate clock relation: {relation_id}")
+            if relation["run_id"] != run_id:
+                _fail(f"clock relation {relation_id} has a foreign run_id")
+            _require_equal(
+                f"clock relation {relation_id} scenario digest",
+                scenario_artifact.sha256,
+                relation["scenario_sha256"],
+            )
+            _require_equal(
+                f"clock relation {relation_id} policy",
+                clock_policy,
+                relation["policy"],
+            )
+            try:
+                validate_clock_relation_evidence(
+                    relation,
+                    evidence_sha256_by_domain,
+                )
+            except ClockEvidenceValidationError as error:
+                _fail(f"clock relation {relation_id}: {error}")
+            relations[relation_id] = artifact
+        projection = {
+            relation_id: {
+                "relation_id": relation_id,
+                "source_domain_id": _document(artifact)["source_domain_id"],
+                "destination_domain_id": _document(artifact)["destination_domain_id"],
+                "sha256": artifact.sha256,
+                "status": _document(artifact)["status"],
+            }
+            for relation_id, artifact in relations.items()
+        }
+        declared = {item["relation_id"]: item for item in transport_document["clock_relations"]}
+        if projection != declared:
+            _fail("transport clock relations do not match local subjects")
+        required_pairs = {
+            (
+                _document(artifact)["source"]["domain_id"],
+                _document(artifact)["destination"]["domain_id"],
+            )
+            for artifact in channels.values()
+        }
+        relation_pairs = {
+            (
+                _document(artifact)["source_domain_id"],
+                _document(artifact)["destination_domain_id"],
+            )
+            for artifact in relations.values()
+        }
+        if not relation_pairs <= required_pairs:
+            _fail("transport includes a clock relation outside channel domain pairs")
+        if relation_pairs != required_pairs and transport_document["verdict"]["status"] not in {
+            "incomplete",
+            "error",
+        }:
+            _fail("missing clock relations require an incomplete transport verdict")
     chain_projection = {chain_id: artifact.sha256 for chain_id, artifact in chains.items()}
     if chain_projection != {
         item["chain_id"]: item["sha256"] for item in transport_document["causal_chain_contracts"]
@@ -840,6 +941,20 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
     ):
         if set(values) != run_domains:
             _fail(f"{name} set does not equal acceptance run domains")
+    for values, artifact_kind in (
+        (runtimes, "runtime_manifest"),
+        (results, "domain_result"),
+        (evidence_indexes, "evidence_index"),
+    ):
+        for domain_id, artifact in values.items():
+            try:
+                validate_companion_schema(
+                    scenario["schema_version"],
+                    artifact_kind,
+                    _document(artifact)["schema_version"],
+                )
+            except SchemaCompatibilityError as error:
+                _fail(f"{error} for domain {domain_id}")
 
     aggregate_results = {
         item["domain_id"]: {
@@ -871,6 +986,11 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
             result,
             domain_id,
         )
+        declared_assertions = {item["assertion_id"] for item in scenario["assertions"]}
+        result_assertions = {item["assertion_id"] for item in result["assertion_results"]}
+        missing_assertions = declared_assertions - result_assertions
+        if missing_assertions:
+            _fail(f"result {domain_id} omits scenario assertions: {sorted(missing_assertions)}")
         segments = _document(evidence_indexes[domain_id])["segments"]
         evidence_fields = (
             "uri",
@@ -907,7 +1027,14 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
     _validate_retained_configuration(grouped, scenario, acceptance_run, runtimes)
     _validate_physical_authorization(grouped, scenario_artifact, runtimes, results)
     _validate_evidence(grouped, evidence_indexes, mcap_summaries)
-    _validate_transport(grouped, run_id, run_domains, aggregate, evidence_indexes)
+    _validate_transport(
+        grouped,
+        run_id,
+        run_domains,
+        scenario_artifact,
+        aggregate,
+        evidence_indexes,
+    )
     return run_id, aggregate["generated_at"]
 
 
@@ -928,12 +1055,16 @@ def _load_artifact(
     raw = path.read_bytes()
     document = None
     if kind in _CONTRACT_SCHEMAS:
-        document = yaml.safe_load(raw.decode("utf-8"))
-        if not isinstance(document, Mapping):
-            _fail(f"{path}: document root must be an object")
-        schema = _CONTRACT_SCHEMAS[kind]
-        if kind == "runtime_manifest" and document.get("schema_version") == "runtime-manifest.v1":
-            schema = "runtime-manifest.v1"
+        try:
+            document = loads_mapping(raw, source_name=str(path))
+        except ValueError as error:
+            _fail(str(error))
+        schema = document.get("schema_version")
+        if not isinstance(schema, str) or schema not in _CONTRACT_SCHEMAS[kind]:
+            _fail(
+                f"{path}: unsupported {kind} schema_version {schema!r}; "
+                f"expected one of {sorted(_CONTRACT_SCHEMAS[kind])}"
+            )
         try:
             validate_document(
                 document,
@@ -941,7 +1072,11 @@ def _load_artifact(
                 extension_schemas=((extension_schemas or None) if kind == "scenario" else None),
             )
         except ValueError as error:
-            raise QualificationError(f"{path} does not satisfy {schema}: {error}") from error
+            raise QualificationError(
+                f"{path} does not satisfy {schema}: {error}",
+                error_id=getattr(error, "error_id", None),
+                json_path=getattr(error, "json_path", None),
+            ) from error
     return _Artifact(kind, subject_name, hashlib.sha256(raw).hexdigest(), len(raw), document)
 
 

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:evidence-index:v3",
+  "title": "Robotics evidence index v3",
+  "description": "Finalized evidence index with extensible application and text media types.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "generated_at", "finalized", "policy_observation", "segments"],
+  "properties": {
+    "schema_version": {"const": "evidence-index.v3"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/properties/run_id"},
+    "generated_at": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/properties/generated_at"},
+    "finalized": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/properties/finalized"},
+    "policy_observation": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/properties/policy_observation"},
+    "segments": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/segment"}},
+    "extensions": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/properties/extensions"}
+  },
+  "$defs": {
+    "mediaType": {
+      "type": "string",
+      "pattern": "^(?:application|text)/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$",
+      "maxLength": 255
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "media_type", "sha256", "size_bytes", "retention_class", "segment_index", "upload_status", "checksum_verified"],
+      "properties": {
+        "uri": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/uri"},
+        "version_id": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/version_id"},
+        "local_path": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/local_path"},
+        "media_type": {"$ref": "#/$defs/mediaType"},
+        "sha256": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/sha256"},
+        "size_bytes": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/size_bytes"},
+        "retention_class": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/retention_class"},
+        "segment_index": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/segment_index"},
+        "upload_status": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/upload_status"},
+        "checksum_verified": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/segment/properties/checksum_verified"},
+        "mcap_summary": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v2#/$defs/mcapSummaryReference"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"media_type": {"const": "application/mcap"}}, "required": ["media_type"]},
+          "then": {"required": ["mcap_summary"]}
+        },
+        {
+          "if": {"properties": {"uri": {"pattern": "^s3://"}}, "required": ["uri"]},
+          "then": {"required": ["version_id"], "properties": {"upload_status": {"const": "confirmed"}, "checksum_verified": {"const": true}}}
+        },
+        {
+          "if": {"properties": {"upload_status": {"const": "local"}}, "required": ["upload_status"]},
+          "then": {"required": ["local_path"], "properties": {"uri": {"pattern": "^file://"}, "checksum_verified": {"const": true}}}
+        }
+      ]
+    }
+  }
+}

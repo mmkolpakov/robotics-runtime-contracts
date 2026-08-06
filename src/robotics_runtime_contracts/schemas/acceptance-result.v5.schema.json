@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:acceptance-result:v5",
+  "title": "Robotics acceptance result v5",
+  "description": "Run-scoped acceptance result with attributed extension assertions and symmetric ROS endpoints.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "result_id", "run_id", "scenario_id", "domain_id",
+    "verdict_scope", "evaluation_mode", "unevaluated", "time_authority_observation", "scenario_sha256",
+    "runtime_manifest_sha256", "started_at", "finished_at", "monotonic_duration_sec",
+    "status", "assertion_results", "observed_ros_graph", "forbidden_graph_observation",
+    "execution", "authorization", "workload", "lifecycle_states", "clock_observation",
+    "shutdown", "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "acceptance-result.v5"},
+    "result_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/result_id"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/run_id"},
+    "scenario_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/scenario_id"},
+    "domain_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/domain_id"},
+    "verdict_scope": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/verdict_scope"},
+    "evaluation_mode": {"enum": ["live", "offline"]},
+    "unevaluated": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/unevaluated"},
+    "time_authority_observation": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/time_authority_observation"},
+    "scenario_sha256": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/scenario_sha256"},
+    "runtime_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/runtime_manifest_sha256"},
+    "model_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/model_manifest_sha256"},
+    "dataset_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/dataset_manifest_sha256"},
+    "started_at": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/started_at"},
+    "finished_at": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/finished_at"},
+    "monotonic_duration_sec": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/monotonic_duration_sec"},
+    "status": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/status"},
+    "assertion_results": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/assertionResult"}},
+    "observed_ros_graph": {"$ref": "#/$defs/observedRosGraph"},
+    "forbidden_graph_observation": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/forbidden_graph_observation"},
+    "execution": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/execution"},
+    "authorization": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/authorization"},
+    "workload": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/workload"},
+    "lifecycle_states": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/lifecycle_states"},
+    "clock_observation": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/clock_observation"},
+    "hardware_clock_observation": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/hardware_clock_observation"},
+    "shutdown": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/shutdown"},
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+    "extensions": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/properties/extensions"}
+  },
+  "allOf": [
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/0"},
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/1"},
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/2"},
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/3"},
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/4"},
+    {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/allOf/5"}
+  ],
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "media_type", "sha256", "size_bytes", "retention_class"],
+      "properties": {
+        "uri": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__evidence/properties/uri"},
+        "version_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__evidence/properties/version_id"},
+        "media_type": {"$ref": "urn:robotics-runtime-contracts:evidence-index:v3#/$defs/mediaType"},
+        "sha256": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__sha256"},
+        "size_bytes": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__evidence/properties/size_bytes"},
+        "retention_class": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__evidence/properties/retention_class"},
+        "segment_index": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__evidence/properties/segment_index"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"uri": {"pattern": "^s3://"}}, "required": ["uri"]},
+          "then": {"required": ["version_id"]}
+        }
+      ]
+    },
+    "assertionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assertion_id", "source", "status", "observed_value", "unit"],
+      "properties": {
+        "assertion_id": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__identifier"},
+        "source": {"enum": ["core", "product"]},
+        "namespace": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"},
+        "status": {"enum": ["passed", "failed", "error", "skipped"]},
+        "observed_value": {"type": ["number", "integer", "string", "boolean", "null"]},
+        "unit": {"type": "string", "minLength": 1, "maxLength": 64},
+        "message": {"type": "string", "maxLength": 4096},
+        "evidence_sha256": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__sha256"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"source": {"const": "product"}}, "required": ["source"]},
+          "then": {"required": ["namespace", "evidence_sha256"]}
+        }
+      ]
+    },
+    "observedEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "server_nodes", "client_nodes"],
+      "properties": {
+        "name": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__rosName"},
+        "type": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*/(?:srv|action)/[A-Za-z][A-Za-z0-9_]*$"},
+        "server_nodes": {"type": "integer", "minimum": 0},
+        "client_nodes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "observedRosGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stable_for_sec", "topics", "services", "actions"],
+      "properties": {
+        "stable_for_sec": {"type": "number", "minimum": 0},
+        "topics": {"type": "array", "items": {"$ref": "urn:robotics-runtime-contracts:acceptance-result:v4#/$defs/imported__acceptance-result__observedTopic"}},
+        "services": {"type": "array", "items": {"$ref": "#/$defs/observedEndpoint"}},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/observedEndpoint"}}
+      }
+    }
+  }
+}
