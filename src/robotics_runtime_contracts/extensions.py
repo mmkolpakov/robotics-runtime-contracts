@@ -114,10 +114,16 @@ def validate_extensions(
         try:
             raw_document = schema_documents[uri]
         except KeyError:
+            message = "schema document was not supplied"
+            if namespace in schema_documents:
+                message = (
+                    f"schema document key must equal schema_uri {uri!r}, "
+                    f"not namespace {namespace!r}"
+                )
             _fail(
                 schema_name,
                 f"$.extension_schemas[{index}].schema_uri",
-                "schema document was not supplied",
+                message,
             )
         raw_bytes = (
             raw_document if isinstance(raw_document, bytes) else raw_document.encode("utf-8")
