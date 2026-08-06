@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:clock-relation:v1",
+  "title": "Cross-domain clock relation v1",
+  "description": "Qualified clock relation required before interpreting cross-domain latency.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "relation_id", "run_id", "scenario_sha256", "source_domain_id", "destination_domain_id",
+    "method", "sync_protocol", "started_at", "finished_at",
+    "policy", "status", "violations", "evidence_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "clock-relation.v1"},
+    "relation_id": {"$ref": "#/$defs/identifier"},
+    "run_id": {"$ref": "#/$defs/identifier"},
+    "scenario_sha256": {"$ref": "#/$defs/sha256"},
+    "source_domain_id": {"$ref": "#/$defs/identifier"},
+    "destination_domain_id": {"$ref": "#/$defs/identifier"},
+    "method": {"enum": ["measured_skew", "shared_clock_identity"]},
+    "sync_protocol": {"enum": ["ptp", "chrony_ntp", "mavlink_timesync", "micro_xrce_dds", "sim_clock", "shared_kernel_clock", "external"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "sample_count": {"type": "integer", "minimum": 0},
+    "max_absolute_skew_ms": {"type": "number", "minimum": 0},
+    "policy": {"$ref": "urn:robotics-runtime-contracts:acceptance-scenario:v5#/$defs/timePolicy/properties/cross_domain_clock"},
+    "shared_clock_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority", "boot_id", "implementation", "resolution_sec",
+        "source_observation_sha256", "destination_observation_sha256"
+      ],
+      "properties": {
+        "authority": {"const": "shared-linux-kernel-clock-realtime"},
+        "boot_id": {"type": "string", "pattern": "^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$"},
+        "implementation": {"type": "string", "minLength": 1, "maxLength": 128},
+        "resolution_sec": {"type": "number", "exclusiveMinimum": 0},
+        "source_observation_sha256": {"$ref": "#/$defs/sha256"},
+        "destination_observation_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "status": {"enum": ["passed", "failed", "incomplete", "error"]},
+    "violations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["insufficient_samples", "clock_skew_exceeded", "invalid_observation"]}
+    },
+    "evidence_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "method": {"const": "measured_skew"},
+        "policy": {"properties": {"method": {"const": "measured_skew"}}}
+      },
+      "required": ["sample_count", "max_absolute_skew_ms"],
+      "not": {"required": ["shared_clock_identity"]}
+    },
+    {
+      "properties": {
+        "method": {"const": "shared_clock_identity"},
+        "sync_protocol": {"const": "shared_kernel_clock"},
+        "policy": {"properties": {"method": {"const": "shared_clock_identity"}}}
+      },
+      "required": ["shared_clock_identity"],
+      "not": {
+        "anyOf": [
+          {"required": ["sample_count"]},
+          {"required": ["max_absolute_skew_ms"]}
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$", "maxLength": 128},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

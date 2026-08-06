@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:campaign-summary:v1",
+  "title": "Acceptance campaign summary v1",
+  "description": "Digest-linked statistical acceptance over existing run aggregates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "campaign_id", "scenario_id", "scenario_sha256", "generated_at", "runs", "acceptance", "verdict"],
+  "properties": {
+    "schema_version": {"const": "campaign-summary.v1"},
+    "campaign_id": {"$ref": "#/$defs/identifier"},
+    "scenario_id": {"$ref": "#/$defs/identifier"},
+    "scenario_sha256": {"$ref": "#/$defs/sha256"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "runs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/run"}},
+    "acceptance": {"$ref": "#/$defs/acceptance"},
+    "verdict": {"$ref": "#/$defs/verdict"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$", "maxLength": 128},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["passed", "failed", "incomplete", "error"]},
+    "parameterValue": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "acceptance_run_sha256", "aggregate_sha256", "parameters", "status"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/identifier"},
+        "acceptance_run_sha256": {"$ref": "#/$defs/sha256"},
+        "aggregate_sha256": {"$ref": "#/$defs/sha256"},
+        "parameters": {
+          "type": "object",
+          "propertyNames": {"pattern": "^[a-z][a-z0-9_.-]{0,127}$"},
+          "additionalProperties": {"$ref": "#/$defs/parameterValue"}
+        },
+        "status": {"$ref": "#/$defs/status"}
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_passed_runs", "maximum_failed_runs", "maximum_incomplete_runs", "maximum_error_runs"],
+      "properties": {
+        "minimum_passed_runs": {"type": "integer", "minimum": 1},
+        "maximum_failed_runs": {"type": "integer", "minimum": 0},
+        "maximum_incomplete_runs": {"type": "integer", "minimum": 0},
+        "maximum_error_runs": {"type": "integer", "minimum": 0}
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "total_runs", "passed_runs", "failed_runs", "incomplete_runs", "error_runs"],
+      "properties": {
+        "status": {"$ref": "#/$defs/status"},
+        "total_runs": {"type": "integer", "minimum": 1},
+        "passed_runs": {"type": "integer", "minimum": 0},
+        "failed_runs": {"type": "integer", "minimum": 0},
+        "incomplete_runs": {"type": "integer", "minimum": 0},
+        "error_runs": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

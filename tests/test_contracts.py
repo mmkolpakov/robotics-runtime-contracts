@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -16,6 +16,7 @@ from robotics_runtime_contracts import (
     schema_dir,
     schema_names,
     schema_path,
+    schema_registry,
     validate_document,
 )
 from tests.support import load_fixture
@@ -91,6 +92,51 @@ def test_load_schema_returns_an_isolated_copy() -> None:
 
     fresh = load_schema("acceptance-scenario.v4")
     assert fresh["properties"]["schema_version"]["const"] == "acceptance-scenario.v4"
+
+
+def test_current_schema_is_embeddable_with_the_offline_registry() -> None:
+    scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
+    scenario["schema_version"] = "acceptance-scenario.v5"
+    scenario["metric_definitions"] = []
+    validator = Draft202012Validator(
+        load_schema("acceptance-scenario.v5"),
+        registry=schema_registry(),
+    )
+
+    assert validator.is_valid(scenario)
+
+
+def test_public_schema_registry_does_not_share_mutable_resources() -> None:
+    schema_id = "urn:robotics-runtime-contracts:acceptance-scenario:v5"
+    predecessor_id = "urn:robotics-runtime-contracts:acceptance-scenario:v4"
+    exposed_registry = schema_registry()
+    exposed_schema = cast(dict[str, Any], exposed_registry.contents(schema_id))
+    exposed_predecessor = cast(
+        dict[str, Any],
+        exposed_registry.contents(predecessor_id),
+    )
+    exposed_schema["title"] = "poisoned"
+    exposed_predecessor["allOf"].clear()
+
+    assert load_schema("acceptance-scenario.v5")["title"] != "poisoned"
+    fresh_registry = schema_registry()
+    fresh_schema = cast(dict[str, Any], fresh_registry.contents(schema_id))
+    assert fresh_schema["title"] != "poisoned"
+    fresh_predecessor = cast(
+        dict[str, Any],
+        fresh_registry.contents(predecessor_id),
+    )
+    assert fresh_predecessor["allOf"]
+
+    scenario = load_fixture(FIXTURES / "valid" / "simulation-realtime.yaml")
+    scenario["schema_version"] = "acceptance-scenario.v5"
+    scenario["metric_definitions"] = []
+    scenario["execution"]["plant_backend"] = "recorded_data"
+    validator = Draft202012Validator(
+        load_schema("acceptance-scenario.v5"),
+        registry=fresh_registry,
+    )
+    assert not validator.is_valid(scenario)
 
 
 def test_unknown_schema_is_rejected_before_validation() -> None:

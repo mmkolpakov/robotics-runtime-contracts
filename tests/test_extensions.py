@@ -72,6 +72,15 @@ def test_extension_schema_digest_is_verified() -> None:
         )
 
 
+def test_extension_schema_rejects_non_finite_numbers() -> None:
+    scenario = scenario_with_extension()
+    raw_schema = extension_schema().replace(b'"minLength":1', b'"maximum":NaN')
+    scenario["extension_schemas"][0]["sha256"] = sha256(raw_schema).hexdigest()
+
+    with pytest.raises(ExtensionValidationError, match="non-finite"):
+        validate_document(scenario, extension_schemas={SCHEMA_URI: raw_schema})
+
+
 def test_extension_payload_must_satisfy_its_schema() -> None:
     scenario = scenario_with_extension()
     scenario["extensions"]["org.example.sorting"] = {"item_id": ""}
