@@ -52,6 +52,18 @@ def test_declared_extension_requires_caller_supplied_schema() -> None:
         validate_document(scenario_with_extension(), extension_schemas={})
 
 
+def test_extension_schema_registry_is_keyed_by_schema_uri() -> None:
+    namespace = "org.example.sorting"
+    with pytest.raises(ExtensionValidationError, match="key must equal schema_uri") as caught:
+        validate_document(
+            scenario_with_extension(),
+            extension_schemas={namespace: extension_schema()},
+        )
+    assert caught.value.json_path == "$.extension_schemas[0].schema_uri"
+    assert SCHEMA_URI in str(caught.value)
+    assert namespace in str(caught.value)
+
+
 def test_extension_schema_digest_is_verified() -> None:
     with pytest.raises(ExtensionValidationError, match="digest does not match"):
         validate_document(
