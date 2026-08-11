@@ -146,6 +146,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          for attempt in {1..12}; do
+            if gh release verify "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+              break
+            fi
+            if (( attempt < 12 )); then
+              sleep 5
+            fi
+          done
           gh release verify "$GITHUB_REF_NAME"
           for artifact in dist/*; do
             gh release verify-asset "$GITHUB_REF_NAME" "$artifact"
