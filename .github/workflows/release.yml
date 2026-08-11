@@ -57,6 +57,8 @@ jobs:
           PY
       - name: Run tests
         run: uv run pytest
+      - name: Set reproducible build timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "$GITHUB_ENV"
       - name: Build distributions
         run: uv build --no-sources --out-dir dist
       - name: Verify built wheel
