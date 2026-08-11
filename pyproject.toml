@@ -1,6 +1,6 @@
 [project]
 name = "robotics-runtime-contracts"
-version = "0.15.2"
+version = "0.15.3"
 description = "Canonical acceptance and evidence contracts for robotics runtimes."
 requires-python = ">=3.12"
 readme = "README.md"
@@ -40,14 +40,14 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=80,<81"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/robotics_runtime_contracts"]
 
-[tool.setuptools.package-data]
-robotics_runtime_contracts = ["schemas/*.schema.json"]
+[tool.hatch.build.targets.sdist]
+include = ["/LICENSE", "/README.md", "/pyproject.toml", "/src", "/tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
