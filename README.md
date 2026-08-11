@@ -64,12 +64,12 @@ uses the same contracts to validate inputs and emit a result.
 
 ## Install
 
-The current package line is 0.15.0. Install its attested wheel directly from the
+The current package line is 0.15.4. Install its attested wheel directly from the
 GitHub Release:
 
 ```bash
 python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.15.0/robotics_runtime_contracts-0.15.0-py3-none-any.whl
+  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.15.4/robotics_runtime_contracts-0.15.4-py3-none-any.whl
 ```
 
 Python 3.12 or newer is required. Release assets include the wheel and source
