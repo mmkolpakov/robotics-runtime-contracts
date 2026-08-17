@@ -7,6 +7,7 @@
     "acceptance_run": "acceptance-run.v1",
     "acceptance_scenario": "acceptance-scenario.v1",
     "artifact_receipt": "artifact-receipt.v1",
+    "artifact_verification": "artifact-verification.v1",
     "campaign_summary": "campaign-summary.v1",
     "causal_chain": "causal-chain.v1",
     "clock_relation": "clock-relation.v1",

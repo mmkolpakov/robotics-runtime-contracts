@@ -15,6 +15,40 @@
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "subjectDigest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
     "status": {"enum": ["passed", "skipped", "cancelled", "incomplete", "failed", "error"]},
+    "qualificationArtifactKind": {
+      "enum": [
+        "scenario",
+        "acceptance_observation",
+        "runtime_manifest",
+        "acceptance_run",
+        "domain_result",
+        "acceptance_aggregate",
+        "transport_qualification",
+        "evidence_index",
+        "recording_summary",
+        "metrics",
+        "traces",
+        "junit",
+        "causal_chain_contract",
+        "channel_contract",
+        "channel_observation",
+        "clock_relation",
+        "provider_conformance",
+        "artifact_receipt",
+        "artifact_verification",
+        "qualification_profile",
+        "model_manifest",
+        "dataset_manifest",
+        "execution_permit",
+        "execution_verification",
+        "policy",
+        "package",
+        "attestation",
+        "verification",
+        "recording",
+        "other_evidence"
+      ]
+    },
     "artifactRef": {
       "type": "object",
       "additionalProperties": false,
@@ -25,6 +59,44 @@
         "size_bytes": {"type": "integer", "minimum": 0},
         "media_type": {"type": "string", "minLength": 3, "maxLength": 255},
         "immutable_revision": {"type": "string", "minLength": 1, "maxLength": 1024}
+      }
+    },
+    "sceneObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_scene_id",
+        "entities",
+        "interfaces",
+        "physical_parameters"
+      ],
+      "properties": {
+        "semantic_scene_id": {"$ref": "#/$defs/identifier"},
+        "entities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 256}
+        },
+        "interfaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 256}
+        },
+        "physical_parameters": {
+          "type": "object",
+          "additionalProperties": {"type": ["number", "integer", "string", "boolean"]}
+        }
+      }
+    },
+    "providerIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "implementation_id", "version", "configuration_sha256"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/identifier"},
+        "implementation_id": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "configuration_sha256": {"$ref": "#/$defs/sha256"}
       }
     }
   }

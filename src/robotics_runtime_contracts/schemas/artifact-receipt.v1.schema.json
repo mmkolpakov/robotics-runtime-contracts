@@ -16,7 +16,12 @@
   "properties": {
     "schema_version": {"const": "artifact-receipt.v1"},
     "receipt_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
-    "artifact": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"},
+    "artifact": {
+      "allOf": [
+        {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"},
+        {"required": ["media_type", "immutable_revision"]}
+      ]
+    },
     "producer": {
       "type": "object",
       "additionalProperties": false,

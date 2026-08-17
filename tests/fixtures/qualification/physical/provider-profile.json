@@ -1,0 +1,1 @@
+{"profile_id":"hardware-observation-baseline","provider_kind":"hardware_target","requirements":[{"capability":"live_observation","required":true}],"schema_version":"qualification-profile.v1"}

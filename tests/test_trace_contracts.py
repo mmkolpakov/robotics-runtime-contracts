@@ -121,6 +121,7 @@ def transport_qualification() -> dict[str, object]:
             {
                 "domain_id": domain_id,
                 "evidence_index_sha256": digest * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": f"file:///evidence/{domain_id}.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -554,6 +555,7 @@ def test_transport_qualification_rejects_disconnected_channel_sequence() -> None
             {
                 "domain_id": "isolated-source",
                 "evidence_index_sha256": "3" * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": "file:///evidence/isolated-source.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -565,6 +567,7 @@ def test_transport_qualification_rejects_disconnected_channel_sequence() -> None
             {
                 "domain_id": "isolated-target",
                 "evidence_index_sha256": "5" * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": "file:///evidence/isolated-target.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -610,6 +613,7 @@ def test_transport_qualification_accepts_branching_chains() -> None:
         {
             "domain_id": "observer",
             "evidence_index_sha256": "2" * 64,
+            "artifact_id": "artifact-1",
             "segment_index": 3,
             "uri": "file:///evidence/observer.otlp.jsonl",
             "media_type": "application/x-ndjson",

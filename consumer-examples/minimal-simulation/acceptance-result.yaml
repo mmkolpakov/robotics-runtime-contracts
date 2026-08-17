@@ -1,4 +1,3 @@
----
 schema_version: acceptance-result.v1
 result_id: result-01234567-89ab-4def-8123-456789abcdef
 run_id: run-01234567-89ab-4def-8123-456789abcdef
@@ -17,7 +16,7 @@ time_authority_observation:
   within_policy: true
   evidence_sha256: 57c087f21f9185e09d3bf8e6592332451c8d5a57760807f011ee44d804bef598
 scenario_sha256: 6971f903d4d734723158ad510e98caba99d7375132eba3ecad980677ea7816b8
-runtime_manifest_sha256: 8ef51abe68c01eda18fb44fbd7d810910f8a6ce652acefa37a159f7ec3df00c5
+runtime_manifest_sha256: 759c6555f4ed98ad3974cd41821ec21e49d36cb64d16a5fdf430dc1d14915ccc
 started_at: '2026-07-26T12:00:00Z'
 finished_at: '2026-07-26T12:02:00Z'
 monotonic_duration_sec: 120

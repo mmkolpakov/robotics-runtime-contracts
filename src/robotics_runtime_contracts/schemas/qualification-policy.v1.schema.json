@@ -47,7 +47,7 @@
       "minItems": 6,
       "uniqueItems": true,
       "items": {
-        "$ref": "#/$defs/artifactKind"
+        "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/qualificationArtifactKind"
       },
       "allOf": [
         {
@@ -92,36 +92,6 @@
     "sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
-    },
-    "artifactKind": {
-      "enum": [
-        "scenario",
-        "acceptance_observation",
-        "runtime_manifest",
-        "acceptance_run",
-        "domain_result",
-        "acceptance_aggregate",
-        "transport_qualification",
-        "evidence_index",
-        "recording_summary",
-        "metrics",
-        "traces",
-        "junit",
-        "causal_chain_contract",
-        "channel_contract",
-        "channel_observation",
-        "clock_relation",
-        "provider_conformance",
-        "artifact_receipt",
-        "qualification_profile",
-        "model_manifest",
-        "dataset_manifest",
-        "execution_permit",
-        "execution_verification",
-        "policy",
-        "recording",
-        "other_evidence"
-      ]
     }
   }
 }

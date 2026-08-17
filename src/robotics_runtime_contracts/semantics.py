@@ -199,7 +199,7 @@ def _validate_model_artifact(document: Mapping[str, Any]) -> None:
         _fail(
             schema_name,
             "$.numerical_conformance.reference_artifact_sha256",
-            "must identify the source ONNX artifact",
+            "must identify the source model artifact",
         )
     if compatibility["portable"] and compatibility["hardware"]:
         _fail(
@@ -293,6 +293,25 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     if execution["time_mode"] not in time_modes:
         _fail(schema_name, "$.execution.time_mode", "contradicts data_source")
 
+    source_provider_kinds = {
+        "simulator": "simulator",
+        "recording_playback": "recording_source",
+        "live_target": "hardware_target",
+    }
+    expected_provider_kind = source_provider_kinds[execution["data_source"]]
+    plant_provider_kinds = set(source_provider_kinds.values())
+    observed_provider_kinds = [
+        binding["provider"]["kind"]
+        for binding in document["provider_bindings"]
+        if binding["provider"]["kind"] in plant_provider_kinds
+    ]
+    if observed_provider_kinds != [expected_provider_kind]:
+        _fail(
+            schema_name,
+            "$.provider_bindings",
+            f"must contain exactly one {expected_provider_kind!r} plant provider",
+        )
+
     if security["profile"] == "none":
         if security["strategy"] != "none" or security["enclaves"] or security["policy_digests"]:
             _fail(schema_name, "$.security", "unsecured runtime must not claim SROS2 assets")
@@ -322,6 +341,26 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         "namespace",
         "$.evaluator_bindings",
     )
+    _require_unique(
+        schema_name,
+        document["provider_bindings"],
+        "target_id",
+        "$.provider_bindings",
+    )
+    _require_unique(
+        schema_name,
+        document["provider_bindings"],
+        "conformance_result_sha256",
+        "$.provider_bindings",
+    )
+    accelerator = document["workload"].get("accelerator")
+    if accelerator is not None:
+        _require_unique(
+            schema_name,
+            accelerator.get("software_components", []),
+            "component_id",
+            "$.workload.accelerator.software_components",
+        )
     if schema_name == "runtime-manifest.v1":
         registered = {"inference_provider", "host_topology", "runtime_resources"}
         for index, artifact in enumerate(document.get("configuration_artifacts", [])):
@@ -341,10 +380,10 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     if expected_clock is not None and clock["sync_protocol"] != expected_clock:
         _fail(schema_name, "$.clock.sync_protocol", "contradicts time_mode")
 
-    if document["render"]["mode"] == "egl" and any(
+    if document["render"]["mode"] == "hardware" and any(
         marker in document["render"]["renderer"].lower() for marker in ("llvmpipe", "softpipe")
     ):
-        _fail(schema_name, "$.render.renderer", "EGL mode must use a hardware renderer")
+        _fail(schema_name, "$.render.renderer", "hardware mode must use a hardware renderer")
 
 
 def _validate_permit(document: Mapping[str, Any]) -> None:
@@ -391,6 +430,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "$.assertion_results",
     )
     _require_unique(schema_name, document["evaluators"], "namespace", "$.evaluators")
+    _require_unique(schema_name, document["evidence"], "artifact_id", "$.evidence")
     assertion_results = document["assertion_results"]
     if (
         assertion_results
@@ -1135,6 +1175,13 @@ def _validate_conformance_result(document: Mapping[str, Any]) -> None:
     expected = worst_status(item["status"] for item in checks)
     if document["status"] != expected:
         _fail(schema_name, "$.status", f"must equal the worst check status {expected!r}")
+    observed_capabilities = {item["capability"] for item in checks if item["status"] == "passed"}
+    if set(document["capabilities"]) != observed_capabilities:
+        _fail(
+            schema_name,
+            "$.capabilities",
+            "must equal the capabilities established by passing checks",
+        )
 
 
 def _validate_qualification_profile(document: Mapping[str, Any]) -> None:

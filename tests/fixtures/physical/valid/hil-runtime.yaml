@@ -1,4 +1,3 @@
----
 schema_version: runtime-manifest.v1
 runtime_id: org.example.controller-hil-runtime
 generated_at: '2026-07-12T10:00:00Z'
@@ -10,11 +9,6 @@ components:
   contracts_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
   harness_revision: cccccccccccccccccccccccccccccccccccccccc
   infra_revision: dddddddddddddddddddddddddddddddddddddddd
-host:
-  os: ubuntu
-  os_version: '24.04'
-  architecture: x86_64
-  kernel: 6.8.0
 ros:
   distribution: jazzy
   rmw_implementation: rmw_fastrtps_cpp
@@ -64,3 +58,24 @@ clock:
   offset_ms: 0.5
   drift_ppm: 2
 evaluator_bindings: []
+host_platform:
+  os: ubuntu
+  os_version: '24.04'
+  architecture: x86_64
+  kernel: 6.8.0
+execution_platform:
+  os: ubuntu
+  os_version: '24.04'
+  architecture: x86_64
+  kernel: 6.8.0
+provider_bindings:
+  - target_id: controller-alpha
+    provider:
+      kind: hardware_target
+      implementation_id: fixture_controller
+      version: 1.0.0
+      configuration_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    qualification_profile_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    conformance_result_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    capabilities:
+      - live_observation

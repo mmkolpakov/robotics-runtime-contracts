@@ -8,8 +8,15 @@ from typing import Any
 
 import pytest
 
-from robotics_runtime_contracts import SemanticValidationError, validate_document
+from robotics_runtime_contracts import (
+    ContractValidationError,
+    SemanticValidationError,
+    load_schema,
+    validate_document,
+)
 from robotics_runtime_contracts._qualification import (
+    _ARTIFACT_ROLES,
+    _RAW_ARTIFACT_KINDS,
     QualificationError,
     _Artifact,
     _load_artifact,
@@ -187,8 +194,6 @@ def test_canonical_loader_reads_every_artifact_once(monkeypatch: pytest.MonkeyPa
         pytest.param(
             "transport",
             [
-                ("runtime-manifests/control.json", ("execution",), _PLAYBACK),
-                ("runtime-manifests/control.json", ("clock", "sync_protocol"), "playback_clock"),
                 ("results/control.json", ("execution",), _PLAYBACK),
             ],
             "execution.data_source",
@@ -508,6 +513,253 @@ def test_recording_summary_cannot_cover_different_sources() -> None:
 
     with pytest.raises(QualificationError, match="multiple evidence sources"):
         _validate_links(items)
+
+
+def test_provider_conformance_is_bound_to_runtime_capabilities() -> None:
+    items = artifacts("inference")
+    runtime = document(items, "runtime-manifests/primary.json")
+    runtime["provider_bindings"][0]["capabilities"] = []
+    validate_mutation(runtime)
+
+    with pytest.raises(QualificationError, match="capabilities does not match"):
+        _validate_links(items)
+
+
+@pytest.mark.parametrize("case", ["inference", "physical"])
+def test_runtime_requires_a_plant_provider_for_every_data_source(case: str) -> None:
+    items = artifacts(case)
+    runtime_subject = (
+        "runtime-manifests/primary.json"
+        if case == "inference"
+        else "runtime-manifests/controller-domain.json"
+    )
+    runtime = document(items, runtime_subject)
+    runtime["provider_bindings"] = []
+
+    with pytest.raises(ContractValidationError, match="non-empty"):
+        validate_mutation(runtime)
+
+
+def test_playback_runtime_requires_a_recording_source_provider() -> None:
+    runtime = deepcopy(document(artifacts("inference"), "runtime-manifests/primary.json"))
+    runtime["execution"] = _PLAYBACK
+    runtime["clock"]["sync_protocol"] = "playback_clock"
+    runtime["provider_bindings"][0]["provider"]["kind"] = "recording_source"
+    validate_mutation(runtime)
+
+    runtime["provider_bindings"][0]["provider"]["kind"] = "simulator"
+    with pytest.raises(SemanticValidationError, match="recording_source"):
+        validate_mutation(runtime)
+
+
+def test_qualification_rejects_events_before_run_creation() -> None:
+    items = artifacts("inference")
+    run = document(items, "acceptance-run.json")
+    run["created_at"] = "2026-07-11T12:00:01Z"
+    validate_mutation(run)
+
+    with pytest.raises(QualificationError, match="chronologically ordered"):
+        _validate_links(items)
+
+
+@pytest.mark.parametrize(
+    ("subject_name", "message"),
+    [
+        ("evidence/control-commands-observation.json", "channel observation"),
+        ("evidence/control-worker-clock.json", "clock relation"),
+    ],
+)
+def test_transport_observations_must_occur_during_the_run(
+    subject_name: str,
+    message: str,
+) -> None:
+    items = artifacts("transport")
+    observation = document(items, subject_name)
+    observation["started_at"] = "2026-07-10T12:00:00Z"
+    observation["finished_at"] = "2026-07-10T12:00:30Z"
+    validate_mutation(observation)
+
+    with pytest.raises(QualificationError, match=message):
+        _validate_links(items)
+
+
+@pytest.mark.parametrize(
+    "subject_name",
+    [
+        "evidence/control-commands-observation.json",
+        "evidence/control-worker-clock.json",
+    ],
+)
+def test_transport_observations_must_fit_both_domain_windows(subject_name: str) -> None:
+    items = artifacts("transport")
+    observation = document(items, subject_name)
+    observation["started_at"] = "2026-07-11T12:02:05Z"
+    observation["finished_at"] = "2026-07-11T12:02:10Z"
+    validate_mutation(observation)
+
+    with pytest.raises(QualificationError, match="domain .* window"):
+        _validate_links(items)
+
+
+def test_run_bound_receipt_must_be_created_during_the_run() -> None:
+    items = artifacts("inference")
+    receipt = document(items, "evidence/receipt.json")
+    verification = document(items, "evidence/verification.json")
+    receipt["created_at"] = "2026-07-11T11:57:00Z"
+    verification["verified_at"] = "2026-07-11T11:56:00Z"
+    validate_mutation(receipt, verification)
+
+    with pytest.raises(QualificationError, match="receipt timeline"):
+        _validate_links(items)
+
+
+def test_scenario_provider_capabilities_are_not_replaced_by_profile_requirements() -> None:
+    items = artifacts("inference")
+    scenario = document(items, "scenario.json")
+    scenario["provider_requirements"]["capabilities"] = ["capability_not_observed"]
+    validate_mutation(scenario)
+
+    with pytest.raises(QualificationError, match="do not satisfy capabilities"):
+        _validate_links(items)
+
+
+def test_provider_capabilities_are_derived_from_passing_checks() -> None:
+    items = artifacts("inference")
+    conformance = document(items, "providers/conformance-result.json")
+    conformance["checks"][0]["capability"] = "unrelated_capability"
+
+    with pytest.raises(SemanticValidationError, match="passing checks"):
+        validate_mutation(conformance)
+
+
+def test_scene_requirements_are_checked_against_provider_observation() -> None:
+    items = artifacts("inference")
+    runtime = document(items, "runtime-manifests/primary.json")
+    conformance = document(items, "providers/conformance-result.json")
+    runtime["provider_bindings"][0]["scene"]["entities"] = []
+    conformance["scene"]["entities"] = []
+    validate_mutation(runtime, conformance)
+
+    with pytest.raises(QualificationError, match="satisfy the scene"):
+        _validate_links(items)
+
+
+def test_scene_physical_parameters_distinguish_boolean_from_number() -> None:
+    items = artifacts("inference")
+    scenario = document(items, "scenario.json")
+    runtime = document(items, "runtime-manifests/primary.json")
+    conformance = document(items, "providers/conformance-result.json")
+    scenario["provider_requirements"]["scene"]["physical_parameters"] = {"gravity_m_s2": 1}
+    runtime["provider_bindings"][0]["scene"]["physical_parameters"] = {"gravity_m_s2": True}
+    conformance["scene"]["physical_parameters"] = {"gravity_m_s2": True}
+    validate_mutation(scenario, runtime, conformance)
+
+    with pytest.raises(QualificationError, match="do not satisfy the scene"):
+        _validate_links(items)
+
+
+def test_evaluator_receipt_requires_a_matching_verified_producer() -> None:
+    items = artifacts("inference")
+    verification = document(items, "evaluators/verification.json")
+    verification["producer_identity"] = "https://example.invalid/forged"
+    validate_mutation(verification)
+
+    with pytest.raises(QualificationError, match="producer does not match"):
+        _validate_links(items)
+
+
+def test_evaluator_content_manifest_must_be_retained() -> None:
+    items = artifacts("inference")
+    verification = document(items, "evaluators/verification.json")
+    verification["content_manifest_sha256"] = "0" * 64
+    validate_mutation(verification)
+
+    with pytest.raises(QualificationError, match="content manifest"):
+        _validate_links(items)
+
+
+def test_retained_evidence_receipt_is_bound_to_the_run() -> None:
+    items = artifacts("inference")
+    receipt = document(items, "evidence/receipt.json")
+    receipt["run_id"] = "run-20000000-0000-4000-8000-000000000002"
+    validate_mutation(receipt)
+
+    with pytest.raises(QualificationError, match="belongs to another run"):
+        _validate_links(items)
+
+
+def test_retained_evidence_verification_is_bound_to_its_statement() -> None:
+    items = artifacts("inference")
+    verification = document(items, "evidence/verification.json")
+    verification["statement_sha256"] = "0" * 64
+    validate_mutation(verification)
+
+    with pytest.raises(QualificationError, match="statement does not match"):
+        _validate_links(items)
+
+
+def test_retained_evidence_must_be_verified_before_its_receipt() -> None:
+    items = artifacts("inference")
+    verification = document(items, "evidence/verification.json")
+    verification["verified_at"] = "2026-07-11T12:02:00Z"
+    validate_mutation(verification)
+
+    with pytest.raises(QualificationError, match="created before its verification"):
+        _validate_links(items)
+
+
+def test_retained_evidence_receipt_describes_the_indexed_revision() -> None:
+    items = artifacts("inference")
+    index = document(items, "evidence-indexes/primary.json")
+    result = document(items, "results/primary.json")
+    index["artifacts"][0]["immutable_revision"] = "version-id:forged"
+    result["evidence"][0]["immutable_revision"] = "version-id:forged"
+    validate_mutation(index, result)
+
+    with pytest.raises(QualificationError, match="describes different bytes"):
+        _validate_links(items)
+
+
+def test_verified_descriptor_prevents_relabeling_remote_evidence() -> None:
+    items = artifacts("inference")
+    index = document(items, "evidence-indexes/primary.json")
+    result = document(items, "results/primary.json")
+    receipt = document(items, "evidence/receipt.json")
+    for artifact in (index["artifacts"][0], result["evidence"][0], receipt["artifact"]):
+        artifact["immutable_revision"] = "version-id:forged"
+    validate_mutation(index, result, receipt)
+
+    with pytest.raises(QualificationError, match="artifact descriptor does not match"):
+        _validate_links(items)
+
+
+def test_transport_trace_uses_artifact_identity_without_segment_index() -> None:
+    items = artifacts("transport")
+    transport = document(items, "transport-qualification.json")
+    for evidence in transport["trace_evidence"]:
+        evidence.pop("segment_index")
+    validate_mutation(transport)
+
+    _validate_links(items)
+
+
+def test_result_rejects_duplicate_artifact_identity_without_a_segment() -> None:
+    items = artifacts("inference")
+    result = document(items, "results/primary.json")
+    duplicate = deepcopy(result["evidence"][0])
+    duplicate.pop("segment_index")
+    result["evidence"].append(duplicate)
+
+    with pytest.raises(SemanticValidationError, match="artifact_id values must be unique"):
+        validate_mutation(result)
+
+
+def test_qualification_artifact_kinds_have_one_schema_catalog() -> None:
+    common = load_schema("common.v1")
+
+    assert set(common["$defs"]["qualificationArtifactKind"]["enum"]) == (
+        set(_ARTIFACT_ROLES) | set(_RAW_ARTIFACT_KINDS)
+    )
 
 
 @pytest.mark.parametrize(

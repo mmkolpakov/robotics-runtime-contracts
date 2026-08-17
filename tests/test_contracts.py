@@ -181,3 +181,9 @@ def test_worst_status_rejects_missing_or_unknown_statuses() -> None:
         worst_status([])
     with pytest.raises(ValueError, match="not-a-status"):
         worst_status(["not-a-status"])
+
+
+def test_public_outcome_status_matches_the_canonical_schema() -> None:
+    common = load_schema("common.v1")
+
+    assert common["$defs"]["status"]["enum"] == [status.value for status in OutcomeStatus]

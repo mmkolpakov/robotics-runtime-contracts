@@ -115,7 +115,7 @@
       "required": [
         "domain_id",
         "evidence_index_sha256",
-        "segment_index",
+        "artifact_id",
         "uri",
         "media_type",
         "format",
@@ -129,6 +129,9 @@
         },
         "evidence_index_sha256": {
           "$ref": "#/$defs/sha256"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/identifier"
         },
         "segment_index": {
           "type": "integer",

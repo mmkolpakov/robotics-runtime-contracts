@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:robotics-runtime-contracts:v1:internal:acceptance-result-core",
-  "title": "Robotics acceptance result v4",
+  "title": "Robotics acceptance result v1",
   "description": "Per-domain acceptance result with distinct run, scenario, domain, and result identities, explicit evaluation coverage, measured time-authority delivery latency, and verified streaming trace evidence.",
   "type": "object",
   "additionalProperties": false,

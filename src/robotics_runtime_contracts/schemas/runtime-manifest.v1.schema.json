@@ -6,8 +6,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "runtime_id", "generated_at", "execution_subject", "components", "host",
-    "ros", "render", "workload", "execution", "evaluator_bindings", "authorization", "data_plane", "security",
+    "schema_version", "runtime_id", "generated_at", "execution_subject", "components",
+    "host_platform", "execution_platform", "ros", "provider_bindings", "render", "workload",
+    "execution", "evaluator_bindings", "authorization", "data_plane", "security",
     "lifecycle_states", "physical_targets", "clock"
   ],
   "properties": {
@@ -17,9 +18,10 @@
     "execution_subject": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/execution_subject"},
     "components": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/components"},
     "configuration_artifacts": {"type": "array", "items": {"$ref": "#/$defs/configurationArtifact"}},
-    "host": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/host"},
+    "host_platform": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/host_platform"},
+    "execution_platform": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/execution_platform"},
     "ros": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/ros"},
-    "simulator": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/simulator"},
+    "provider_bindings": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/provider_bindings"},
     "render": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/render"},
     "workload": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/workload"},
     "execution": {"$ref": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core#/properties/execution"},

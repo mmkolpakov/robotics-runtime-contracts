@@ -1,4 +1,3 @@
----
 schema_version: runtime-manifest.v1
 runtime_id: org.example.invalid-cuda
 generated_at: '2026-07-11T12:00:00Z'
@@ -10,23 +9,13 @@ components:
   contracts_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
   harness_revision: cccccccccccccccccccccccccccccccccccccccc
   infra_revision: dddddddddddddddddddddddddddddddddddddddd
-host:
-  os: ubuntu
-  os_version: '24.04'
-  architecture: x86_64
-  kernel: 6.8.0
 ros:
   distribution: jazzy
   rmw_implementation: rmw_fastrtps_cpp
   rmw_version: 0.0.0-fixture
   domain_id: 42
-simulator:
-  provider_id: gz_sim
-  version: 8.10.0
-  capabilities:
-    - simulated_physics
 render:
-  mode: egl
+  mode: hardware
   renderer: NVIDIA
 workload:
   kind: inference
@@ -68,3 +57,24 @@ clock:
   offset_ms: 0
   drift_ppm: 0
 evaluator_bindings: []
+host_platform:
+  os: ubuntu
+  os_version: '24.04'
+  architecture: x86_64
+  kernel: 6.8.0
+execution_platform:
+  os: ubuntu
+  os_version: '24.04'
+  architecture: x86_64
+  kernel: 6.8.0
+provider_bindings:
+  - target_id: simulation-primary
+    qualification_profile_sha256: '2222222222222222222222222222222222222222222222222222222222222222'
+    conformance_result_sha256: '3333333333333333333333333333333333333333333333333333333333333333'
+    capabilities:
+      - simulated_physics
+    provider:
+      kind: simulator
+      implementation_id: gz_sim
+      version: 8.10.0
+      configuration_sha256: '1111111111111111111111111111111111111111111111111111111111111111'

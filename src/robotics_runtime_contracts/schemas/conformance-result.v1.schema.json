@@ -9,6 +9,8 @@
     "result_id",
     "run_id",
     "generated_at",
+    "qualification_profile_sha256",
+    "execution_subject_digest",
     "provider",
     "target_id",
     "status",
@@ -21,7 +23,15 @@
     "result_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
     "run_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/runId"},
     "generated_at": {"type": "string", "format": "date-time"},
-    "provider": {"$ref": "#/$defs/provider"},
+    "qualification_profile_sha256": {
+      "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"
+    },
+    "execution_subject_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "provider": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/providerIdentity"},
+    "scene": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sceneObservation"},
     "target_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
     "status": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/status"},
     "capabilities": {
@@ -36,25 +46,21 @@
     }
   },
   "$defs": {
-    "provider": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["kind", "implementation_id", "version", "configuration_sha256"],
-      "properties": {
-        "kind": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
-        "implementation_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
-        "version": {"type": "string", "minLength": 1, "maxLength": 128},
-        "configuration_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"}
-      }
-    },
     "check": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["check_id", "status", "observed_value"],
+      "required": ["check_id", "capability", "status", "observed_value"],
       "properties": {
         "check_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
-        "status": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/status"},
-        "observed_value": {"type": ["number", "integer", "string", "boolean", "null"]},
+        "capability": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+        "status": {
+          "description": "Normative verdict produced by the qualified check implementation.",
+          "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/status"
+        },
+        "observed_value": {
+          "description": "Informational measurement; it has no intrinsic truth semantics.",
+          "type": ["number", "integer", "string", "boolean", "null"]
+        },
         "unit": {"type": "string", "minLength": 1, "maxLength": 64},
         "message": {"type": "string", "maxLength": 4096}
       }

@@ -36,6 +36,7 @@ _ARTIFACT_ROLES = {
     "clock_relation": "clock_relation",
     "provider_conformance": "conformance_result",
     "artifact_receipt": "artifact_receipt",
+    "artifact_verification": "artifact_verification",
     "qualification_profile": "qualification_profile",
     "evidence_index": "evidence_index",
     "recording_summary": "recording_summary",
@@ -48,7 +49,17 @@ _CONTRACT_SCHEMAS = {
     kind: frozenset({schema_for_role(role)}) for kind, role in _ARTIFACT_ROLES.items()
 }
 _RAW_ARTIFACT_KINDS = frozenset(
-    {"metrics", "traces", "junit", "other_evidence", "policy", "recording"}
+    {
+        "metrics",
+        "traces",
+        "junit",
+        "other_evidence",
+        "policy",
+        "package",
+        "attestation",
+        "verification",
+        "recording",
+    }
 )
 _SUBJECT_NAME = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,1023}$")
 _EXECUTION_FIELDS = (
@@ -102,9 +113,25 @@ def _timestamp(value: str) -> datetime:
     return datetime.fromisoformat(normalized)
 
 
+def _require_time_order(label: str, *values: str) -> None:
+    timestamps = [_timestamp(value) for value in values]
+    if timestamps != sorted(timestamps):
+        _fail(f"{label} is not chronologically ordered")
+
+
 def _require_equal(label: str, expected: Any, actual: Any) -> None:
     if expected != actual:
         _fail(f"{label} does not match: expected {expected!r}, received {actual!r}")
+
+
+def _json_scalar_equal(left: Any, right: Any) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    return bool(left == right)
+
+
+def _project_fields(item: Mapping[str, Any], fields: Sequence[str]) -> dict[str, Any]:
+    return {field: item[field] for field in fields if field in item}
 
 
 def _require_fields(
@@ -422,6 +449,227 @@ def _validate_model_and_dataset(
             _require_raw(grouped, qos_digest, "dataset QoS overrides")
 
 
+def _validate_provider_bindings(
+    grouped: Mapping[str, Sequence[_Artifact]],
+    scenario: Mapping[str, Any],
+    run_id: str,
+    runtimes: Mapping[str, _Artifact],
+    run_created_at: str,
+) -> None:
+    used_profiles: set[str] = set()
+    used_results: set[str] = set()
+    requirements = scenario["provider_requirements"]
+    scenario_capabilities = set(requirements["capabilities"])
+    scene_requirement = requirements.get("scene")
+
+    def scene_satisfies(scene: Mapping[str, Any]) -> bool:
+        if scene_requirement is None:
+            return True
+        return (
+            scene["semantic_scene_id"] == scene_requirement["semantic_scene_id"]
+            and set(scene_requirement["required_entities"]) <= set(scene["entities"])
+            and set(scene_requirement["required_interfaces"]) <= set(scene["interfaces"])
+            and all(
+                _json_scalar_equal(scene["physical_parameters"].get(key), value)
+                for key, value in scene_requirement.get("physical_parameters", {}).items()
+            )
+        )
+
+    for domain_id, runtime_artifact in runtimes.items():
+        runtime = _document(runtime_artifact)
+        domain_capabilities: set[str] = set()
+        domain_scenes: list[Mapping[str, Any]] = []
+        for binding in runtime["provider_bindings"]:
+            profile_artifact = _artifact_by_digest(
+                grouped,
+                "qualification_profile",
+                binding["qualification_profile_sha256"],
+                f"runtime manifest {domain_id} provider profile",
+            )
+            result_artifact = _artifact_by_digest(
+                grouped,
+                "provider_conformance",
+                binding["conformance_result_sha256"],
+                f"runtime manifest {domain_id} provider conformance",
+            )
+            used_profiles.add(profile_artifact.sha256)
+            used_results.add(result_artifact.sha256)
+            profile = _document(profile_artifact)
+            result = _document(result_artifact)
+            for label, expected, actual in (
+                ("run_id", run_id, result["run_id"]),
+                ("target_id", binding["target_id"], result["target_id"]),
+                (
+                    "execution subject",
+                    runtime["execution_subject"]["digest"],
+                    result["execution_subject_digest"],
+                ),
+                (
+                    "qualification profile",
+                    profile_artifact.sha256,
+                    result["qualification_profile_sha256"],
+                ),
+                ("provider", binding["provider"], result["provider"]),
+                ("capabilities", set(binding["capabilities"]), set(result["capabilities"])),
+                ("provider kind", binding["provider"]["kind"], profile["provider_kind"]),
+                ("scene", binding.get("scene"), result.get("scene")),
+            ):
+                _require_equal(f"provider binding {domain_id} {label}", expected, actual)
+            if result["status"] != "passed":
+                _fail(f"provider binding {domain_id} references non-passing conformance")
+            _require_time_order(
+                f"provider binding {domain_id} timeline",
+                run_created_at,
+                result["generated_at"],
+                runtime["generated_at"],
+            )
+            profile_capabilities = {
+                item["capability"] for item in profile["requirements"] if item["required"]
+            }
+            if not profile_capabilities <= set(result["capabilities"]):
+                _fail(f"provider binding {domain_id} omits required profile capabilities")
+            _require_raw(
+                grouped,
+                binding["provider"]["configuration_sha256"],
+                f"provider binding {domain_id} configuration",
+            )
+            scene = binding.get("scene")
+            if scene is not None:
+                domain_scenes.append(scene)
+            for index, evidence in enumerate(result["evidence"]):
+                _require_raw(
+                    grouped,
+                    evidence["sha256"],
+                    f"provider binding {domain_id} evidence {index}",
+                    size_bytes=evidence["size_bytes"],
+                )
+            domain_capabilities.update(binding["capabilities"])
+        if not scenario_capabilities <= domain_capabilities:
+            _fail(f"runtime provider bindings for {domain_id} do not satisfy capabilities")
+        if scene_requirement is not None and not any(map(scene_satisfies, domain_scenes)):
+            _fail(f"runtime provider bindings for {domain_id} do not satisfy the scene")
+
+    supplied_profiles = {artifact.sha256 for artifact in grouped.get("qualification_profile", ())}
+    supplied_results = {artifact.sha256 for artifact in grouped.get("provider_conformance", ())}
+    if used_profiles != supplied_profiles or used_results != supplied_results:
+        _fail("provider qualification artifacts must match runtime bindings")
+
+
+def _validate_receipts(
+    grouped: Mapping[str, Sequence[_Artifact]],
+    scenario: Mapping[str, Any],
+    run_id: str,
+    evidence_indexes: Mapping[str, _Artifact],
+    run_created_at: str,
+    aggregate_generated_at: str,
+) -> None:
+    used_receipts: set[str] = set()
+    used_verifications: set[str] = set()
+
+    def receipt_for(digest: str, label: str) -> Mapping[str, Any]:
+        artifact = _artifact_by_digest(grouped, "artifact_receipt", digest, label)
+        used_receipts.add(artifact.sha256)
+        receipt = _document(artifact)
+        _require_raw(
+            grouped,
+            receipt["statement_sha256"],
+            f"{label} statement",
+            kinds=("attestation",),
+        )
+        verification_artifact = _artifact_by_digest(
+            grouped,
+            "artifact_verification",
+            receipt["verification_sha256"],
+            f"{label} verification",
+        )
+        used_verifications.add(verification_artifact.sha256)
+        verification = _document(verification_artifact)
+        for field, expected, actual in (
+            ("statement", receipt["statement_sha256"], verification["statement_sha256"]),
+            ("artifact descriptor", receipt["artifact"], verification["artifact"]),
+            ("producer", receipt["producer"]["identity"], verification["producer_identity"]),
+            (
+                "producer implementation",
+                receipt["producer"]["implementation"],
+                verification["producer_implementation"],
+            ),
+        ):
+            _require_equal(f"{label} {field}", expected, actual)
+        if _timestamp(verification["verified_at"]) > _timestamp(receipt["created_at"]):
+            _fail(f"{label} was created before its verification")
+        if "run_id" in receipt:
+            _require_time_order(
+                f"{label} timeline",
+                run_created_at,
+                verification["verified_at"],
+                receipt["created_at"],
+                aggregate_generated_at,
+            )
+        _require_raw(
+            grouped,
+            verification["trust_policy_sha256"],
+            f"{label} trust policy",
+            kinds=("policy",),
+        )
+        _require_raw(
+            grouped,
+            verification["verification_evidence_sha256"],
+            f"{label} verification evidence",
+            kinds=("verification",),
+        )
+        content_manifest_sha256 = verification.get("content_manifest_sha256")
+        if content_manifest_sha256 is not None:
+            _require_raw(
+                grouped,
+                content_manifest_sha256,
+                f"{label} content manifest",
+            )
+        return receipt
+
+    for domain_id, index_artifact in evidence_indexes.items():
+        for artifact in _document(index_artifact)["artifacts"]:
+            if artifact["storage_state"] != "retained":
+                continue
+            receipt = receipt_for(
+                artifact["receipt_sha256"],
+                f"evidence index {domain_id} artifact {artifact['artifact_id']} receipt",
+            )
+            if receipt.get("run_id") != run_id:
+                _fail(f"evidence index {domain_id} receipt belongs to another run")
+            expected = {
+                field: artifact[field]
+                for field in ("uri", "sha256", "size_bytes", "media_type", "immutable_revision")
+            }
+            if receipt["artifact"] != expected:
+                _fail(f"evidence index {domain_id} receipt describes different bytes")
+
+    for requirement in scenario["evaluator_requirements"]:
+        package = _require_raw(
+            grouped,
+            requirement["artifact_sha256"],
+            f"evaluator {requirement['namespace']} package",
+            kinds=("package",),
+        )
+        receipt = receipt_for(
+            requirement["receipt_sha256"],
+            f"evaluator {requirement['namespace']} receipt",
+        )
+        if (
+            receipt["artifact"]["sha256"] != package.sha256
+            or receipt["artifact"]["size_bytes"] != package.size_bytes
+        ):
+            _fail(f"evaluator {requirement['namespace']} receipt describes another package")
+
+    supplied_receipts = {artifact.sha256 for artifact in grouped.get("artifact_receipt", ())}
+    if used_receipts != supplied_receipts:
+        _fail("artifact receipts must match retained evidence and evaluators")
+    supplied_verifications = {
+        artifact.sha256 for artifact in grouped.get("artifact_verification", ())
+    }
+    if used_verifications != supplied_verifications:
+        _fail("artifact verifications must match retained evidence and evaluators")
+
+
 def _validate_retained_configuration(
     grouped: Mapping[str, Sequence[_Artifact]],
     scenario: Mapping[str, Any],
@@ -677,6 +925,9 @@ def _validate_transport(
     scenario_artifact: _Artifact,
     aggregate: Mapping[str, Any],
     evidence_indexes: Mapping[str, _Artifact],
+    results: Mapping[str, _Artifact],
+    run_created_at: str,
+    aggregate_generated_at: str,
 ) -> None:
     transport_artifacts = grouped.get("transport_qualification", ())
     has_sources = any(
@@ -701,6 +952,22 @@ def _validate_transport(
     transport_document = _document(transport)
     if transport_document["run_id"] != run_id:
         _fail("transport qualification has a foreign run_id")
+    evaluated_at = transport_document["verdict"]["evaluated_at"]
+    _require_time_order(
+        "transport qualification timeline",
+        run_created_at,
+        evaluated_at,
+        transport_document["generated_at"],
+        aggregate_generated_at,
+    )
+    for domain_id, result_artifact in results.items():
+        _require_time_order(
+            f"transport qualification after domain {domain_id}",
+            _document(result_artifact)["finished_at"],
+            evaluated_at,
+            transport_document["generated_at"],
+            aggregate_generated_at,
+        )
     expected_pointer = {
         "qualification_id": transport_document["qualification_id"],
         "result_sha256": transport.sha256,
@@ -732,6 +999,22 @@ def _validate_transport(
             _fail(f"duplicate clock relation: {relation_id}")
         if relation["run_id"] != run_id:
             _fail(f"clock relation {relation_id} has a foreign run_id")
+        _require_time_order(
+            f"clock relation {relation_id} timeline",
+            run_created_at,
+            relation["started_at"],
+            relation["finished_at"],
+            evaluated_at,
+        )
+        for domain_id in (relation["source_domain_id"], relation["destination_domain_id"]):
+            domain_result = _document(results[domain_id])
+            _require_time_order(
+                f"clock relation {relation_id} domain {domain_id} window",
+                domain_result["started_at"],
+                relation["started_at"],
+                relation["finished_at"],
+                domain_result["finished_at"],
+            )
         _require_equal(
             f"clock relation {relation_id} scenario digest",
             scenario_artifact.sha256,
@@ -825,7 +1108,25 @@ def _validate_transport(
         )
     for artifact in observations.values():
         observation = _document(artifact)
-        _validate_channel_delivery(_document(channels[observation["channel_id"]]), observation)
+        _require_time_order(
+            f"channel observation {observation['observation_id']} timeline",
+            run_created_at,
+            observation["started_at"],
+            observation["finished_at"],
+            evaluated_at,
+        )
+        channel = _document(channels[observation["channel_id"]])
+        for endpoint in (channel["source"], channel["destination"]):
+            domain_id = endpoint["domain_id"]
+            domain_result = _document(results[domain_id])
+            _require_time_order(
+                f"channel observation {observation['observation_id']} domain {domain_id} window",
+                domain_result["started_at"],
+                observation["started_at"],
+                observation["finished_at"],
+                domain_result["finished_at"],
+            )
+        _validate_channel_delivery(channel, observation)
 
     chain_results = {item["chain_id"]: item for item in transport_document["causal_chains"]}
     for chain_id, artifact in chains.items():
@@ -864,12 +1165,16 @@ def _validate_transport(
         if trace["evidence_index_sha256"] != artifact.sha256:
             _fail(f"transport evidence index digest does not match domain {domain_id}")
         if not any(
-            segment.get("segment_index") == trace["segment_index"]
-            and segment["uri"] == trace["uri"]
-            and segment["sha256"] == trace["sha256"]
-            and segment["size_bytes"] == trace["size_bytes"]
-            and segment["media_type"] == trace["media_type"]
-            for segment in _document(artifact)["artifacts"]
+            indexed["artifact_id"] == trace["artifact_id"]
+            and indexed["uri"] == trace["uri"]
+            and indexed["sha256"] == trace["sha256"]
+            and indexed["size_bytes"] == trace["size_bytes"]
+            and indexed["media_type"] == trace["media_type"]
+            and (
+                "segment_index" not in trace
+                or indexed.get("segment_index") == trace["segment_index"]
+            )
+            for indexed in _document(artifact)["artifacts"]
         ):
             _fail(f"transport trace does not match evidence index for domain {domain_id}")
 
@@ -933,6 +1238,8 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
     acceptance_run = _document(run_artifact)
     aggregate = _document(aggregate_artifact)
     run_id = acceptance_run["run_id"]
+    run_created_at = acceptance_run["created_at"]
+    aggregate_generated_at = aggregate["generated_at"]
     run_domains = {item["domain_id"] for item in acceptance_run["domains"]}
     for label, expected_value, actual_value in (
         ("acceptance run scenario_id", scenario["scenario_id"], acceptance_run["scenario_id"]),
@@ -967,6 +1274,17 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
     local_results: dict[str, dict[str, Any]] = {}
     for domain_id, artifact in results.items():
         result = _document(artifact)
+        runtime = _document(runtimes[domain_id])
+        evidence_index = _document(evidence_indexes[domain_id])
+        _require_time_order(
+            f"qualification timeline for {domain_id}",
+            run_created_at,
+            runtime["generated_at"],
+            result["started_at"],
+            evidence_index["generated_at"],
+            result["finished_at"],
+            aggregate_generated_at,
+        )
         for label, expected_value, actual_value in (
             ("run_id", run_id, result["run_id"]),
             ("domain_id", domain_id, result["domain_id"]),
@@ -982,7 +1300,7 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
         _validate_execution_alignment(
             scenario,
             acceptance_run,
-            _document(runtimes[domain_id]),
+            runtime,
             result,
             domain_id,
         )
@@ -1003,16 +1321,22 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
             "media_type",
             "retention_class",
         )
+
         result_evidence = {
-            tuple(item.get(field) for field in evidence_fields): item for item in result["evidence"]
+            item["artifact_id"]: _project_fields(item, evidence_fields)
+            for item in result["evidence"]
         }
         indexed_evidence = {
-            tuple(item.get(field) for field in evidence_fields): item for item in indexed_artifacts
+            item["artifact_id"]: _project_fields(item, evidence_fields)
+            for item in indexed_artifacts
         }
-        if set(result_evidence) != set(indexed_evidence) or any(
+        indexed_segments = {
+            item["artifact_id"]: item.get("segment_index") for item in indexed_artifacts
+        }
+        if result_evidence != indexed_evidence or any(
             "segment_index" in item
-            and item["segment_index"] != indexed_evidence[key]["segment_index"]
-            for key, item in result_evidence.items()
+            and item["segment_index"] != indexed_segments[item["artifact_id"]]
+            for item in result["evidence"]
         ):
             _fail(f"result {domain_id} evidence does not exactly match its index")
         local_results[domain_id] = {
@@ -1026,6 +1350,15 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
     for domain_id, artifact in evidence_indexes.items():
         _require_equal(f"evidence index {domain_id} run_id", run_id, _document(artifact)["run_id"])
 
+    _validate_provider_bindings(grouped, scenario, run_id, runtimes, run_created_at)
+    _validate_receipts(
+        grouped,
+        scenario,
+        run_id,
+        evidence_indexes,
+        run_created_at,
+        aggregate_generated_at,
+    )
     _validate_model_and_dataset(grouped, scenario, runtimes, results)
     _validate_retained_configuration(grouped, scenario, acceptance_run, runtimes)
     _validate_physical_authorization(grouped, scenario_artifact, runtimes, results)
@@ -1037,6 +1370,9 @@ def _validate_links(artifacts: Sequence[_Artifact]) -> tuple[str, str]:
         scenario_artifact,
         aggregate,
         evidence_indexes,
+        results,
+        run_created_at,
+        aggregate_generated_at,
     )
     return run_id, aggregate["generated_at"]
 

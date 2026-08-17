@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:robotics-runtime-contracts:v1:internal:runtime-manifest-core",
-  "title": "Robotics runtime manifest v2",
+  "title": "Robotics runtime manifest v1",
   "description": "Observed runtime identity with cryptographically authorized physical target facts.",
   "type": "object",
   "additionalProperties": false,
@@ -11,8 +11,10 @@
     "generated_at",
     "execution_subject",
     "components",
-    "host",
+    "host_platform",
+    "execution_platform",
     "ros",
+    "provider_bindings",
     "render",
     "workload",
     "execution",
@@ -47,14 +49,22 @@
       },
       "uniqueItems": true
     },
-    "host": {
-      "$ref": "#/$defs/imported__runtime-manifest__host"
+    "host_platform": {
+      "$ref": "#/$defs/imported__runtime-manifest__platform"
+    },
+    "execution_platform": {
+      "$ref": "#/$defs/imported__runtime-manifest__platform"
     },
     "ros": {
       "$ref": "#/$defs/imported__runtime-manifest__ros"
     },
-    "simulator": {
-      "$ref": "#/$defs/imported__runtime-manifest__simulator"
+    "provider_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/providerBinding"
+      },
+      "uniqueItems": true
     },
     "render": {
       "$ref": "#/$defs/imported__runtime-manifest__render"
@@ -259,6 +269,41 @@
         }
       }
     },
+    "providerBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "provider",
+        "qualification_profile_sha256",
+        "conformance_result_sha256",
+        "capabilities"
+      ],
+      "properties": {
+        "target_id": {
+          "$ref": "#/$defs/imported__runtime-manifest__identifier"
+        },
+        "provider": {
+          "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/providerIdentity"
+        },
+        "qualification_profile_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "conformance_result_sha256": {
+          "$ref": "#/$defs/imported__runtime-manifest__sha256"
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/imported__runtime-manifest__identifier"
+          }
+        },
+        "scene": {
+          "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sceneObservation"
+        }
+      }
+    },
     "configurationArtifact": {
       "type": "object",
       "additionalProperties": false,
@@ -339,7 +384,7 @@
       "type": "string",
       "pattern": "^[a-f0-9]{40}$"
     },
-    "imported__runtime-manifest__host": {
+    "imported__runtime-manifest__platform": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -403,36 +448,6 @@
         }
       }
     },
-    "imported__runtime-manifest__simulator": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "provider_id",
-        "version",
-        "capabilities"
-      ],
-      "properties": {
-        "provider_id": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
-          "maxLength": 128
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "capabilities": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
-            "maxLength": 128
-          }
-        }
-      }
-    },
     "imported__runtime-manifest__render": {
       "type": "object",
       "additionalProperties": false,
@@ -445,7 +460,7 @@
           "enum": [
             "none",
             "software",
-            "egl"
+            "hardware"
           ]
         },
         "renderer": {
@@ -588,35 +603,27 @@
           "minLength": 1,
           "maxLength": 128
         },
-        "jetpack_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "l4t_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "rocm_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "openvino_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "rknn_runtime_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "rknpu_driver_version": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+        "software_components": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "version"
+            ],
+            "properties": {
+              "component_id": {
+                "$ref": "#/$defs/imported__runtime-manifest__identifier"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
         }
       }
     },
