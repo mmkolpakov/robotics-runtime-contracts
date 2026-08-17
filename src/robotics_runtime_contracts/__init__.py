@@ -28,6 +28,11 @@ from robotics_runtime_contracts.extensions import (
 from robotics_runtime_contracts.extensions import (
     validate_extensions as _validate_extensions,
 )
+from robotics_runtime_contracts.providers import (
+    ProviderRequirementError,
+    scene_satisfies,
+    validate_provider_requirements,
+)
 from robotics_runtime_contracts.qualification_policy import (
     CHANNEL_ERROR_VIOLATIONS,
     CHANNEL_INCOMPLETE_VIOLATIONS,
@@ -39,6 +44,10 @@ from robotics_runtime_contracts.qualification_policy import (
     derive_channel_violations,
     hardware_clock_within_policy,
     validate_clock_relation_evidence,
+)
+from robotics_runtime_contracts.receipts import (
+    ArtifactReceiptValidationError,
+    validate_artifact_receipt,
 )
 from robotics_runtime_contracts.semantics import (
     SemanticValidationError,
@@ -226,9 +235,11 @@ __all__ = [
     "ChannelObservationStatus",
     "ClockEvidenceValidationError",
     "ContractValidationError",
+    "ArtifactReceiptValidationError",
     "DocumentParseError",
     "ExtensionValidationError",
     "NonFiniteNumberError",
+    "ProviderRequirementError",
     "SemanticValidationError",
     "UnknownContractRoleError",
     "UnknownSchemaError",
@@ -247,11 +258,14 @@ __all__ = [
     "schema_path",
     "schema_registry",
     "schema_resource_names",
+    "scene_satisfies",
     "channel_observation_status",
     "derive_channel_violations",
     "hardware_clock_within_policy",
     "validate_clock_relation_evidence",
+    "validate_artifact_receipt",
     "validate_document",
+    "validate_provider_requirements",
     "validate_role",
     "worst_status",
 ]

@@ -10,11 +10,15 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from robotics_runtime_contracts import (
+    ArtifactReceiptValidationError,
     ClockEvidenceValidationError,
+    ProviderRequirementError,
     loads_mapping,
     schema_for_role,
+    validate_artifact_receipt,
     validate_clock_relation_evidence,
     validate_document,
+    validate_provider_requirements,
 )
 from robotics_runtime_contracts.qualification_policy import (
     channel_observation_status,
@@ -122,12 +126,6 @@ def _require_time_order(label: str, *values: str) -> None:
 def _require_equal(label: str, expected: Any, actual: Any) -> None:
     if expected != actual:
         _fail(f"{label} does not match: expected {expected!r}, received {actual!r}")
-
-
-def _json_scalar_equal(left: Any, right: Any) -> bool:
-    if isinstance(left, bool) or isinstance(right, bool):
-        return type(left) is type(right) and left == right
-    return bool(left == right)
 
 
 def _project_fields(item: Mapping[str, Any], fields: Sequence[str]) -> dict[str, Any]:
@@ -459,26 +457,9 @@ def _validate_provider_bindings(
     used_profiles: set[str] = set()
     used_results: set[str] = set()
     requirements = scenario["provider_requirements"]
-    scenario_capabilities = set(requirements["capabilities"])
-    scene_requirement = requirements.get("scene")
-
-    def scene_satisfies(scene: Mapping[str, Any]) -> bool:
-        if scene_requirement is None:
-            return True
-        return (
-            scene["semantic_scene_id"] == scene_requirement["semantic_scene_id"]
-            and set(scene_requirement["required_entities"]) <= set(scene["entities"])
-            and set(scene_requirement["required_interfaces"]) <= set(scene["interfaces"])
-            and all(
-                _json_scalar_equal(scene["physical_parameters"].get(key), value)
-                for key, value in scene_requirement.get("physical_parameters", {}).items()
-            )
-        )
 
     for domain_id, runtime_artifact in runtimes.items():
         runtime = _document(runtime_artifact)
-        domain_capabilities: set[str] = set()
-        domain_scenes: list[Mapping[str, Any]] = []
         for binding in runtime["provider_bindings"]:
             profile_artifact = _artifact_by_digest(
                 grouped,
@@ -533,9 +514,6 @@ def _validate_provider_bindings(
                 binding["provider"]["configuration_sha256"],
                 f"provider binding {domain_id} configuration",
             )
-            scene = binding.get("scene")
-            if scene is not None:
-                domain_scenes.append(scene)
             for index, evidence in enumerate(result["evidence"]):
                 _require_raw(
                     grouped,
@@ -543,11 +521,10 @@ def _validate_provider_bindings(
                     f"provider binding {domain_id} evidence {index}",
                     size_bytes=evidence["size_bytes"],
                 )
-            domain_capabilities.update(binding["capabilities"])
-        if not scenario_capabilities <= domain_capabilities:
-            _fail(f"runtime provider bindings for {domain_id} do not satisfy capabilities")
-        if scene_requirement is not None and not any(map(scene_satisfies, domain_scenes)):
-            _fail(f"runtime provider bindings for {domain_id} do not satisfy the scene")
+        try:
+            validate_provider_requirements(requirements, runtime["provider_bindings"])
+        except ProviderRequirementError as error:
+            _fail(f"runtime provider bindings for {domain_id}: {error}")
 
     supplied_profiles = {artifact.sha256 for artifact in grouped.get("qualification_profile", ())}
     supplied_results = {artifact.sha256 for artifact in grouped.get("provider_conformance", ())}
@@ -565,6 +542,9 @@ def _validate_receipts(
 ) -> None:
     used_receipts: set[str] = set()
     used_verifications: set[str] = set()
+    dependency_digests = {
+        artifact.sha256 for kind in _RAW_ARTIFACT_KINDS for artifact in grouped.get(kind, ())
+    }
 
     def receipt_for(digest: str, label: str) -> Mapping[str, Any]:
         artifact = _artifact_by_digest(grouped, "artifact_receipt", digest, label)
@@ -584,19 +564,10 @@ def _validate_receipts(
         )
         used_verifications.add(verification_artifact.sha256)
         verification = _document(verification_artifact)
-        for field, expected, actual in (
-            ("statement", receipt["statement_sha256"], verification["statement_sha256"]),
-            ("artifact descriptor", receipt["artifact"], verification["artifact"]),
-            ("producer", receipt["producer"]["identity"], verification["producer_identity"]),
-            (
-                "producer implementation",
-                receipt["producer"]["implementation"],
-                verification["producer_implementation"],
-            ),
-        ):
-            _require_equal(f"{label} {field}", expected, actual)
-        if _timestamp(verification["verified_at"]) > _timestamp(receipt["created_at"]):
-            _fail(f"{label} was created before its verification")
+        try:
+            validate_artifact_receipt(receipt, verification, dependency_digests)
+        except ArtifactReceiptValidationError as error:
+            _fail(f"{label}: {error}")
         if "run_id" in receipt:
             _require_time_order(
                 f"{label} timeline",
