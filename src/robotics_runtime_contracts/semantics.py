@@ -604,6 +604,14 @@ def _validate_result(document: Mapping[str, Any]) -> None:
 
 def _validate_evidence_index(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
+    observation = document["policy_observation"]
+    expected_remote = observation["upload_mode"] != "local_only"
+    if observation["remote_sink_used"] != expected_remote:
+        _fail(
+            schema_name,
+            "$.policy_observation.remote_sink_used",
+            "must match whether upload_mode uses a remote sink",
+        )
     artifacts = document["artifacts"]
     _require_unique(schema_name, artifacts, "artifact_id", "$.artifacts")
     identities: set[tuple[str, str]] = set()

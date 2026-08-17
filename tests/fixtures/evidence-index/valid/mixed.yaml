@@ -8,6 +8,9 @@ policy_observation:
   compression: zstd
   upload_mode: closed_segments_during_run
   retention_class: pull-request-7d
+  remote_sink_used: true
+  spool_peak_size_bytes: 1024
+  upload_lag_max_sec: 1
 artifacts:
   - uri: file:///evidence/run-000.mcap
     local_path: /evidence/run-000.mcap

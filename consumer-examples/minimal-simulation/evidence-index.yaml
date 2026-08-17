@@ -8,6 +8,9 @@ policy_observation:
   compression: zstd
   upload_mode: local_only
   retention_class: pull-request-7d
+  remote_sink_used: false
+  spool_peak_size_bytes: 252
+  upload_lag_max_sec: 0
 artifacts:
   - uri: file:///evidence/time-authority.json
     local_path: /evidence/time-authority.json

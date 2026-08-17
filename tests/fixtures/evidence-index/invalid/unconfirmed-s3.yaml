@@ -8,6 +8,9 @@ policy_observation:
   compression: zstd
   upload_mode: closed_segments_during_run
   retention_class: regression-30d
+  remote_sink_used: true
+  spool_peak_size_bytes: 0
+  upload_lag_max_sec: 1
 artifacts:
   - uri: s3://robotics-evidence/run-000.mcap
     media_type: application/mcap

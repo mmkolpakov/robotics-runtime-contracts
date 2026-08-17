@@ -44,12 +44,23 @@
     "policyObservation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["recording_mode", "compression", "retention_class", "upload_mode"],
+      "required": [
+        "recording_mode",
+        "compression",
+        "retention_class",
+        "upload_mode",
+        "remote_sink_used",
+        "spool_peak_size_bytes",
+        "upload_lag_max_sec"
+      ],
       "properties": {
         "recording_mode": {"type": "string", "minLength": 1, "maxLength": 128},
         "compression": {"type": "string", "minLength": 1, "maxLength": 128},
         "retention_class": {"type": "string", "minLength": 1, "maxLength": 128},
-        "upload_mode": {"type": "string", "minLength": 1, "maxLength": 128}
+        "upload_mode": {"type": "string", "minLength": 1, "maxLength": 128},
+        "remote_sink_used": {"type": "boolean"},
+        "spool_peak_size_bytes": {"type": "integer", "minimum": 0},
+        "upload_lag_max_sec": {"type": "number", "minimum": 0}
       }
     },
     "artifact": {
