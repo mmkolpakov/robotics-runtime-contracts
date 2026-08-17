@@ -1,21 +1,64 @@
-schema_version: acceptance-scenario.v4
+---
+schema_version: acceptance-scenario.v1
 scenario_id: org.example.invalid-playback
 execution:
   target_environment: simulation
   hardware_scope: []
   physical_effect: none
   test_intent: functional
-  data_source: mcap_playback
+  data_source: recording_playback
   plant_backend: recorded_data
   time_mode: playback_clocked
   data_plane_profile: standard_isolated
   security_profile: none
-authorization: {mode: none}
-forbidden_ros_graph: {topics: [], services: [], actions: []}
+authorization:
+  mode: none
+forbidden_ros_graph:
+  topics: []
+  services: []
+  actions: []
 seed: 1
-timeouts: {startup_sec: 1, graph_ready_sec: 1, stable_for_sec: 0, execution_sec: 1, shutdown_sec: 1}
-expected_ros_graph: {topics: [], services: [], actions: [], lifecycle_nodes: []}
+timeouts:
+  startup_sec: 1
+  graph_ready_sec: 1
+  stable_for_sec: 0
+  execution_sec: 1
+  shutdown_sec: 1
+expected_ros_graph:
+  topics: []
+  services: []
+  actions: []
+  lifecycle_nodes: []
 assertions: []
-time_policy: {playback_rate: 1, min_clock_hz: 1, message_order: received, qos_overrides_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, time_authority_min_samples: 30, max_time_authority_delivery_latency_p50_ms: 1, max_time_authority_delivery_latency_p95_ms: 2, max_time_authority_delivery_latency_ms: 5}
-data_plane_policy: {max_message_age_ms: 1, max_loss_ratio: 0, shm_transport: false, data_sharing: false, private_ipc: false}
-evidence_policy: {topics: [], recording_mode: on_failure, compression: zstd, max_segment_size_bytes: 1048576, max_segment_duration_sec: 1, max_spool_size_bytes: 1048576, spool_high_watermark_ratio: 0.8, max_upload_lag_sec: 0, upload_mode: local_only, retention_class: pull-request-7d, remote_sink_allowed: false}
+time_policy:
+  playback_rate: 1
+  min_clock_hz: 1
+  message_order: received
+  qos_overrides_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  time_authority_min_samples: 30
+  max_time_authority_delivery_latency_p50_ms: 1
+  max_time_authority_delivery_latency_p95_ms: 2
+  max_time_authority_delivery_latency_ms: 5
+data_plane_policy:
+  max_message_age_ms: 1
+  max_loss_ratio: 0
+  shm_transport: false
+  data_sharing: false
+  private_ipc: false
+evidence_policy:
+  topics: []
+  recording_mode: on_failure
+  compression: zstd
+  max_segment_size_bytes: 1048576
+  max_segment_duration_sec: 1
+  max_spool_size_bytes: 1048576
+  spool_high_watermark_ratio: 0.8
+  max_upload_lag_sec: 0
+  upload_mode: local_only
+  retention_class: pull-request-7d
+  remote_sink_allowed: false
+provider_requirements:
+  capabilities:
+    - recording_playback
+evaluator_requirements: []
+metric_definitions: []

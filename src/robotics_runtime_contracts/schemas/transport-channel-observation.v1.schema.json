@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:zenoh-channel-observation:v1",
-  "title": "Robotics Zenoh channel observation v1",
-  "description": "Measured delivery outcome for one Zenoh channel contract and run.",
+  "$id": "urn:robotics-runtime-contracts:v1:transport-channel-observation",
+  "title": "Robotics transport channel observation v1",
+  "description": "Measured delivery outcome for one transport channel contract and run.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,7 +25,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "zenoh-channel-observation.v1"
+      "const": "transport-channel-observation.v1"
     },
     "observation_id": {
       "type": "string",

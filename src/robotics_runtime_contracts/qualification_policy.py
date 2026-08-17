@@ -48,7 +48,7 @@ CHANNEL_INCOMPLETE_VIOLATIONS = frozenset({"insufficient_messages"})
 RESERVED_ASSERTION_IDS = frozenset(
     {
         "data-plane-data-sharing",
-        "data-plane-fastdds-profile",
+        "data-plane-middleware-profile",
         "data-plane-loss-ratio",
         "data-plane-message-age",
         "data-plane-private-ipc",

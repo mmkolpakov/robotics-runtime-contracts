@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:causal-chain:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:causal-chain",
   "title": "Robotics causal chain contract v1",
   "description": "Immutable expected channel sequence for one cross-domain acceptance verdict.",
   "type": "object",

@@ -1,15 +1,14 @@
-schema_version: evidence-index.v2
-run_id: org.example.physics-smoke-001
-generated_at: "2026-07-11T12:01:00Z"
+---
+schema_version: evidence-index.v1
+run_id: run-10000000-0000-4000-8000-000000000001
+generated_at: '2026-07-11T12:01:00Z'
 finalized: true
 policy_observation:
   recording_mode: bounded
   compression: zstd
   upload_mode: closed_segments_during_run
-  remote_sink_used: true
-  spool_peak_size_bytes: 3072
-  upload_lag_max_sec: 1
-segments:
+  retention_class: pull-request-7d
+artifacts:
   - uri: file:///evidence/run-000.mcap
     local_path: /evidence/run-000.mcap
     media_type: application/mcap
@@ -17,24 +16,25 @@ segments:
     size_bytes: 1024
     retention_class: pull-request-7d
     segment_index: 0
-    upload_status: local
-    checksum_verified: true
-    mcap_summary:
+    recording_summary:
       uri: file:///evidence/run-000.summary.json
       sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       size_bytes: 256
-      media_type: application/vnd.robotics.mcap-summary.v1+json
+    artifact_id: artifact-0
+    kind: recording
+    storage_state: local
   - uri: s3://robotics-evidence/run-001.mcap
-    version_id: 3LgExampleVersion
     media_type: application/mcap
     sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     size_bytes: 2048
     retention_class: regression-30d
     segment_index: 1
-    upload_status: confirmed
-    checksum_verified: true
-    mcap_summary:
+    recording_summary:
       uri: s3://robotics-evidence/run-001.summary.json
       sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
       size_bytes: 256
-      media_type: application/vnd.robotics.mcap-summary.v1+json
+    artifact_id: artifact-1
+    kind: recording
+    storage_state: retained
+    immutable_revision: 3LgExampleVersion
+    receipt_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

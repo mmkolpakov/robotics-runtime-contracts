@@ -1,3 +1,4 @@
+---
 schema_version: dataset-manifest.v1
 dataset_id: org.example.invalid
 version: 1.0.0
@@ -21,10 +22,11 @@ time:
 source: simulation
 provenance:
   producer: test
-  captured_at: "2026-07-11T10:00:00Z"
+  captured_at: '2026-07-11T10:00:00Z'
   scenario_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   runtime_manifest_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
-  source_revisions: {world: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee}
+  source_revisions:
+    world: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 governance:
   license: MIT
   data_classification: public

@@ -13,9 +13,9 @@ quality registration required for Levels 1 through 3.
 ## Version Policy
 
 The Python distribution follows Semantic Versioning during its pre-1.0 phase.
-Public schema versions have an additional immutable version axis documented in
-[COMPATIBILITY.md](COMPATIBILITY.md). Published schema bytes are protected by
-SHA-256 regression tests.
+The canonical pre-1.0 contract set and release policy are documented in
+[COMPATIBILITY.md](COMPATIBILITY.md). Tagged artifacts are immutable; schema
+digests for packaged bytes are available through the public API.
 
 The public Python API is the set exported by
 `robotics_runtime_contracts.__all__`. Internal modules and underscored symbols
@@ -24,8 +24,8 @@ are not a stable API.
 ## Change Control
 
 Repository policy requires reviewable changes, CI on pushes and pull requests,
-positive and negative contract fixtures, compatibility analysis, and migration
-notes for schema changes. The repository does not claim an independently
+positive and negative contract fixtures, consumer-impact analysis, and migration
+notes for breaking changes. The repository does not claim an independently
 audited peer-review or contributor-origin process.
 
 ## Documentation
@@ -43,7 +43,7 @@ attribution are recorded in that license and repository history.
 CI performs:
 
 - JSON Schema Draft 2020-12 metaschema checks;
-- positive, negative, semantic, compatibility, and consumer-example tests;
+- positive, negative, semantic, qualification-link, and consumer-example tests;
 - Ruff linting and formatting;
 - strict mypy analysis of the typed package;
 - wheel and source-distribution builds;

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:acceptance-observation",
+  "title": "Robotics acceptance observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "run_id",
+    "scenario_id",
+    "domain_id",
+    "started_at",
+    "finished_at",
+    "runtime_observation",
+    "observed_ros_graph",
+    "lifecycle_states",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "acceptance-observation.v1"},
+    "observation_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/runId"},
+    "scenario_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "domain_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "runtime_observation": {"$ref": "urn:robotics-runtime-contracts:v1:acceptance-result#/$defs/runtimeObservation"},
+    "observed_ros_graph": {"$ref": "urn:robotics-runtime-contracts:v1:acceptance-result#/$defs/observedRosGraph"},
+    "lifecycle_states": {
+      "$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-result-core#/properties/lifecycle_states"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"}
+    }
+  }
+}

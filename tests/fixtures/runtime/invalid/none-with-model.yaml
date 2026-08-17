@@ -1,18 +1,56 @@
+---
 schema_version: runtime-manifest.v1
 runtime_id: org.example.invalid-none
-generated_at: "2026-07-11T12:00:00Z"
-oci_image: {reference: "ghcr.io/example/runtime@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
-components: {contracts_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, harness_revision: cccccccccccccccccccccccccccccccccccccccc, infra_revision: dddddddddddddddddddddddddddddddddddddddd}
-host: {os: ubuntu, os_version: "24.04", architecture: x86_64, kernel: 6.8.0}
-ros: {distribution: jazzy, rmw_implementation: rmw_fastrtps_cpp}
-render: {mode: none, renderer: none}
+generated_at: '2026-07-11T12:00:00Z'
+execution_subject:
+  digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  locator: oci://ghcr.io/example/runtime@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  kind: oci_image
+components:
+  contracts_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  harness_revision: cccccccccccccccccccccccccccccccccccccccc
+  infra_revision: dddddddddddddddddddddddddddddddddddddddd
+host:
+  os: ubuntu
+  os_version: '24.04'
+  architecture: x86_64
+  kernel: 6.8.0
+ros:
+  distribution: jazzy
+  rmw_implementation: rmw_fastrtps_cpp
+  rmw_version: 0.0.0-fixture
+  domain_id: 42
+render:
+  mode: none
+  renderer: none
 workload:
   kind: none
   model: {}
-execution: {target_environment: simulation, data_source: gazebo, plant_backend: gazebo_physics, time_mode: simulation_realtime, data_plane_profile: standard_isolated}
-authorization: {mode: none}
-data_plane: {rmw_implementation: rmw_fastrtps_cpp, ipc_namespace: "container:simulation", network_namespace: "compose:default", shm_transport: false, data_sharing: false, private_ipc: false}
-security: {profile: none, strategy: none, enclaves: [], policy_digests: []}
+execution:
+  target_environment: simulation
+  data_source: simulator
+  plant_backend: simulated_physics
+  time_mode: simulation_realtime
+  data_plane_profile: standard_isolated
+authorization:
+  mode: none
+data_plane:
+  rmw_implementation: rmw_fastrtps_cpp
+  ipc_namespace: container:simulation
+  network_namespace: compose:default
+  shm_transport: false
+  data_sharing: false
+  private_ipc: false
+security:
+  profile: none
+  strategy: none
+  enclaves: []
+  policy_digests: []
 lifecycle_states: []
 physical_targets: []
-clock: {basis: ros_time, sync_protocol: sim_clock, offset_ms: 0, drift_ppm: 0}
+clock:
+  basis: ros_time
+  sync_protocol: sim_clock
+  offset_ms: 0
+  drift_ppm: 0
+evaluator_bindings: []

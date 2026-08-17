@@ -48,7 +48,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
         (
             "runtime/valid/no-inference-simulation.yaml",
             lambda value: value.update(
-                schema_version="runtime-manifest.v2",
+                schema_version="runtime-manifest.v1",
                 configuration_artifacts=[
                     {"kind": "host_topology", "sha256": "a" * 64},
                     {"kind": "host_topology", "sha256": "b" * 64},

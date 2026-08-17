@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:conformance-result",
+  "title": "Robotics provider conformance result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "run_id",
+    "generated_at",
+    "provider",
+    "target_id",
+    "status",
+    "capabilities",
+    "checks",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "conformance-result.v1"},
+    "result_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/runId"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "provider": {"$ref": "#/$defs/provider"},
+    "target_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "status": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/status"},
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"}
+    },
+    "checks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/check"}},
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"}
+    }
+  },
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "implementation_id", "version", "configuration_sha256"],
+      "properties": {
+        "kind": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+        "implementation_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "configuration_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "status", "observed_value"],
+      "properties": {
+        "check_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+        "status": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/status"},
+        "observed_value": {"type": ["number", "integer", "string", "boolean", "null"]},
+        "unit": {"type": "string", "minLength": 1, "maxLength": 64},
+        "message": {"type": "string", "maxLength": 4096}
+      }
+    }
+  }
+}

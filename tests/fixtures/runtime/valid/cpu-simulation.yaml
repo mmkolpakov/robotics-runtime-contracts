@@ -1,26 +1,30 @@
+---
 schema_version: runtime-manifest.v1
 runtime_id: org.example.cpu-run
-generated_at: "2026-07-11T12:00:00Z"
-oci_image:
-  reference: ghcr.io/example/robotics-runtime@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+generated_at: '2026-07-11T12:00:00Z'
+execution_subject:
   digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  locator: oci://ghcr.io/example/robotics-runtime@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  kind: oci_image
 components:
   contracts_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
   harness_revision: cccccccccccccccccccccccccccccccccccccccc
   infra_revision: dddddddddddddddddddddddddddddddddddddddd
 host:
   os: windows-wsl2
-  os_version: "11"
+  os_version: '11'
   architecture: x86_64
   kernel: 6.6.87.2-microsoft-standard-WSL2
 ros:
   distribution: jazzy
   rmw_implementation: rmw_fastrtps_cpp
-gazebo:
-  collection: harmonic
+  rmw_version: 0.0.0-fixture
+  domain_id: 42
+simulator:
+  provider_id: gz_sim
   version: 8.10.0
-  libraries:
-    gz-sim: 8.10.0
+  capabilities:
+    - simulated_physics
 render:
   mode: software
   renderer: llvmpipe
@@ -42,8 +46,8 @@ workload:
     device_id: host-cpu
 execution:
   target_environment: simulation
-  data_source: gazebo
-  plant_backend: gazebo_physics
+  data_source: simulator
+  plant_backend: simulated_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
 authorization:
@@ -67,3 +71,4 @@ clock:
   sync_protocol: sim_clock
   offset_ms: 0
   drift_ppm: 0
+evaluator_bindings: []

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:acceptance-result:v4",
+  "$id": "urn:robotics-runtime-contracts:v1:internal:acceptance-result-core",
   "title": "Robotics acceptance result v4",
   "description": "Per-domain acceptance result with distinct run, scenario, domain, and result identities, explicit evaluation coverage, measured time-authority delivery latency, and verified streaming trace evidence.",
   "type": "object",
@@ -33,7 +33,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "acceptance-result.v4"
+      "const": "acceptance-result.v1"
     },
     "result_id": {
       "type": "string",
@@ -765,15 +765,15 @@
         },
         "data_source": {
           "enum": [
-            "gazebo",
-            "mcap_playback",
+            "simulator",
+            "recording_playback",
             "live_target"
           ]
         },
         "plant_backend": {
           "enum": [
             "interface_mock",
-            "gazebo_physics",
+            "simulated_physics",
             "recorded_data",
             "real_hardware"
           ]
@@ -939,22 +939,18 @@
       "properties": {
         "uri": {
           "type": "string",
-          "pattern": "^(?:file|s3|oci|https)://[^\\s]+$"
+          "format": "uri",
+          "maxLength": 2048
         },
-        "version_id": {
+        "immutable_revision": {
           "type": "string",
           "minLength": 1,
           "maxLength": 1024
         },
         "media_type": {
-          "enum": [
-            "application/mcap",
-            "application/json",
-            "application/x-ndjson",
-            "application/junit+xml",
-            "text/plain",
-            "application/vnd.in-toto+json"
-          ]
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 255
         },
         "sha256": {
           "$ref": "#/$defs/imported__acceptance-result__sha256"
@@ -971,23 +967,7 @@
           "type": "integer",
           "minimum": 0
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "uri": {
-                "pattern": "^s3://"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "version_id"
-            ]
-          }
-        }
-      ]
+      }
     },
     "imported__acceptance-result__extensions": {
       "type": "object",

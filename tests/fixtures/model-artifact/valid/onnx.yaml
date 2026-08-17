@@ -1,30 +1,43 @@
+---
 schema_version: model-artifact-manifest.v1
-artifact_id: org.example.detector.onnx
 source:
   uri: oci://ghcr.io/example/models/detector@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-  media_type: application/onnx
-  opset: 19
-  inputs:
-    - {name: images, element_type: float32, shape: [batch, 3, 640, 640]}
-  outputs:
-    - {name: detections, element_type: float32, shape: [batch, candidates, 6]}
-target:
+  size_bytes: 1
   format: onnx
+  media_type: application/onnx
+  runtime_family: onnx
+  execution_provider: reference
+  inputs: &id001
+    - name: images
+      element_type: float32
+      shape:
+        - batch
+        - 3
+        - 640
+        - 640
+  outputs: &id002
+    - name: detections
+      element_type: float32
+      shape:
+        - batch
+        - candidates
+        - 6
+target:
   uri: oci://ghcr.io/example/models/detector@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  size_bytes: 1
+  format: onnx
   media_type: application/onnx
   runtime_family: onnxruntime_cpu
-  runtime_version: 1.27.0
   execution_provider: CPUExecutionProvider
-  target_architecture: x86_64
-  precision: float32
+  inputs: *id001
+  outputs: *id002
 build:
   tool: onnx
-  tool_version: 1.20.1
-  tool_source_revision: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-  builder_image_digest: sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-  parameters: {}
+  version: 1.20.1
+  configuration_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  source_artifact_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 numerical_conformance:
   report_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
   reference_artifact_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -35,3 +48,4 @@ numerical_conformance:
 compatibility:
   portable: true
   hardware: []
+model_id: org.example.detector.onnx

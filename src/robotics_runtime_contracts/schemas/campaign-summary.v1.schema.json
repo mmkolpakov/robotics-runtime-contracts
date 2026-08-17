@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:campaign-summary:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:campaign-summary",
   "title": "Acceptance campaign summary v1",
   "description": "Digest-linked statistical acceptance over existing run aggregates.",
   "type": "object",

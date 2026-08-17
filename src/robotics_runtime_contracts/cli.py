@@ -110,7 +110,7 @@ def _parser() -> argparse.ArgumentParser:
         help="create a validated unsigned execution-permit.v1 predicate",
     )
     permit_init.add_argument("--scenario-sha256", required=True)
-    permit_init.add_argument("--image-digest", required=True)
+    permit_init.add_argument("--subject-digest", required=True)
     permit_init.add_argument("--trust-policy-sha256", required=True)
     permit_init.add_argument("--environment", required=True, choices=("hil", "real_robot"))
     permit_init.add_argument("--target-id", required=True)
@@ -251,7 +251,7 @@ def _scenario_resolve(arguments: argparse.Namespace) -> None:
 def _permit_init(arguments: argparse.Namespace) -> None:
     permit = create_execution_permit(
         scenario_sha256=arguments.scenario_sha256,
-        image_digest=arguments.image_digest,
+        subject_digest=arguments.subject_digest,
         trust_policy_sha256=arguments.trust_policy_sha256,
         environment=arguments.environment,
         target_id=arguments.target_id,

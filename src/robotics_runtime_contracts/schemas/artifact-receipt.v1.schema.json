@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:artifact-receipt",
+  "title": "Robotics artifact receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "artifact",
+    "producer",
+    "created_at",
+    "statement_sha256",
+    "verification_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "artifact-receipt.v1"},
+    "receipt_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "artifact": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "implementation"],
+      "properties": {
+        "identity": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "implementation": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "run_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/runId"},
+    "statement_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"},
+    "verification_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"}
+  }
+}

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NoReturn
 
@@ -9,6 +9,7 @@ from robotics_runtime_contracts.qualification_policy import (
     RESERVED_METRIC_NAMES,
     channel_observation_status,
 )
+from robotics_runtime_contracts.status import worst_status
 
 
 class SemanticValidationError(ValueError):
@@ -21,21 +22,6 @@ class SemanticValidationError(ValueError):
         self.json_path = json_path
         self.validation_message = message
         super().__init__(f"{json_path}: {message}")
-
-
-_STATUS_PRIORITY = {
-    "passed": 0,
-    "skipped": 0,
-    "cancelled": 1,
-    "incomplete": 2,
-    "failed": 3,
-    "error": 4,
-}
-
-
-def _worst_status(statuses: Iterable[str], *, collapse_cancelled: bool = False) -> str:
-    status = max(statuses, key=lambda item: _STATUS_PRIORITY.get(item, 5), default="passed")
-    return "incomplete" if collapse_cancelled and status == "cancelled" else status
 
 
 def _fail(schema_name: str, path: str, message: str) -> NoReturn:
@@ -77,6 +63,12 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
 
     assertions = document["assertions"]
     _require_unique(schema_name, assertions, "assertion_id", "$.assertions")
+    _require_unique(
+        schema_name,
+        document["evaluator_requirements"],
+        "namespace",
+        "$.evaluator_requirements",
+    )
     for index, assertion in enumerate(assertions):
         if assertion["assertion_id"] in RESERVED_ASSERTION_IDS:
             _fail(
@@ -85,7 +77,7 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
                 "is reserved for a runtime qualification assertion",
             )
 
-    if schema_name == "acceptance-scenario.v5":
+    if schema_name == "acceptance-scenario.v1":
         definitions = document["metric_definitions"]
         _require_unique(schema_name, definitions, "metric_name", "$.metric_definitions")
         definition_by_name = {item["metric_name"]: item for item in definitions}
@@ -197,7 +189,6 @@ def _validate_acceptance_scenario(document: Mapping[str, Any]) -> None:
 def _validate_model_artifact(document: Mapping[str, Any]) -> None:
     schema_name = "model-artifact-manifest.v1"
     source = document["source"]
-    target = document["target"]
     compatibility = document["compatibility"]
     numerical = document["numerical_conformance"]
 
@@ -221,19 +212,6 @@ def _validate_model_artifact(document: Mapping[str, Any]) -> None:
             schema_name,
             "$.compatibility.hardware",
             "non-portable artifacts require a hardware allow-list",
-        )
-
-    expected_vendor = {
-        "tensorrt_engine": "nvidia",
-        "rknn": "rockchip",
-    }.get(target["format"])
-    if expected_vendor is not None and any(
-        item["vendor"] != expected_vendor for item in compatibility["hardware"]
-    ):
-        _fail(
-            schema_name,
-            "$.compatibility.hardware",
-            f"{target['format']} artifacts require {expected_vendor} hardware entries",
         )
 
 
@@ -273,7 +251,6 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
     workload = document["workload"]
     inference = workload.get("inference")
-    accelerator = workload.get("accelerator")
     execution = document["execution"]
     data_plane = document["data_plane"]
     security = document["security"]
@@ -296,8 +273,12 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         )
 
     source_modes = {
-        "gazebo": ("simulation", "gazebo_physics", {"simulation_realtime", "simulation_stepped"}),
-        "mcap_playback": ("simulation", "recorded_data", {"playback_clocked"}),
+        "simulator": (
+            "simulation",
+            "simulated_physics",
+            {"simulation_realtime", "simulation_stepped"},
+        ),
+        "recording_playback": ("simulation", "recorded_data", {"playback_clocked"}),
         "live_target": ({"hil", "real_robot"}, "real_hardware", {"hardware_realtime"}),
     }
     source_mode = source_modes.get(execution["data_source"])
@@ -335,7 +316,13 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         "kind",
         "$.configuration_artifacts",
     )
-    if schema_name == "runtime-manifest.v3":
+    _require_unique(
+        schema_name,
+        document["evaluator_bindings"],
+        "namespace",
+        "$.evaluator_bindings",
+    )
+    if schema_name == "runtime-manifest.v1":
         registered = {"inference_provider", "host_topology", "runtime_resources"}
         for index, artifact in enumerate(document.get("configuration_artifacts", [])):
             kind = artifact["kind"]
@@ -358,21 +345,6 @@ def _validate_runtime(document: Mapping[str, Any]) -> None:
         marker in document["render"]["renderer"].lower() for marker in ("llvmpipe", "softpipe")
     ):
         _fail(schema_name, "$.render.renderer", "EGL mode must use a hardware renderer")
-
-    if inference is not None and accelerator is not None:
-        expected_vendor = {
-            "CUDAExecutionProvider": "nvidia",
-            "TensorrtExecutionProvider": "nvidia",
-            "MIGraphXExecutionProvider": "amd",
-            "RKNPU2": "rockchip",
-            "CoreMLExecutionProvider": "apple",
-        }.get(inference["actual_provider"])
-        if expected_vendor is not None and accelerator["vendor"] != expected_vendor:
-            _fail(
-                schema_name,
-                "$.workload.accelerator.vendor",
-                f"{inference['actual_provider']} requires vendor {expected_vendor}",
-            )
 
 
 def _validate_permit(document: Mapping[str, Any]) -> None:
@@ -418,8 +390,13 @@ def _validate_result(document: Mapping[str, Any]) -> None:
         "assertion_id",
         "$.assertion_results",
     )
-    assertion_status = _worst_status(item["status"] for item in document["assertion_results"])
-    if _STATUS_PRIORITY.get(assertion_status, 5) > _STATUS_PRIORITY.get(document["status"], 5):
+    _require_unique(schema_name, document["evaluators"], "namespace", "$.evaluators")
+    assertion_results = document["assertion_results"]
+    if (
+        assertion_results
+        and worst_status([document["status"], *(item["status"] for item in assertion_results)])
+        != document["status"]
+    ):
         _fail(
             schema_name,
             "$.status",
@@ -438,7 +415,7 @@ def _validate_result(document: Mapping[str, Any]) -> None:
             "node and observed_at_ns pairs must be unique",
         )
     evidence_digests = {item["sha256"] for item in document["evidence"]}
-    if schema_name == "acceptance-result.v5":
+    if schema_name == "acceptance-result.v1":
         if (
             any(item["status"] == "skipped" for item in document["assertion_results"])
             and document["status"] == "passed"
@@ -627,24 +604,14 @@ def _validate_result(document: Mapping[str, Any]) -> None:
 
 def _validate_evidence_index(document: Mapping[str, Any]) -> None:
     schema_name = document["schema_version"]
-    indexes: set[int] = set()
+    artifacts = document["artifacts"]
+    _require_unique(schema_name, artifacts, "artifact_id", "$.artifacts")
     identities: set[tuple[str, str]] = set()
-    for index, segment in enumerate(document["segments"]):
-        if segment["segment_index"] in indexes:
-            _fail(schema_name, f"$.segments[{index}].segment_index", "must be unique")
-        identity = (segment["uri"], segment.get("version_id", ""))
+    for index, artifact in enumerate(artifacts):
+        identity = (artifact["uri"], artifact.get("immutable_revision", ""))
         if identity in identities:
-            _fail(schema_name, f"$.segments[{index}].uri", "evidence object is duplicated")
-        indexes.add(segment["segment_index"])
+            _fail(schema_name, f"$.artifacts[{index}].uri", "evidence object is duplicated")
         identities.add(identity)
-    policy = document["policy_observation"]
-    remote = policy["upload_mode"] == "closed_segments_during_run"
-    if policy["remote_sink_used"] != remote:
-        _fail(
-            schema_name,
-            "$.policy_observation.remote_sink_used",
-            "must match whether upload_mode uses a remote sink",
-        )
 
 
 def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
@@ -652,7 +619,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
     results = document["per_domain_results"]
     _require_unique(schema_name, results, "domain_id", "$.per_domain_results")
     _require_unique(schema_name, results, "result_id", "$.per_domain_results")
-    expected = _worst_status(item["status"] for item in results)
+    expected = worst_status(item["status"] for item in results)
     if document["per_domain_aggregate"] != expected:
         _fail(
             schema_name,
@@ -663,7 +630,7 @@ def _validate_acceptance_aggregate(document: Mapping[str, Any]) -> None:
     if cross_domain["status"] == "unevaluated":
         return
     qualification_status = cross_domain["transport_qualification"]["status"]
-    expected_cross_domain = _worst_status(
+    expected_cross_domain = worst_status(
         (expected, qualification_status),
         collapse_cancelled=True,
     )
@@ -704,27 +671,25 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
                 "cross-domain channel requires distinct source and destination domains",
             )
     clock_relations = document.get("clock_relations", [])
-    if schema_name == "transport-qualification-result.v2":
-        _require_unique(schema_name, clock_relations, "relation_id", "$.clock_relations")
-        relation_by_domains = {
-            (item["source_domain_id"], item["destination_domain_id"]): item
-            for item in clock_relations
-        }
-        if len(relation_by_domains) != len(clock_relations):
-            _fail(
-                schema_name,
-                "$.clock_relations",
-                "source and destination domain pairs must be unique",
-            )
-        expected_relations = {
-            (item["source_domain_id"], item["destination_domain_id"]) for item in contracts
-        }
-        if not set(relation_by_domains) <= expected_relations:
-            _fail(
-                schema_name,
-                "$.clock_relations",
-                "contains a relation outside the channel domain pairs",
-            )
+    _require_unique(schema_name, clock_relations, "relation_id", "$.clock_relations")
+    relation_by_domains = {
+        (item["source_domain_id"], item["destination_domain_id"]): item for item in clock_relations
+    }
+    if len(relation_by_domains) != len(clock_relations):
+        _fail(
+            schema_name,
+            "$.clock_relations",
+            "source and destination domain pairs must be unique",
+        )
+    expected_relations = {
+        (item["source_domain_id"], item["destination_domain_id"]) for item in contracts
+    }
+    if not set(relation_by_domains) <= expected_relations:
+        _fail(
+            schema_name,
+            "$.clock_relations",
+            "contains a relation outside the channel domain pairs",
+        )
     observations = document["channel_observations"]
     _require_unique(schema_name, observations, "channel_id", "$.channel_observations")
     if {item["channel_id"] for item in observations} != contract_ids:
@@ -923,11 +888,8 @@ def _validate_transport_qualification(document: Mapping[str, Any]) -> None:
             "$.verdict.error_chain_count",
             "must equal the number of errored causal chains",
         )
-    missing_clock_relations = (
-        schema_name == "transport-qualification-result.v2"
-        and set(relation_by_domains) != expected_relations
-    )
-    expected_e2e = _worst_status(
+    missing_clock_relations = set(relation_by_domains) != expected_relations
+    expected_e2e = worst_status(
         (
             "passed",
             *(("incomplete",) if missing_clock_relations else ()),
@@ -1004,7 +966,7 @@ def _validate_campaign_summary(document: Mapping[str, Any]) -> None:
         and counts["incomplete"] <= acceptance["maximum_incomplete_runs"]
         and counts["error"] <= acceptance["maximum_error_runs"]
     )
-    expected_status = "passed" if passed else _worst_status(item["status"] for item in runs)
+    expected_status = "passed" if passed else worst_status(item["status"] for item in runs)
     if expected_status == "passed" and not passed:
         expected_status = "failed"
     if verdict["status"] != expected_status:
@@ -1015,8 +977,8 @@ def _validate_campaign_summary(document: Mapping[str, Any]) -> None:
         )
 
 
-def _validate_zenoh_channel(document: Mapping[str, Any]) -> None:
-    schema_name = "zenoh-channel.v1"
+def _validate_transport_channel(document: Mapping[str, Any]) -> None:
+    schema_name = "transport-channel.v1"
     source = document["source"]
     destination = document["destination"]
     if source["domain_id"] == destination["domain_id"]:
@@ -1052,8 +1014,8 @@ def _validate_zenoh_channel(document: Mapping[str, Any]) -> None:
         )
 
 
-def _validate_zenoh_channel_observation(document: Mapping[str, Any]) -> None:
-    schema_name = "zenoh-channel-observation.v1"
+def _validate_transport_channel_observation(document: Mapping[str, Any]) -> None:
+    schema_name = "transport-channel-observation.v1"
     started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
     finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
     if finished_at <= started_at:
@@ -1100,7 +1062,7 @@ def _validate_causal_chain(document: Mapping[str, Any]) -> None:
 
 
 def _validate_qualification_bundle(document: Mapping[str, Any]) -> None:
-    schema_name = "qualification-bundle.v2"
+    schema_name = "qualification-bundle.v1"
     subjects = document["subject"]
     _require_unique(schema_name, subjects, "name", "$.subject")
     subject_names = {item["name"] for item in subjects}
@@ -1121,7 +1083,6 @@ def _validate_qualification_bundle(document: Mapping[str, Any]) -> None:
         "domain_result",
         "acceptance_aggregate",
         "evidence_index",
-        "mcap_summary",
     }
     missing = required - kinds
     if missing:
@@ -1132,8 +1093,8 @@ def _validate_qualification_bundle(document: Mapping[str, Any]) -> None:
         )
 
 
-def _validate_mcap_summary(document: Mapping[str, Any]) -> None:
-    schema_name = "mcap-summary.v1"
+def _validate_recording_summary(document: Mapping[str, Any]) -> None:
+    schema_name = "recording-summary.v1"
     channels = document["channels"]
     _require_unique(schema_name, channels, "topic", "$.channels")
     statistics = document["statistics"]
@@ -1151,6 +1112,32 @@ def _validate_mcap_summary(document: Mapping[str, Any]) -> None:
         )
 
 
+def _validate_acceptance_observation(document: Mapping[str, Any]) -> None:
+    schema_name = "acceptance-observation.v1"
+    started_at = _timestamp(schema_name, "$.started_at", document["started_at"])
+    finished_at = _timestamp(schema_name, "$.finished_at", document["finished_at"])
+    if finished_at <= started_at:
+        _fail(schema_name, "$.finished_at", "must be later than started_at")
+
+
+def _validate_conformance_result(document: Mapping[str, Any]) -> None:
+    schema_name = "conformance-result.v1"
+    checks = document["checks"]
+    _require_unique(schema_name, checks, "check_id", "$.checks")
+    expected = worst_status(item["status"] for item in checks)
+    if document["status"] != expected:
+        _fail(schema_name, "$.status", f"must equal the worst check status {expected!r}")
+
+
+def _validate_qualification_profile(document: Mapping[str, Any]) -> None:
+    _require_unique(
+        "qualification-profile.v1",
+        document["requirements"],
+        "capability",
+        "$.requirements",
+    )
+
+
 def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
     _require_unique(
         "acceptance-run.v1",
@@ -1161,29 +1148,26 @@ def _validate_acceptance_run(document: Mapping[str, Any]) -> None:
 
 
 _VALIDATORS: dict[str, Callable[[Mapping[str, Any]], None]] = {
-    "acceptance-scenario.v4": _validate_acceptance_scenario,
-    "acceptance-scenario.v5": _validate_acceptance_scenario,
+    "acceptance-observation.v1": _validate_acceptance_observation,
+    "acceptance-scenario.v1": _validate_acceptance_scenario,
     "model-artifact-manifest.v1": _validate_model_artifact,
     "dataset-manifest.v1": _validate_dataset,
     "runtime-manifest.v1": _validate_runtime,
-    "runtime-manifest.v2": _validate_runtime,
-    "runtime-manifest.v3": _validate_runtime,
     "execution-permit.v1": _validate_permit,
     "execution-verification.v1": _validate_execution_verification,
-    "acceptance-result.v4": _validate_result,
-    "acceptance-result.v5": _validate_result,
-    "evidence-index.v2": _validate_evidence_index,
-    "evidence-index.v3": _validate_evidence_index,
+    "acceptance-result.v1": _validate_result,
+    "evidence-index.v1": _validate_evidence_index,
     "acceptance-run.v1": _validate_acceptance_run,
-    "acceptance-aggregate.v4": _validate_acceptance_aggregate,
-    "mcap-summary.v1": _validate_mcap_summary,
-    "qualification-bundle.v2": _validate_qualification_bundle,
-    "zenoh-channel.v1": _validate_zenoh_channel,
-    "zenoh-channel-observation.v1": _validate_zenoh_channel_observation,
+    "acceptance-aggregate.v1": _validate_acceptance_aggregate,
+    "recording-summary.v1": _validate_recording_summary,
+    "qualification-bundle.v1": _validate_qualification_bundle,
+    "transport-channel.v1": _validate_transport_channel,
+    "transport-channel-observation.v1": _validate_transport_channel_observation,
     "causal-chain.v1": _validate_causal_chain,
     "transport-qualification-result.v1": _validate_transport_qualification,
-    "transport-qualification-result.v2": _validate_transport_qualification,
     "clock-relation.v1": _validate_clock_relation,
+    "conformance-result.v1": _validate_conformance_result,
+    "qualification-profile.v1": _validate_qualification_profile,
     "campaign-summary.v1": _validate_campaign_summary,
 }
 

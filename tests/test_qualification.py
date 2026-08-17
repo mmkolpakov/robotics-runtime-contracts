@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -62,102 +61,11 @@ def apply_changes(items: list[_Artifact], changes: Sequence[Change]) -> None:
 
 _PLAYBACK = {
     "target_environment": "simulation",
-    "data_source": "mcap_playback",
+    "data_source": "recording_playback",
     "plant_backend": "recorded_data",
     "time_mode": "playback_clocked",
     "data_plane_profile": "standard_isolated",
 }
-
-
-def upgrade_transport_fixture_to_current(items: list[_Artifact]) -> None:
-    scenario_artifact = artifact(items, "scenario.json")
-    scenario = document(items, "scenario.json")
-    scenario["schema_version"] = "acceptance-scenario.v5"
-    scenario["metric_definitions"] = [
-        {
-            "metric_name": "robotics.message.age",
-            "unit": "ms",
-            "instrument_kind": "histogram",
-            "temporality": "delta",
-        }
-    ]
-    clock_policy = {
-        "method": "measured_skew",
-        "minimum_samples": 30,
-        "maximum_absolute_skew_ms": 1,
-    }
-    scenario["time_policy"]["cross_domain_clock"] = clock_policy
-
-    for subject_name in ("runtime-manifests/control.json", "runtime-manifests/worker.json"):
-        document(items, subject_name)["schema_version"] = "runtime-manifest.v3"
-    for subject_name in ("results/control.json", "results/worker.json"):
-        result = document(items, subject_name)
-        result.update(schema_version="acceptance-result.v5", evaluation_mode="live")
-        for assertion in result["assertion_results"]:
-            assertion["source"] = "core"
-    for subject_name in (
-        "evidence-indexes/control.json",
-        "evidence-indexes/worker.json",
-    ):
-        document(items, subject_name)["schema_version"] = "evidence-index.v3"
-
-    control_evidence = document(items, "evidence-indexes/control.json")["segments"][1]
-    relation = {
-        "schema_version": "clock-relation.v1",
-        "relation_id": "control-worker-clock",
-        "run_id": document(items, "acceptance-run.json")["run_id"],
-        "scenario_sha256": scenario_artifact.sha256,
-        "source_domain_id": "control",
-        "destination_domain_id": "worker",
-        "method": "measured_skew",
-        "sync_protocol": "ptp",
-        "started_at": "2026-07-26T12:00:00Z",
-        "finished_at": "2026-07-26T12:00:30Z",
-        "sample_count": 30,
-        "max_absolute_skew_ms": 0.5,
-        "policy": clock_policy,
-        "status": "passed",
-        "violations": [],
-        "evidence_sha256": control_evidence["sha256"],
-    }
-    relation_sha256 = sha256(repr(sorted(relation.items())).encode()).hexdigest()
-    items.append(
-        _Artifact(
-            kind="clock_relation",
-            subject_name="clock-relations/control-worker.json",
-            sha256=relation_sha256,
-            size_bytes=1,
-            document=relation,
-        )
-    )
-    transport = document(items, "transport-qualification.json")
-    transport["schema_version"] = "transport-qualification-result.v2"
-    transport["scenario_sha256"] = scenario_artifact.sha256
-    transport["clock_relations"] = [
-        {
-            "relation_id": relation["relation_id"],
-            "source_domain_id": relation["source_domain_id"],
-            "destination_domain_id": relation["destination_domain_id"],
-            "sha256": relation_sha256,
-            "status": "passed",
-        }
-    ]
-    validate_mutation(
-        scenario,
-        *(
-            document(items, name)
-            for name in (
-                "runtime-manifests/control.json",
-                "runtime-manifests/worker.json",
-                "results/control.json",
-                "results/worker.json",
-                "evidence-indexes/control.json",
-                "evidence-indexes/worker.json",
-                "transport-qualification.json",
-            )
-        ),
-        relation,
-    )
 
 
 @pytest.mark.parametrize("case", ["transport", "inference", "physical"])
@@ -166,7 +74,7 @@ def test_schema_valid_qualification_fixture_is_complete(case: str) -> None:
 
 
 @pytest.mark.parametrize("case", ["transport", "inference", "physical"])
-def test_generated_qualification_bundle_v2_is_schema_valid(case: str) -> None:
+def test_generated_qualification_bundle_is_schema_valid(case: str) -> None:
     metadata = validate_qualification_artifacts(qualification_specifications(case))
     statement = {
         "_type": "https://in-toto.io/Statement/v1",
@@ -175,10 +83,10 @@ def test_generated_qualification_bundle_v2_is_schema_valid(case: str) -> None:
             for item in metadata["artifacts"]
         ],
         "predicateType": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
         ),
         "predicate": {
-            "schema_version": "qualification-bundle.v2",
+            "schema_version": "qualification-bundle.v1",
             "run_id": metadata["run_id"],
             "generated_at": metadata["generated_at"],
             "artifacts": [
@@ -188,10 +96,10 @@ def test_generated_qualification_bundle_v2_is_schema_valid(case: str) -> None:
         },
     }
     policy = {
-        "schema_version": "qualification-policy.v2",
+        "schema_version": "qualification-policy.v1",
         "policy_id": "generated-fixture-policy",
         "predicate_type": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
         ),
         "certificate_identities": [
             (
@@ -204,7 +112,7 @@ def test_generated_qualification_bundle_v2_is_schema_valid(case: str) -> None:
         "required_artifact_kinds": sorted({item["kind"] for item in metadata["artifacts"]}),
     }
 
-    validate_document(statement, schema="qualification-bundle.v2")
+    validate_document(statement, schema="qualification-bundle.v1")
     validate_document(policy)
 
 
@@ -312,7 +220,13 @@ def test_canonical_loader_reads_every_artifact_once(monkeypatch: pytest.MonkeyPa
         ),
         pytest.param(
             "transport",
-            [("results/control.json", ("evidence", 0, "version_id"), "unexpected-version")],
+            [
+                (
+                    "results/control.json",
+                    ("evidence", 0, "immutable_revision"),
+                    "unexpected-revision",
+                )
+            ],
             "evidence does not exactly match",
             id="evidence-version",
         ),
@@ -407,9 +321,8 @@ def test_result_evidence_segment_index_is_optional() -> None:
     _validate_links(items)
 
 
-def test_current_qualification_requires_every_scenario_assertion() -> None:
+def test_qualification_requires_every_scenario_assertion() -> None:
     items = artifacts("transport")
-    upgrade_transport_fixture_to_current(items)
     scenario = document(items, "scenario.json")
     extra_assertion = deepcopy(scenario["assertions"][0])
     extra_assertion["assertion_id"] = "camera-age-secondary"
@@ -420,9 +333,8 @@ def test_current_qualification_requires_every_scenario_assertion() -> None:
         _validate_links(items)
 
 
-def test_current_qualification_requires_clock_relation_for_every_channel_pair() -> None:
+def test_qualification_requires_clock_relation_for_every_channel_pair() -> None:
     items = artifacts("transport")
-    upgrade_transport_fixture_to_current(items)
     items[:] = [item for item in items if item.kind != "clock_relation"]
     transport = document(items, "transport-qualification.json")
     transport["clock_relations"] = []
@@ -437,10 +349,9 @@ def test_current_qualification_requires_clock_relation_for_every_channel_pair() 
     _validate_links(items)
 
 
-def test_current_qualification_binds_clock_relation_to_scenario_policy() -> None:
+def test_qualification_binds_clock_relation_to_scenario_policy() -> None:
     items = artifacts("transport")
-    upgrade_transport_fixture_to_current(items)
-    relation = document(items, "clock-relations/control-worker.json")
+    relation = document(items, "evidence/control-worker-clock.json")
     relation["policy"] = {**relation["policy"], "maximum_absolute_skew_ms": 2}
     validate_mutation(relation)
 
@@ -450,13 +361,12 @@ def test_current_qualification_binds_clock_relation_to_scenario_policy() -> None
 
 def test_shared_clock_observations_belong_to_their_endpoint_domains() -> None:
     items = artifacts("transport")
-    upgrade_transport_fixture_to_current(items)
     scenario = document(items, "scenario.json")
-    relation = document(items, "clock-relations/control-worker.json")
+    relation = document(items, "evidence/control-worker-clock.json")
     policy = {"method": "shared_clock_identity"}
     scenario["time_policy"]["cross_domain_clock"] = policy
-    source_digest = document(items, "evidence-indexes/control.json")["segments"][1]["sha256"]
-    destination_digest = document(items, "evidence-indexes/worker.json")["segments"][1]["sha256"]
+    source_digest = document(items, "evidence-indexes/control.json")["artifacts"][1]["sha256"]
+    destination_digest = document(items, "evidence-indexes/worker.json")["artifacts"][1]["sha256"]
     relation.update(
         method="shared_clock_identity",
         sync_protocol="shared_kernel_clock",
@@ -483,10 +393,11 @@ def test_shared_clock_observations_belong_to_their_endpoint_domains() -> None:
         _validate_links(items)
 
 
-def test_current_qualification_accepts_vendor_evidence_media_type() -> None:
+def test_qualification_accepts_custom_evidence_media_type() -> None:
     items = artifacts("transport")
-    upgrade_transport_fixture_to_current(items)
     evidence = {
+        "artifact_id": "controller-log",
+        "kind": "observation",
         "uri": "file:///evidence/controller.vendor",
         "local_path": "/evidence/controller.vendor",
         "media_type": "application/vnd.example.controller-log",
@@ -494,15 +405,14 @@ def test_current_qualification_accepts_vendor_evidence_media_type() -> None:
         "size_bytes": 128,
         "retention_class": "pull-request-7d",
         "segment_index": 4,
-        "upload_status": "local",
-        "checksum_verified": True,
+        "storage_state": "local",
     }
-    document(items, "evidence-indexes/control.json")["segments"].append(evidence)
+    document(items, "evidence-indexes/control.json")["artifacts"].append(evidence)
     document(items, "results/control.json")["evidence"].append(
         {
             key: value
             for key, value in evidence.items()
-            if key not in {"local_path", "upload_status", "checksum_verified"}
+            if key not in {"local_path", "storage_state"}
         }
     )
     items.append(
@@ -562,41 +472,35 @@ def test_complete_transport_qualification_accepts_every_canonical_observation_st
     _validate_links(items)
 
 
-def test_runtime_v2_configuration_artifact_is_digest_linked() -> None:
+def test_runtime_configuration_artifact_is_digest_linked() -> None:
     items = artifacts("transport")
     runtime = document(items, "runtime-manifests/control.json")
-    runtime.update(
-        schema_version="runtime-manifest.v2",
-        configuration_artifacts=[
-            {
-                "kind": "runtime_resources",
-                "sha256": artifact(items, "config/bridge.json").sha256,
-            }
-        ],
-    )
+    runtime["configuration_artifacts"] = [
+        {
+            "kind": "runtime_resources",
+            "sha256": artifact(items, "config/bridge.json").sha256,
+        }
+    ]
     validate_mutation(runtime)
 
     _validate_links(items)
 
 
-def test_runtime_v2_configuration_artifact_requires_retained_bytes() -> None:
+def test_runtime_configuration_artifact_requires_retained_bytes() -> None:
     items = artifacts("transport")
     runtime = document(items, "runtime-manifests/control.json")
-    runtime.update(
-        schema_version="runtime-manifest.v2",
-        configuration_artifacts=[{"kind": "host_topology", "sha256": "0" * 64}],
-    )
+    runtime["configuration_artifacts"] = [{"kind": "host_topology", "sha256": "0" * 64}]
     validate_mutation(runtime)
 
     with pytest.raises(QualificationError, match="host_topology configuration"):
         _validate_links(items)
 
 
-def test_mcap_summary_cannot_cover_different_sources() -> None:
+def test_recording_summary_cannot_cover_different_sources() -> None:
     items = artifacts("transport")
-    summary = artifact(items, "mcap-summaries/control.json")
+    summary = artifact(items, "recording-summaries/control.json")
     worker_index = document(items, "evidence-indexes/worker.json")
-    worker_index["segments"][0]["mcap_summary"].update(
+    worker_index["artifacts"][0]["recording_summary"].update(
         sha256=summary.sha256,
         size_bytes=summary.size_bytes,
     )
@@ -612,7 +516,7 @@ def test_mcap_summary_cannot_cover_different_sources() -> None:
         ("transport", "evidence/control.mcap", "indexed size"),
         ("transport", "config/bridge.json", "bridge configuration"),
         ("inference", "models/detector.onnx", "model source artifact"),
-        ("inference", "datasets/baseline.mcap", "dataset MCAP"),
+        ("inference", "datasets/baseline.mcap", "dataset recording"),
         ("physical", "policy/trust.json", "scenario trust policy"),
         ("physical", "authorization/preflight.json", "interlock"),
         ("physical", "evidence/hardware-clock.json", "indexed size"),

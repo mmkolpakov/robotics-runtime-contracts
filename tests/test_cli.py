@@ -20,7 +20,7 @@ def test_cli_validates_yaml_document(capsys: pytest.CaptureFixture[str]) -> None
     assert main(["validate", str(FIXTURE)]) == 0
 
     captured = capsys.readouterr()
-    assert captured.out == "valid: acceptance-scenario.v4\n"
+    assert captured.out == "valid: acceptance-scenario.v1\n"
     assert captured.err == ""
 
 
@@ -30,7 +30,7 @@ def test_cli_reports_contract_path_for_invalid_document(
 ) -> None:
     document = tmp_path / "invalid.yaml"
     document.write_text(
-        "schema_version: acceptance-scenario.v4\nunknown: true\n",
+        "schema_version: acceptance-scenario.v1\nunknown: true\n",
         encoding="utf-8",
     )
 
@@ -46,7 +46,7 @@ def test_cli_json_errors_have_stable_ids(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     document = tmp_path / "invalid.yaml"
-    document.write_text("schema_version: acceptance-scenario.v99\n", encoding="utf-8")
+    document.write_text("schema_version: acceptance-scenario.invalid\n", encoding="utf-8")
 
     assert main(["--format", "json", "validate", str(document)]) == 1
 
@@ -81,7 +81,7 @@ def test_cli_rejects_schema_override_for_a_batch(
             [
                 "validate",
                 "--schema",
-                "acceptance-scenario.v4",
+                "acceptance-scenario.v1",
                 str(FIXTURE),
                 str(FIXTURE),
             ]
@@ -165,10 +165,10 @@ def test_cli_schema_override_reports_the_resolved_schema_without_root_version(
             for item in metadata["artifacts"]
         ],
         "predicateType": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
         ),
         "predicate": {
-            "schema_version": "qualification-bundle.v2",
+            "schema_version": "qualification-bundle.v1",
             "run_id": metadata["run_id"],
             "generated_at": metadata["generated_at"],
             "artifacts": [
@@ -180,17 +180,17 @@ def test_cli_schema_override_reports_the_resolved_schema_without_root_version(
     path = tmp_path / "qualification-bundle.json"
     path.write_text(json.dumps(statement), encoding="utf-8")
 
-    assert main(["validate", "--schema", "qualification-bundle.v2", str(path)]) == 0
-    assert capsys.readouterr().out == "valid: qualification-bundle.v2\n"
+    assert main(["validate", "--schema", "qualification-bundle.v1", str(path)]) == 0
+    assert capsys.readouterr().out == "valid: qualification-bundle.v1\n"
 
 
 def test_cli_describes_diffs_and_resolves_scenario_overlays(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert main(["describe", "acceptance-scenario.v5"]) == 0
+    assert main(["describe", "acceptance-scenario.v1"]) == 0
     description = json.loads(capsys.readouterr().out)
-    assert description["schema"] == "acceptance-scenario.v5"
+    assert description["schema"] == "acceptance-scenario.v1"
     assert len(description["sha256"]) == 64
     assert description["properties"]["scenario_id"]["type"] == "string"
 
@@ -305,7 +305,7 @@ def test_cli_creates_a_valid_unsigned_permit(
                 "init",
                 "--scenario-sha256",
                 digest,
-                "--image-digest",
+                "--subject-digest",
                 f"sha256:{digest}",
                 "--trust-policy-sha256",
                 digest,

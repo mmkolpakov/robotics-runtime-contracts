@@ -1,8 +1,9 @@
+---
 schema_version: acceptance-run.v1
 run_id: run-01234567-89ab-4def-8123-456789abcdef
-created_at: "2026-07-26T12:00:00Z"
+created_at: '2026-07-26T12:00:00Z'
 scenario_id: org.example.camera-stream
-scenario_sha256: 0780951bb379e2db6394361f69e167b189f4a607eab6d4382eb82beafafdc1f3
+scenario_sha256: 6971f903d4d734723158ad510e98caba99d7375132eba3ecad980677ea7816b8
 time_authority:
   kind: sim_clock
   source_id: simulation-clock
