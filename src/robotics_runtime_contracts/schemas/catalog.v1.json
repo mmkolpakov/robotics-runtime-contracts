@@ -1,0 +1,36 @@
+{
+  "contract_set": "v1",
+  "roles": {
+    "acceptance_observation": "acceptance-observation.v1",
+    "acceptance_aggregate": "acceptance-aggregate.v1",
+    "acceptance_result": "acceptance-result.v1",
+    "acceptance_run": "acceptance-run.v1",
+    "acceptance_scenario": "acceptance-scenario.v1",
+    "artifact_receipt": "artifact-receipt.v1",
+    "artifact_verification": "artifact-verification.v1",
+    "campaign_summary": "campaign-summary.v1",
+    "causal_chain": "causal-chain.v1",
+    "clock_relation": "clock-relation.v1",
+    "conformance_result": "conformance-result.v1",
+    "dataset_manifest": "dataset-manifest.v1",
+    "evidence_index": "evidence-index.v1",
+    "execution_permit": "execution-permit.v1",
+    "execution_verification": "execution-verification.v1",
+    "model_artifact_manifest": "model-artifact-manifest.v1",
+    "qualification_bundle": "qualification-bundle.v1",
+    "qualification_profile": "qualification-profile.v1",
+    "qualification_policy": "qualification-policy.v1",
+    "recording_summary": "recording-summary.v1",
+    "runtime_manifest": "runtime-manifest.v1",
+    "transport_channel": "transport-channel.v1",
+    "transport_channel_observation": "transport-channel-observation.v1",
+    "transport_qualification_result": "transport-qualification-result.v1"
+  },
+  "internal_resources": [
+    "common.v1",
+    "acceptance-result-core.v1",
+    "acceptance-scenario-core.v1",
+    "runtime-manifest-core.v1",
+    "transport-qualification-result-core.v1"
+  ]
+}

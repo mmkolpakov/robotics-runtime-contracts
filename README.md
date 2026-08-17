@@ -1,182 +1,126 @@
 # Robotics Runtime Contracts
 
 [![CI](https://github.com/mmkolpakov/robotics-runtime-contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/mmkolpakov/robotics-runtime-contracts/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/mmkolpakov/robotics-runtime-contracts)](https://github.com/mmkolpakov/robotics-runtime-contracts/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Define one machine-verifiable language for portable robotics executions.
+Canonical, machine-verifiable contracts for portable robotics executions.
 
-Use this repository to:
+This package defines the boundary shared by product repositories, runtime
+infrastructure, and acceptance tooling. It validates requested scenarios,
+observed runtimes, evidence, qualification inputs, and verdicts. It does not
+launch ROS 2, choose a simulator, collect telemetry, or contain product logic.
 
-1. **Declare** the requested scenario, workload, ROS graph, timing, safety, and
-   evidence policy.
-2. **Describe** the runtime, model, dataset, authorization, evidence, and final
-   result with versioned JSON Schema contracts.
-3. **Extend** domain data through digest-pinned schemas without weakening the
-   common execution boundary.
-
-The contracts are neutral to robot type, simulator scene, model family, and
-product rules. Launch files, worlds, model weights, and control logic belong in
-consumer repositories. This package validates documents; it does not start a
-runtime, observe ROS, collect evidence, or decide a verdict.
-
-## Where It Fits
+## Architecture
 
 ```mermaid
 flowchart LR
-    product["Product repository<br/>worlds, robots, models, drivers, behavior"]
-    infra["Runtime infra<br/>start services, expose facts, capture evidence"]
-    execution["Running ROS 2 execution"]
-    harness["Acceptance harness<br/>observe, evaluate, report"]
-    result["Acceptance result<br/>JSON and JUnit"]
-    contracts["Runtime contracts<br/>scenario, runtime, evidence, result"]
-
-    product --> infra --> execution --> harness --> result
-    contracts -. validates .-> product
+    product["Product repository"] --> infra["Runtime infrastructure"]
+    infra --> execution["ROS 2 execution"]
+    execution --> harness["Acceptance harness"]
+    harness --> evidence["Evidence and verdict"]
+    contracts["Runtime contracts"] -. validates .-> product
     contracts -. validates .-> infra
     contracts -. validates .-> harness
 ```
 
-The end-to-end handoff is machine-readable: a product repository supplies its
-workload and scenario, runtime infra emits observed runtime and evidence facts,
-and the harness emits an acceptance result plus JUnit. Each layer can evolve
-and be tested independently.
-
-[`robotics-runtime-infra`](https://github.com/mmkolpakov/robotics-runtime-infra)
-uses these contracts to describe the environment and evidence.
-[`robotics-acceptance-harness`](https://github.com/mmkolpakov/robotics-acceptance-harness)
-uses the same contracts to validate inputs and emit a result.
-
-## Choose an Interface
-
-| Goal | Start here |
-| --- | --- |
-| Validate an application document | [`robotics-contracts validate`](#quick-start) or [`validate_document()`](#python-api) |
-| Validate qualification links | [`robotics-contracts validate-qualification`](#quick-start) |
-| Resolve scenario overlays | `robotics-contracts scenario resolve` |
-| Inspect or compare contracts | `robotics-contracts describe` and `robotics-contracts diff` |
-| Draft a short-lived permit | `robotics-contracts permit init` |
-| Embed published schemas | [`load_schema(name)` with `schema_registry()`](#python-api) |
-| Review the public document set | [Schema Catalog](#schema-catalog) |
-| Start a consumer integration | [`consumer-examples/`](consumer-examples/) |
-| Add product-specific fields | [Domain Extensions](#domain-extensions) |
-| Change a public contract | [Compatibility policy](COMPATIBILITY.md) and [Development](#development) |
+The contracts are neutral to robot type, simulator provider, scene, model
+family, storage service, and transport implementation. Provider-specific facts
+are recorded as data or namespaced extensions; they do not select a schema.
 
 ## Install
 
-The current package line is 0.15.4. Install its attested wheel directly from the
-GitHub Release:
+Python 3.12 or newer is required. Install a wheel from a tagged
+[GitHub Release](https://github.com/mmkolpakov/robotics-runtime-contracts/releases),
+or create a development environment:
 
 ```bash
-python -m pip install \
-  https://github.com/mmkolpakov/robotics-runtime-contracts/releases/download/v0.15.4/robotics_runtime_contracts-0.15.4-py3-none-any.whl
+uv sync --locked --all-groups
 ```
 
-Python 3.12 or newer is required. Release assets include the wheel and source
-distribution. GitHub stores build-provenance attestations for both artifacts.
+Release assets include build-provenance attestations. See
+[SUPPLY_CHAIN.md](SUPPLY_CHAIN.md).
 
-## Quick Start
+## CLI
 
-Run a JSON or YAML document through the same structural, semantic, and
-extension validation used by the Python API:
+Validate JSON or YAML using its declared `schema_version`:
 
 ```bash
 robotics-contracts validate scenario.yaml
 ```
 
-Expected output identifies the validated schema. Use `--quiet` in gates and
-`--schema` only when validating a document that cannot declare
-`schema_version`. Digest-pinned domain schemas can be supplied with repeated
-`--extension-schema URI=PATH` options.
-
-Materialize RFC 7396 YAML overlays before execution and retain the deterministic
-origin trace as a separate review artifact:
+Resolve reviewed RFC 7396 overlays and retain their origin trace:
 
 ```bash
 robotics-contracts scenario resolve base.yaml \
-  --overlay camera.yaml --overlay limits.yaml \
-  --output resolved.yaml --trace-output resolution-trace.json
+  --overlay camera.yaml \
+  --overlay limits.yaml \
+  --output resolved.yaml \
+  --trace-output resolution-trace.json
 ```
 
-`robotics-contracts --format json` emits stable `error_id` values for automation.
-`diff` emits the RFC 7396 merge patch between two documents; `describe` reports a
-schema's canonical identifier and digest. `permit init` creates a validated,
-unsigned permit draft. Signing and identity verification remain external duties.
+Validate a complete, digest-linked qualification set:
 
-Use `validate-qualification` with repeated
-`--artifact KIND:SUBJECT=PATH` arguments to validate a complete signed-subject
-set. It checks every document against its exact schema and then verifies the
-run, domain, digest, transport, trace, MCAP, and retained-evidence links. Add
-`--output validated-artifacts.json` when the caller needs the hashes and run
-metadata derived from those same validated file reads. Metadata remains
-compatible with `qualification-bundle.v2`: model, dataset, physical-authorization,
-policy, and raw-MCAP subjects use the public `other_evidence` kind while retaining
-their distinct subject names and exact digests.
+```bash
+robotics-contracts validate-qualification \
+  --artifact scenario:scenario.json=scenario.json \
+  --artifact acceptance_run:acceptance-run.json=run.json \
+  --artifact runtime_manifest:runtime-manifests/main.json=runtime.json \
+  --artifact domain_result:results/main.json=result.json \
+  --artifact acceptance_aggregate:acceptance-aggregate.json=aggregate.json
+```
 
-## Schema Catalog
-
-| Schema version | Purpose |
-| --- | --- |
-| `acceptance-scenario.v5` | Declared OTLP instruments and fail-closed temporal predicates |
-| `acceptance-scenario.v4` | Delivery-latency policy separated from hardware clock synchronization |
-| `acceptance-run.v1` | Immutable run identity, scenario digest, time authority, and domain membership |
-| `acceptance-result.v5` | Live or offline result with attributed product assertions and symmetric ROS endpoints |
-| `acceptance-result.v4` | Run-scoped result with explicit time-authority delivery-latency observations |
-| `acceptance-aggregate.v4` | Per-domain aggregation with an optional digest-pinned transport qualification |
-| `campaign-summary.v1` | Digest-linked acceptance over a set of existing run aggregates |
-| `causal-chain.v1` | Ordered channel expectations for a cross-domain causal chain |
-| `clock-relation.v1` | Measured skew between two execution domains |
-| `model-artifact-manifest.v1` | Model provenance, provider compatibility, and numerical conformance |
-| `dataset-manifest.v1` | Immutable MCAP datasets, channels, time base, and governance |
-| `runtime-manifest.v3` | Runtime facts with namespaced configuration-artifact kinds |
-| `runtime-manifest.v2` | Observed runtime plus digest-linked provider, topology, and resource configuration |
-| `runtime-manifest.v1` | Compatible reader for the original runtime fact set |
-| `execution-permit.v1` | Short-lived two-party physical execution permit bound to policy and target identity |
-| `execution-verification.v1` | Verified Sigstore signers, target, and execution-policy decision |
-| `evidence-index.v3` | Evidence index with standards-compliant vendor media types |
-| `evidence-index.v2` | Evidence policy observation and MCAP summary references |
-| `mcap-summary.v1` | Canonical MCAP statistics and channel summary |
-| `qualification-bundle.v2` | In-toto-shaped qualification evidence statement, including transport results when used |
-| `qualification-policy.v2` | Trust policy for qualification-bundle verification |
-| `zenoh-channel.v1` | Cross-domain channel contract |
-| `zenoh-channel-observation.v1` | Observed cross-domain channel delivery and trace evidence |
-| `transport-qualification-result.v2` | Transport verdict with digest-linked cross-domain clock relations |
-| `transport-qualification-result.v1` | Domain-neutral channel-delivery and causal-trace qualification verdict |
-
-Every schema uses JSON Schema Draft 2020-12, rejects unknown root fields, has a
-versioned `$id`, and is included in the Python wheel.
+Use `--quiet` for gates and `--format json` for stable machine-readable
+diagnostics. `describe` reports a schema identifier and digest, `diff` emits an
+RFC 7396 merge patch, and `permit init --subject-digest ...` creates an unsigned
+physical-execution permit for an external signing workflow.
 
 ## Python API
 
 ```python
 from robotics_runtime_contracts import (
-    ContractValidationError,
-    SemanticValidationError,
-    load_schema,
-    schema_names,
-    schema_path,
+    schema_for_role,
     schema_registry,
     validate_document,
+    validate_role,
 )
-from jsonschema import Draft202012Validator
 
-print(schema_names())
 validate_document(document)
-schema = load_schema("runtime-manifest.v3")
-validator = Draft202012Validator(schema, registry=schema_registry())
+validate_role(document, "acceptance_scenario")
+print(schema_for_role("runtime_manifest"))
+registry = schema_registry()
 ```
 
-`validate_document()` selects the contract from `schema_version`. Structural
-and semantic failures include an exact JSON path. Newer schemas reuse immutable
-older definitions by canonical URN, so embedded JSON Schema validators must use
-the package's offline registry; no network retrieval occurs.
+Validation is offline, does not mutate inputs, rejects non-finite numbers, and
+reports structural and semantic failures with an exact JSON path. The package
+also exports `worst_status()` as the single status-folding rule shared by all
+consumers.
 
-## Domain Extensions
+## Contract Set
 
-`acceptance-scenario.v5` supports independently versioned, namespaced extension
-schemas without weakening common safety, time, or evidence rules. The caller
-supplies the digest-pinned schema bytes; validation never fetches a schema from
-the network.
+The repository currently publishes one canonical `v1` contract set. The
+machine-readable source of truth is
+[`catalog.v1.json`](src/robotics_runtime_contracts/schemas/catalog.v1.json).
+
+| Area | Public roles |
+| --- | --- |
+| Execution | scenario, run, observation, result, aggregate, campaign |
+| Runtime | runtime manifest, model manifest, dataset manifest |
+| Evidence | evidence index, recording summary, artifact receipt |
+| Qualification | profile, conformance result, bundle, policy |
+| Physical safety | execution permit and verification |
+| Cross-domain transport | channel, observation, clock relation, causal chain, qualification result |
+
+Every public document uses JSON Schema Draft 2020-12, declares a
+`schema_version` ending in `.v1`, rejects unknown root fields, and has an ID in
+the `urn:robotics-runtime-contracts:v1:*` namespace. Internal schema resources
+exist only to remove duplication and are not document roles.
+
+## Extensions
+
+Domain teams can add digest-pinned schemas without changing the common
+contract. Extension keys use reverse-domain namespaces such as
+`org.example.sorting`; schema bytes are supplied by the caller and are never
+fetched from the network.
 
 ```python
 validate_document(
@@ -187,23 +131,20 @@ validate_document(
 )
 ```
 
-Extension keys use reverse-domain namespaces such as `org.example.sorting`.
-External `$ref` values are rejected to keep validation deterministic and free
-from network or file-system side effects.
+Promote an extension into the common catalog only after it has reusable
+semantics and evidence from more than one domain.
 
-## Compatibility
+## Version Policy
 
-[COMPATIBILITY.md](COMPATIBILITY.md) defines package SemVer, immutable published
-schema bytes, exact reader and writer behavior, the migration policy for every
-schema, and the normative ROS 2 Jazzy, Gazebo Harmonic, and zstd basis.
+There are no external consumers yet. Until package `1.0.0`, `main` carries one
+canonical `v1` shape per role and does not retain compatibility readers for
+superseded experiments. Released tags remain immutable and reproducible; a
+breaking change to the active pre-1.0 contract set requires release notes and a
+package minor version. See [COMPATIBILITY.md](COMPATIBILITY.md).
 
-HIL and real-target contracts are observation-only and never authorize physical
-actuation.
-
-Package installation is not a hardware qualification. Accelerator, HIL, and
-real-target claims are owned by the runtime infrastructure's
-[support matrix](https://github.com/mmkolpakov/robotics-runtime-infra#support-status)
-and are scoped to an exact source revision, image digest, and named device.
+HIL and real-target contracts are observation-only. A valid document is not an
+authorization to actuate hardware and is not proof that a device or accelerator
+has been qualified.
 
 ## Development
 
@@ -211,27 +152,12 @@ and are scoped to an exact source revision, image digest, and named device.
 uv sync --locked --all-groups
 uv run pre-commit run --all-files --show-diff-on-failure
 uv run pytest
-uv build
+uv build --no-sources
 ```
 
-CI validates every schema against its metaschema, runs positive and negative
-fixtures and neutral consumer examples, runs strict static analysis, builds
-wheel and source distributions, and verifies the installed artifacts.
-
-## Support and Security
-
-Use [GitHub Issues](https://github.com/mmkolpakov/robotics-runtime-contracts/issues)
-for reproducible contract defects and compatibility questions. See
-[CONTRIBUTING.md](CONTRIBUTING.md) before proposing a schema change. Report
-security-sensitive findings according to [SECURITY.md](SECURITY.md); never put
-credentials, private datasets, device identifiers, or signing material in an
-issue.
-
-The package currently declares
-[REP-2004 Quality Level 4](QUALITY_DECLARATION.md). Release components and their
-factual SLSA Build level are listed in [SUPPLY_CHAIN.md](SUPPLY_CHAIN.md).
-Package-scoped architecture decisions are recorded in
-[`docs/decisions`](docs/decisions/).
+Consumer examples live in [`consumer-examples/`](consumer-examples/).
+Contributions must follow [CONTRIBUTING.md](CONTRIBUTING.md), and security
+reports must follow [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -1,11 +1,12 @@
-schema_version: acceptance-scenario.v4
+---
+schema_version: acceptance-scenario.v1
 scenario_id: org.example.camera-playback
 execution:
   target_environment: simulation
   hardware_scope: []
   physical_effect: none
   test_intent: functional
-  data_source: mcap_playback
+  data_source: recording_playback
   plant_backend: recorded_data
   time_mode: playback_clocked
   data_plane_profile: standard_isolated
@@ -57,3 +58,8 @@ evidence_policy:
   upload_mode: local_only
   retention_class: pull-request-7d
   remote_sink_allowed: false
+provider_requirements:
+  capabilities:
+    - recording_playback
+evaluator_requirements: []
+metric_definitions: []

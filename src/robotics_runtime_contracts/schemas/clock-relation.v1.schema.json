@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:clock-relation:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:clock-relation",
   "title": "Cross-domain clock relation v1",
   "description": "Qualified clock relation required before interpreting cross-domain latency.",
   "type": "object",
@@ -23,7 +23,7 @@
     "finished_at": {"type": "string", "format": "date-time"},
     "sample_count": {"type": "integer", "minimum": 0},
     "max_absolute_skew_ms": {"type": "number", "minimum": 0},
-    "policy": {"$ref": "urn:robotics-runtime-contracts:acceptance-scenario:v5#/$defs/timePolicy/properties/cross_domain_clock"},
+    "policy": {"$ref": "urn:robotics-runtime-contracts:v1:acceptance-scenario#/$defs/timePolicy/properties/cross_domain_clock"},
     "shared_clock_identity": {
       "type": "object",
       "additionalProperties": false,

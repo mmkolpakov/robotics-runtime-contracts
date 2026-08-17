@@ -14,9 +14,9 @@ SHA = "a" * 64
 TYPE_HASH = f"RIHS01_{'1' * 64}"
 
 
-def zenoh_channel() -> dict[str, object]:
+def transport_channel() -> dict[str, object]:
     return {
-        "schema_version": "zenoh-channel.v1",
+        "schema_version": "transport-channel.v1",
         "channel_id": "control.commands",
         "source": {
             "domain_id": "control",
@@ -32,12 +32,11 @@ def zenoh_channel() -> dict[str, object]:
             "message_type": "example_interfaces/msg/String",
             "type_hash": TYPE_HASH,
         },
-        "bridge": {
-            "implementation": "zenoh-bridge-ros2dds",
+        "implementation_binding": {
+            "implementation_id": "reference_bridge",
             "version": "1.9.0",
             "configuration_sha256": "2" * 64,
-            "dds_discovery_scope": "local_domain_only",
-            "zenoh_key_expression": "robotics/control/commands",
+            "options": {"discovery_scope": "local_domain_only"},
         },
         "qos": {
             "reliability": "reliable",
@@ -69,7 +68,7 @@ def zenoh_channel() -> dict[str, object]:
 
 def channel_observation() -> dict[str, object]:
     return {
-        "schema_version": "zenoh-channel-observation.v1",
+        "schema_version": "transport-channel-observation.v1",
         "observation_id": "observation-00000000-0000-4000-8000-000000000001",
         "run_id": "run-00000000-0000-4000-8000-000000000001",
         "channel_id": "control.commands",
@@ -112,6 +111,7 @@ def transport_qualification() -> dict[str, object]:
         "schema_version": "transport-qualification-result.v1",
         "qualification_id": "qualification-00000000-0000-4000-8000-000000000001",
         "run_id": "run-00000000-0000-4000-8000-000000000001",
+        "scenario_sha256": SHA,
         "generated_at": "2026-07-26T12:00:00Z",
         "evaluator": {
             "implementation": "robotics-acceptance-harness",
@@ -121,6 +121,7 @@ def transport_qualification() -> dict[str, object]:
             {
                 "domain_id": domain_id,
                 "evidence_index_sha256": digest * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": f"file:///evidence/{domain_id}.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -133,6 +134,15 @@ def transport_qualification() -> dict[str, object]:
                 ("control", "d", "6"),
                 ("worker", "e", "7"),
             )
+        ],
+        "clock_relations": [
+            {
+                "relation_id": "control-worker-clock",
+                "source_domain_id": "control",
+                "destination_domain_id": "worker",
+                "sha256": "4" * 64,
+                "status": "passed",
+            }
         ],
         "causal_chain_contracts": [
             {
@@ -201,7 +211,7 @@ def transport_qualification() -> dict[str, object]:
 
 def acceptance_aggregate() -> dict[str, object]:
     return {
-        "schema_version": "acceptance-aggregate.v4",
+        "schema_version": "acceptance-aggregate.v1",
         "aggregate_id": "aggregate-00000000-0000-4000-8000-000000000001",
         "run_id": "run-00000000-0000-4000-8000-000000000001",
         "acceptance_run_sha256": SHA,
@@ -244,7 +254,7 @@ def qualification_bundle() -> dict[str, object]:
         "channel_contract",
         "channel_observation",
         "evidence_index",
-        "mcap_summary",
+        "recording_summary",
     )
     subjects = [
         {
@@ -257,10 +267,10 @@ def qualification_bundle() -> dict[str, object]:
         "_type": "https://in-toto.io/Statement/v1",
         "subject": subjects,
         "predicateType": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
         ),
         "predicate": {
-            "schema_version": "qualification-bundle.v2",
+            "schema_version": "qualification-bundle.v1",
             "run_id": "run-00000000-0000-4000-8000-000000000001",
             "generated_at": "2026-07-26T12:00:00Z",
             "artifacts": [
@@ -276,10 +286,10 @@ def qualification_bundle() -> dict[str, object]:
 
 def qualification_policy() -> dict[str, object]:
     return {
-        "schema_version": "qualification-policy.v2",
+        "schema_version": "qualification-policy.v1",
         "policy_id": "github-release-main",
         "predicate_type": (
-            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+            "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
         ),
         "certificate_identities": [
             (
@@ -296,17 +306,17 @@ def qualification_policy() -> dict[str, object]:
             "domain_result",
             "acceptance_aggregate",
             "evidence_index",
-            "mcap_summary",
+            "recording_summary",
         ],
     }
 
 
-def test_zenoh_channel_contract_is_valid() -> None:
-    validate_document(zenoh_channel())
+def test_transport_channel_contract_is_valid() -> None:
+    validate_document(transport_channel())
 
 
-def test_zenoh_channel_rejects_same_source_and_destination() -> None:
-    document = zenoh_channel()
+def test_transport_channel_rejects_same_source_and_destination() -> None:
+    document = transport_channel()
     destination = document["destination"]
     assert isinstance(destination, dict)
     destination["domain_id"] = "control"
@@ -315,8 +325,8 @@ def test_zenoh_channel_rejects_same_source_and_destination() -> None:
         validate_document(document)
 
 
-def test_zenoh_channel_rejects_type_hash_mismatch() -> None:
-    document = zenoh_channel()
+def test_transport_channel_rejects_type_hash_mismatch() -> None:
+    document = transport_channel()
     destination = document["destination"]
     assert isinstance(destination, dict)
     destination["type_hash"] = f"RIHS01_{'2' * 64}"
@@ -325,8 +335,8 @@ def test_zenoh_channel_rejects_type_hash_mismatch() -> None:
         validate_document(document)
 
 
-def test_zenoh_keep_all_rejects_depth() -> None:
-    document = zenoh_channel()
+def test_transport_keep_all_rejects_depth() -> None:
+    document = transport_channel()
     qos = document["qos"]
     assert isinstance(qos, dict)
     qos["history"] = "keep_all"
@@ -518,6 +528,15 @@ def test_transport_qualification_rejects_transition_reused_for_another_channel()
             "status": "passed",
         }
     )
+    document["clock_relations"].append(
+        {
+            "relation_id": "worker-control-clock",
+            "source_domain_id": "worker",
+            "destination_domain_id": "control",
+            "sha256": "9" * 64,
+            "status": "passed",
+        }
+    )
     duplicate_hop = deepcopy(document["causal_chains"][0]["hops"][0])
     duplicate_hop["channel_id"] = "control.retry"
     duplicate_hop["producer"]["domain_id"] = "worker"
@@ -536,6 +555,7 @@ def test_transport_qualification_rejects_disconnected_channel_sequence() -> None
             {
                 "domain_id": "isolated-source",
                 "evidence_index_sha256": "3" * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": "file:///evidence/isolated-source.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -547,6 +567,7 @@ def test_transport_qualification_rejects_disconnected_channel_sequence() -> None
             {
                 "domain_id": "isolated-target",
                 "evidence_index_sha256": "5" * 64,
+                "artifact_id": "artifact-1",
                 "segment_index": 3,
                 "uri": "file:///evidence/isolated-target.otlp.jsonl",
                 "media_type": "application/x-ndjson",
@@ -592,6 +613,7 @@ def test_transport_qualification_accepts_branching_chains() -> None:
         {
             "domain_id": "observer",
             "evidence_index_sha256": "2" * 64,
+            "artifact_id": "artifact-1",
             "segment_index": 3,
             "uri": "file:///evidence/observer.otlp.jsonl",
             "media_type": "application/x-ndjson",
@@ -620,6 +642,15 @@ def test_transport_qualification_accepts_branching_chains() -> None:
             "channel_id": "control.observations",
             "observation_id": "observation-00000000-0000-4000-8000-000000000002",
             "sha256": "6" * 64,
+            "status": "passed",
+        }
+    )
+    document["clock_relations"].append(
+        {
+            "relation_id": "control-observer-clock",
+            "source_domain_id": "control",
+            "destination_domain_id": "observer",
+            "sha256": "9" * 64,
             "status": "passed",
         }
     )
@@ -707,7 +738,7 @@ def test_transport_qualification_rejects_domain_acceptance_fields() -> None:
 
 
 def test_qualification_bundle_is_an_in_toto_statement() -> None:
-    validate_document(qualification_bundle(), schema="qualification-bundle.v2")
+    validate_document(qualification_bundle(), schema="qualification-bundle.v1")
 
 
 def test_qualification_bundle_rejects_embedded_trust_policy() -> None:
@@ -717,7 +748,7 @@ def test_qualification_bundle_rejects_embedded_trust_policy() -> None:
     predicate["trust_policy"] = {"certificate_identity": "self-authorized"}
 
     with pytest.raises(ContractValidationError):
-        validate_document(document, schema="qualification-bundle.v2")
+        validate_document(document, schema="qualification-bundle.v1")
 
 
 def test_qualification_policy_is_independent_and_valid() -> None:
@@ -731,4 +762,4 @@ def test_qualification_bundle_classifies_every_subject() -> None:
     subjects[-1]["name"] = "artifacts/unclassified.json"
 
     with pytest.raises(SemanticValidationError, match="classify every statement subject"):
-        validate_document(document, schema="qualification-bundle.v2")
+        validate_document(document, schema="qualification-bundle.v1")

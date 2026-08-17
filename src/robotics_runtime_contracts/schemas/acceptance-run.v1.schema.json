@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:acceptance-run:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:acceptance-run",
   "title": "Acceptance run context",
   "description": "Immutable context created before an acceptance execution starts.",
   "type": "object",

@@ -56,7 +56,7 @@ def test_minimal_simulation_uses_actual_artifact_digest_chain() -> None:
     time_evidence_sha256 = file_sha256(time_evidence_path)
     time_evidence_size = time_evidence_path.stat().st_size
     result_evidence = result["evidence"][0]
-    indexed_evidence = evidence_index["segments"][0]
+    indexed_evidence = evidence_index["artifacts"][0]
     assert result["time_authority_observation"]["evidence_sha256"] == time_evidence_sha256
     assert result_evidence["sha256"] == indexed_evidence["sha256"] == time_evidence_sha256
     assert result_evidence["size_bytes"] == indexed_evidence["size_bytes"] == time_evidence_size

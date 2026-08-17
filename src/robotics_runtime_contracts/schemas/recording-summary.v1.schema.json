@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:mcap-summary:v1",
-  "title": "MCAP summary v1",
-  "description": "Deterministic summary extracted from a finalized MCAP footer and Statistics record.",
+  "$id": "urn:robotics-runtime-contracts:v1:recording-summary",
+  "title": "recording summary v1",
+  "description": "Deterministic summary extracted from a finalized recording footer and Statistics record.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "mcap-summary.v1"
+      "const": "recording-summary.v1"
     },
     "source_sha256": {
       "$ref": "#/$defs/sha256"

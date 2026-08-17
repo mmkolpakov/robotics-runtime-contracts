@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:dataset-manifest:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:dataset-manifest",
   "title": "Robotics dataset manifest",
-  "description": "Immutable MCAP dataset contract for simulation, HIL, and real-robot playback.",
+  "description": "Immutable recording dataset contract for simulation, HIL, and real-robot playback.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -67,30 +67,6 @@
       "$ref": "#/$defs/extensions"
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "artifact": {
-            "properties": {
-              "uri": {
-                "pattern": "^s3://"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "artifact": {
-            "required": [
-              "object_version_id"
-            ]
-          }
-        }
-      }
-    }
-  ],
   "$defs": {
     "identifier": {
       "type": "string",
@@ -114,6 +90,7 @@
       "additionalProperties": false,
       "required": [
         "uri",
+        "immutable_revision",
         "size_bytes",
         "sha256",
         "media_type",
@@ -122,9 +99,10 @@
       "properties": {
         "uri": {
           "type": "string",
-          "pattern": "^(?:s3|oci|https)://[^\\s]+$"
+          "format": "uri",
+          "maxLength": 2048
         },
-        "object_version_id": {
+        "immutable_revision": {
           "type": "string",
           "minLength": 1,
           "maxLength": 1024
@@ -137,10 +115,14 @@
           "$ref": "#/$defs/sha256"
         },
         "media_type": {
-          "const": "application/mcap"
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 255
         },
         "storage_id": {
-          "const": "mcap"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
         }
       }
     },
@@ -326,7 +308,8 @@
       "properties": {
         "uri": {
           "type": "string",
-          "pattern": "^(?:s3|oci|https)://[^\\s]+$"
+          "format": "uri",
+          "maxLength": 2048
         },
         "sha256": {
           "$ref": "#/$defs/sha256"

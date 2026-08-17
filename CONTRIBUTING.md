@@ -6,11 +6,10 @@ Changes must remain independent of a specific robot, simulator scene, model
 family, or product rule. Domain data belongs in a digest-pinned namespaced
 extension, not in a common schema.
 
-Published schema versions are immutable. Follow
-[COMPATIBILITY.md](COMPATIBILITY.md): add a new schema version for a breaking
-field or semantic change. Superseded pre-1.0 schemas remain immutable in their
-tagged releases and leave the current catalog only when no consumer requires
-them.
+Follow [COMPATIBILITY.md](COMPATIBILITY.md). Before package `1.0.0`, update the
+single canonical `v1` contract set and remove superseded experiments. A
+breaking change requires a package minor release, release notes, and a migration
+plan for every known consumer. Tagged releases remain immutable.
 
 Architectural changes to this package require an accepted
 [MADR](https://adr.github.io/madr/) record in
@@ -30,10 +29,10 @@ uv build --no-sources
 ```
 
 Every schema change requires positive and negative fixtures, a metaschema test,
-semantic tests where JSON Schema cannot express the invariant, and migration
-notes for consumers. Update the neutral documents in `consumer-examples/` when
-a public consumer workflow changes. Pull requests must not include credentials,
-private data, model weights, recordings, or hardware identifiers.
+semantic tests where JSON Schema cannot express the invariant, and a synchronized
+cross-repository fixture. Update `consumer-examples/` when a public workflow
+changes. Pull requests must not include credentials, private data, model
+weights, recordings, or hardware identifiers.
 
 ## Pull Requests
 

@@ -26,7 +26,7 @@ verdict semantics.
 ## Decision Outcome
 
 `transport-qualification-result.v1` remains the sole owner of transport
-evidence and its verdict. `acceptance-aggregate.v4` contains per-domain
+evidence and its verdict. `acceptance-aggregate.v1` contains per-domain
 results and, when available, the transport result identifier, digest, and
 status. The aggregate status is derived from the domain and transport
 statuses.

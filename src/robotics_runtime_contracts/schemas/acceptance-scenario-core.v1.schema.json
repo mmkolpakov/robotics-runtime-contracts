@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:acceptance-scenario:v4",
-  "title": "Robotics acceptance scenario v4",
+  "$id": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core",
+  "title": "Robotics acceptance scenario v1",
   "description": "Acceptance contract with attributed metrics, measured time-authority delivery latency, separate hardware clock synchronization limits, explicit authorization, forbidden ROS interfaces, and an explicit stepped-simulation skip budget.",
   "type": "object",
   "additionalProperties": false,
@@ -21,7 +21,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "acceptance-scenario.v4"
+      "const": "acceptance-scenario.v1"
     },
     "scenario_id": {
       "$ref": "#/$defs/imported__acceptance-scenario__identifier"
@@ -112,7 +112,7 @@
           "execution": {
             "properties": {
               "data_source": {
-                "const": "gazebo"
+                "const": "simulator"
               }
             }
           }
@@ -126,7 +126,7 @@
                 "const": "simulation"
               },
               "plant_backend": {
-                "const": "gazebo_physics"
+                "const": "simulated_physics"
               },
               "time_mode": {
                 "enum": [
@@ -145,7 +145,7 @@
           "execution": {
             "properties": {
               "data_source": {
-                "const": "mcap_playback"
+                "const": "recording_playback"
               }
             }
           }
@@ -663,15 +663,15 @@
         },
         "data_source": {
           "enum": [
-            "gazebo",
-            "mcap_playback",
+            "simulator",
+            "recording_playback",
             "live_target"
           ]
         },
         "plant_backend": {
           "enum": [
             "interface_mock",
-            "gazebo_physics",
+            "simulated_physics",
             "recorded_data",
             "real_hardware"
           ]
@@ -685,11 +685,9 @@
           ]
         },
         "data_plane_profile": {
-          "enum": [
-            "standard_isolated",
-            "local_high_throughput",
-            "secure_shared_memory"
-          ]
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
         },
         "security_profile": {
           "enum": [
@@ -1072,7 +1070,7 @@
         "private_ipc": {
           "type": "boolean"
         },
-        "fastdds_profile_sha256": {
+        "middleware_configuration_sha256": {
           "$ref": "#/$defs/imported__acceptance-scenario__sha256"
         }
       }

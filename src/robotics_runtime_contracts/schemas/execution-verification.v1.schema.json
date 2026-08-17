@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:execution-verification:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:execution-verification",
   "title": "Robotics execution verification v1",
   "description": "Fail-closed record of two independently verified Sigstore execution-permit signatures and policy authorization.",
   "type": "object",
@@ -15,7 +15,7 @@
     "target",
     "verified_at",
     "cosign_version",
-    "cosign_image_digest",
+    "cosign_subject_digest",
     "signers",
     "decision"
   ],
@@ -49,7 +49,7 @@
       "type": "string",
       "pattern": "^3\\.[0-9]+\\.[0-9]+$"
     },
-    "cosign_image_digest": {
+    "cosign_subject_digest": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
     },

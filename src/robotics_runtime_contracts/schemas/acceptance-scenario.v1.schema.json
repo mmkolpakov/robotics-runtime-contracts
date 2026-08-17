@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:acceptance-scenario",
+  "title": "Robotics acceptance scenario v1",
+  "description": "Acceptance scenario with declared OTLP instruments and temporal predicates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "execution",
+    "authorization",
+    "forbidden_ros_graph",
+    "seed",
+    "timeouts",
+    "expected_ros_graph",
+    "provider_requirements",
+    "evaluator_requirements",
+    "metric_definitions",
+    "assertions",
+    "time_policy",
+    "data_plane_policy",
+    "evidence_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": "acceptance-scenario.v1"},
+    "scenario_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/scenario_id"},
+    "execution": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/execution"},
+    "authorization": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/authorization"},
+    "forbidden_ros_graph": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/forbidden_ros_graph"},
+    "seed": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/seed"},
+    "dataset_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/dataset_manifest_sha256"},
+    "model_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/model_manifest_sha256"},
+    "timeouts": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/timeouts"},
+    "expected_ros_graph": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/expected_ros_graph"},
+    "provider_requirements": {"$ref": "#/$defs/providerRequirements"},
+    "evaluator_requirements": {"type": "array", "items": {"$ref": "#/$defs/evaluatorRequirement"}},
+    "metric_definitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/metricDefinition"}
+    },
+    "assertions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__metricAssertion"},
+          {"$ref": "#/$defs/metricDurationAssertion"}
+        ]
+      }
+    },
+    "time_policy": {"$ref": "#/$defs/timePolicy"},
+    "data_plane_policy": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/data_plane_policy"},
+    "evidence_policy": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/evidence_policy"},
+    "extension_schemas": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/extension_schemas"},
+    "extensions": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/properties/extensions"}
+  },
+  "allOf": [
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/0"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/1"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/2"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/3"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/4"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/5"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/6"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/7"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/8"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/9"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/10"},
+    {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/allOf/11"}
+  ],
+  "$defs": {
+    "timePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_authority_min_samples",
+        "max_time_authority_delivery_latency_p50_ms",
+        "max_time_authority_delivery_latency_p95_ms",
+        "max_time_authority_delivery_latency_ms"
+      ],
+      "properties": {
+        "min_realtime_factor": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/min_realtime_factor"},
+        "max_deadline_miss_ratio": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_deadline_miss_ratio"},
+        "step_size_sec": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/step_size_sec"},
+        "max_skipped_steps": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_skipped_steps"},
+        "playback_rate": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/playback_rate"},
+        "min_clock_hz": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/min_clock_hz"},
+        "message_order": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/message_order"},
+        "qos_overrides_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/qos_overrides_sha256"},
+        "clock_sync_protocol": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/clock_sync_protocol"},
+        "max_clock_offset_ms": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_clock_offset_ms"},
+        "max_time_authority_delivery_latency_p50_ms": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_time_authority_delivery_latency_p50_ms"},
+        "max_time_authority_delivery_latency_p95_ms": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_time_authority_delivery_latency_p95_ms"},
+        "max_time_authority_delivery_latency_ms": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_time_authority_delivery_latency_ms"},
+        "time_authority_min_samples": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/time_authority_min_samples"},
+        "max_clock_drift_ppm": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_clock_drift_ppm"},
+        "max_message_age_ms": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__timePolicy/properties/max_message_age_ms"},
+        "cross_domain_clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method"],
+          "properties": {
+            "method": {"enum": ["measured_skew", "shared_clock_identity"]},
+            "minimum_samples": {"type": "integer", "minimum": 2},
+            "maximum_absolute_skew_ms": {"type": "number", "minimum": 0}
+          },
+          "oneOf": [
+            {
+              "properties": {"method": {"const": "measured_skew"}},
+              "required": ["minimum_samples", "maximum_absolute_skew_ms"]
+            },
+            {
+              "properties": {"method": {"const": "shared_clock_identity"}},
+              "not": {
+                "anyOf": [
+                  {"required": ["minimum_samples"]},
+                  {"required": ["maximum_absolute_skew_ms"]}
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "metricName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9_]*)+$",
+      "maxLength": 255
+    },
+    "metricDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_name", "unit", "instrument_kind", "temporality"],
+      "properties": {
+        "metric_name": {"$ref": "#/$defs/metricName"},
+        "unit": {"type": "string", "minLength": 1, "maxLength": 64},
+        "instrument_kind": {"enum": ["gauge", "sum", "histogram"]},
+        "temporality": {"enum": ["instantaneous", "delta", "cumulative", "unspecified"]},
+        "monotonic": {"type": "boolean", "default": false}
+      }
+    },
+    "durationRequirement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "duration_sec"],
+          "properties": {
+            "kind": {"const": "minimum_contiguous"},
+            "duration_sec": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "duration_sec"],
+          "properties": {
+            "kind": {"const": "maximum_violation"},
+            "duration_sec": {"type": "number", "minimum": 0}
+          }
+        }
+      ]
+    },
+    "metricDurationAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assertion_id",
+        "kind",
+        "metric_name",
+        "unit",
+        "operator",
+        "threshold",
+        "window_sec",
+        "max_sample_gap_sec",
+        "duration_requirement",
+        "attribute_match"
+      ],
+      "properties": {
+        "assertion_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__identifier"},
+        "kind": {"const": "metric_duration"},
+        "metric_name": {"$ref": "#/$defs/metricName"},
+        "unit": {"type": "string", "minLength": 1, "maxLength": 64},
+        "operator": {"enum": ["lt", "lte", "eq", "gte", "gt"]},
+        "threshold": {"type": "number"},
+        "window_sec": {"type": "number", "exclusiveMinimum": 0},
+        "max_sample_gap_sec": {"type": "number", "exclusiveMinimum": 0},
+        "duration_requirement": {"$ref": "#/$defs/durationRequirement"},
+        "attribute_match": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__metricAssertion/properties/attribute_match"}
+      }
+    },
+    "providerRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capabilities"],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+            "maxLength": 128
+          }
+        },
+        "scene": {"$ref": "#/$defs/sceneRequirements"}
+      }
+    },
+    "sceneRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_scene_id", "required_entities", "required_interfaces"],
+      "properties": {
+        "semantic_scene_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
+        },
+        "required_entities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 256}
+        },
+        "required_interfaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 256}
+        },
+        "physical_parameters": {
+          "type": "object",
+          "additionalProperties": {"type": ["number", "integer", "string", "boolean"]}
+        }
+      }
+    },
+    "evaluatorRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "entry_point", "distribution", "version", "artifact_sha256", "receipt_sha256"],
+      "properties": {
+        "namespace": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"},
+        "entry_point": {"type": "string", "minLength": 1, "maxLength": 256},
+        "distribution": {"type": "string", "minLength": 1, "maxLength": 256},
+        "version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "artifact_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__sha256"},
+        "receipt_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:acceptance-scenario-core#/$defs/imported__acceptance-scenario__sha256"}
+      }
+    }
+  }
+}

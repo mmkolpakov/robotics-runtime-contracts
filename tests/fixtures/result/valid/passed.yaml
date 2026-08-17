@@ -1,4 +1,5 @@
-schema_version: acceptance-result.v4
+---
+schema_version: acceptance-result.v1
 result_id: result-01234567-89ab-4def-8123-456789abcdef
 run_id: run-01234567-89ab-4def-8123-456789abcdef
 scenario_id: org.example.camera-stream
@@ -8,8 +9,8 @@ unevaluated: []
 scenario_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 runtime_manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 model_manifest_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-started_at: "2026-07-11T12:00:00Z"
-finished_at: "2026-07-11T12:02:00Z"
+started_at: '2026-07-11T12:00:00Z'
+finished_at: '2026-07-11T12:02:00Z'
 monotonic_duration_sec: 120
 status: passed
 assertion_results:
@@ -17,6 +18,7 @@ assertion_results:
     status: passed
     observed_value: 20.1
     unit: ms
+    source: core
 observed_ros_graph:
   stable_for_sec: 3
   topics:
@@ -35,8 +37,8 @@ forbidden_graph_observation:
   violations: []
 execution:
   target_environment: simulation
-  data_source: gazebo
-  plant_backend: gazebo_physics
+  data_source: simulator
+  plant_backend: simulated_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
 authorization:
@@ -75,3 +77,14 @@ evidence:
     size_bytes: 1024
     retention_class: pull-request-7d
     segment_index: 0
+    artifact_id: evidence-0
+    kind: recording
+evaluation_mode: live
+runtime_observation:
+  execution_subject_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  ros_domain_id: 42
+  rmw_implementation: rmw_fastrtps_cpp
+  rmw_version: 0.0.0-fixture
+  security_enabled: false
+  security_strategy: none
+evaluators: []

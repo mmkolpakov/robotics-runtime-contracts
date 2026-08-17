@@ -1,13 +1,14 @@
+---
 schema_version: dataset-manifest.v1
 dataset_id: org.example.camera-baseline
 version: 1.0.0
 artifact:
   uri: s3://robotics-datasets/camera-baseline.mcap
-  object_version_id: 3LgExampleVersion
   size_bytes: 104857600
   sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   media_type: application/mcap
   storage_id: mcap
+  immutable_revision: 3LgExampleVersion
 channels:
   - topic: /camera/image
     type: sensor_msgs/msg/Image
@@ -26,7 +27,7 @@ time:
 source: real_robot
 provenance:
   producer: capture-pipeline
-  captured_at: "2026-07-11T10:00:00Z"
+  captured_at: '2026-07-11T10:00:00Z'
   scenario_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
   runtime_manifest_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
   source_revisions:

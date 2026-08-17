@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:acceptance-aggregate:v4",
-  "title": "Robotics acceptance aggregate v4",
+  "$id": "urn:robotics-runtime-contracts:v1:acceptance-aggregate",
+  "title": "Robotics acceptance aggregate v1",
   "description": "Per-domain acceptance results with an optional reference to a separately qualified cross-domain transport result.",
   "type": "object",
   "additionalProperties": false,
@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "acceptance-aggregate.v4"
+      "const": "acceptance-aggregate.v1"
     },
     "aggregate_id": {
       "type": "string",

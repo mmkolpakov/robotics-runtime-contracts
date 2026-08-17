@@ -10,9 +10,9 @@ from uuid import uuid4
 from json_merge_patch import create_patch, merge  # type: ignore[import-untyped]
 
 from robotics_runtime_contracts import (
-    PUBLISHED_SCHEMA_SHA256,
     load_schema,
     resolve_schema_name,
+    schema_digest,
     validate_document,
 )
 
@@ -55,7 +55,7 @@ def describe_schema(schema_name: str) -> dict[str, Any]:
     return {
         "schema": canonical_name,
         "id": schema["$id"],
-        "sha256": PUBLISHED_SCHEMA_SHA256[canonical_name],
+        "sha256": schema_digest(canonical_name),
         "title": schema.get("title", ""),
         "description": schema.get("description", ""),
         "required": list(schema.get("required", [])),
@@ -105,7 +105,7 @@ def semantic_diff(
 def create_execution_permit(
     *,
     scenario_sha256: str,
-    image_digest: str,
+    subject_digest: str,
     trust_policy_sha256: str,
     environment: str,
     target_id: str,
@@ -132,7 +132,7 @@ def create_execution_permit(
         ),
         "permit_id": f"permit-{uuid4()}",
         "scenario_sha256": scenario_sha256,
-        "image_digest": image_digest,
+        "subject_digest": subject_digest,
         "trust_policy_sha256": trust_policy_sha256,
         "target": {
             "environment": environment,

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:execution-permit:v1",
+  "$id": "urn:robotics-runtime-contracts:v1:execution-permit",
   "title": "Robotics execution permit v1",
   "description": "Short-lived two-party approval predicate bound to an immutable physical target identity.",
   "type": "object",
@@ -10,7 +10,7 @@
     "predicate_type",
     "permit_id",
     "scenario_sha256",
-    "image_digest",
+    "subject_digest",
     "trust_policy_sha256",
     "target",
     "allowed_physical_effect",
@@ -35,7 +35,7 @@
     "scenario_sha256": {
       "$ref": "#/$defs/imported__execution-permit__sha256"
     },
-    "image_digest": {
+    "subject_digest": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
     },
@@ -202,7 +202,8 @@
       "properties": {
         "reference": {
           "type": "string",
-          "pattern": "^(?:https|s3|oci)://[^\\s]+$"
+          "format": "uri",
+          "maxLength": 2048
         },
         "sha256": {
           "$ref": "#/$defs/imported__execution-permit__sha256"

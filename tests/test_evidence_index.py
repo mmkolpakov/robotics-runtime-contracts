@@ -15,35 +15,38 @@ from tests.support import load_fixture
 FIXTURES = Path(__file__).parent / "fixtures" / "evidence-index"
 
 
-@pytest.mark.parametrize("field", ["segment_index", "uri"])
-def test_evidence_segments_are_unique(field: str) -> None:
+@pytest.mark.parametrize("field", ["artifact_id", "uri"])
+def test_evidence_artifacts_are_unique(field: str) -> None:
     document = load_fixture(FIXTURES / "valid" / "mixed.yaml")
-    segments = document["segments"]
-    assert isinstance(segments, list)
-    first, second = segments
+    artifacts = document["artifacts"]
+    assert isinstance(artifacts, list)
+    first, second = artifacts
     assert isinstance(first, dict)
     assert isinstance(second, dict)
     second[field] = first[field]
     if field == "uri":
-        second.pop("version_id", None)
+        second["storage_state"] = "local"
+        second["local_path"] = first["local_path"]
+        second.pop("immutable_revision", None)
+        second.pop("receipt_sha256", None)
 
     with pytest.raises(SemanticValidationError):
         validate_document(document)
 
 
-def test_mcap_segment_requires_a_deterministic_summary() -> None:
+def test_recording_artifact_requires_a_deterministic_summary() -> None:
     document = load_fixture(FIXTURES / "valid" / "mixed.yaml")
-    document["segments"][0].pop("mcap_summary")
+    document["artifacts"][0].pop("recording_summary")
 
     with pytest.raises(ContractValidationError) as caught:
         validate_document(document)
 
-    assert caught.value.json_path == "$.segments[0]"
+    assert caught.value.json_path == "$.artifacts[0]"
 
 
-def test_mcap_summary_requires_a_consistent_channel_count() -> None:
+def test_recording_summary_requires_a_consistent_channel_count() -> None:
     summary = {
-        "schema_version": "mcap-summary.v1",
+        "schema_version": "recording-summary.v1",
         "source_sha256": "a" * 64,
         "compressions": ["zstd"],
         "statistics": {

@@ -1,72 +1,70 @@
 # Compatibility Policy
 
-This policy applies to the Python package and every JSON Schema contract in the
-repository.
+This policy covers the Python distribution and its JSON Schema contracts.
 
-## Versioning
+## Pre-1.0 Canon
 
-The Python distribution follows [Semantic Versioning](https://semver.org/).
-Each document also declares an exact `schema_version`, and every schema has a
-versioned `$id`.
+The project has no external consumers. Before package `1.0.0`, the default
+branch publishes one canonical `v1` contract set. Each document role maps to
+exactly one schema in
+[`catalog.v1.json`](src/robotics_runtime_contracts/schemas/catalog.v1.json).
 
-Before package `1.0.0`, writers emit one canonical version of each document
-kind. The package can retain earlier readers when they are cheap and covered by
-immutable-schema digest tests; no writer silently downgrades. `acceptance-aggregate.v4`
-references an independently validated transport qualification instead of
-embedding its evidence graph.
+Superseded experimental readers and writers are removed rather than carried as
+parallel APIs. Historical releases remain reproducible from immutable Git tags
+and release artifacts, but the current package does not promise to read their
+documents.
 
-## Published Schemas
+## Package Versions
 
-A schema becomes immutable when it is included in a tagged release. Its bytes,
-`$id`, meaning, and recorded SHA-256 digest do not change in that release.
-Changing a published contract requires a new schema version and package minor
-release. Removing a schema from the current pre-1.0 package requires a package
-minor release and release notes.
+The Python distribution follows Semantic Versioning:
 
-`tests/test_contracts.py` verifies the digest of every schema shipped in the
-current wheel. Unreleased schemas may change on a development branch.
+- patch: implementation or documentation changes that preserve the active
+  contract set;
+- minor before `1.0`: a breaking replacement of the active contract set or a
+  new public capability;
+- major after `1.0`: a breaking public API or contract change.
+
+Every pre-1.0 breaking change requires release notes and migration notes for
+known consumers. Once external consumers exist, compatibility policy must be
+revisited before the next incompatible change.
 
 ## Readers And Writers
 
-- Readers select the validator from the document's declared `schema_version`.
-- Writers emit one explicit version; readers never guess.
-- Validation never mutates the input document.
-- Migrations are separate, explicit tools and are added only for an active
-  consumer that cannot migrate at its ownership boundary.
+- Documents declare an exact `schema_version`.
+- Readers resolve document roles through the catalog and never guess a version.
+- Writers emit only the catalogued schema for a role.
+- Validation never mutates input and never retrieves a schema from the network.
+- Migrations are introduced only for a real consumer and remain separate from
+  validation.
 - There is no implicit downgrade path.
 
-The current catalog is listed in [README.md](README.md). The package API and CLI
-reject unknown schema identifiers. Retained superseded readers remain available
-for explicit validation, while writers use only the current canonical version.
+## Schema Identity
 
-## Runtime Basis
+The canonical IDs use the `urn:robotics-runtime-contracts:v1:*` namespace.
+Public role schemas and internal reusable resources have disjoint IDs. Schema
+digests are derived from packaged bytes with `schema_digest()`; no hand-written
+digest table is maintained.
 
-The package requires CPython 3.12 or newer. Runtime contracts record ROS 2
-Jazzy, Gazebo Harmonic, and zstd where interoperability depends on them.
-Schemas remain independent of robot type, scene, model family, and product
-rules. Package installation does not qualify a runtime or physical target.
+Tagged release artifacts and their attestations are immutable. Development
+branches may change unreleased schema bytes while keeping tests, examples, and
+the three-repository integration fixture synchronized.
 
-Changing a required runtime family, compression format, or enum meaning
-requires a new schema version.
+## Neutrality
 
-## Domain Extensions
+Common contracts do not select a simulator, middleware implementation, model
+runtime, accelerator vendor, storage provider, or robot. Concrete provider
+identities and capabilities are observed data. Domain-only fields use
+digest-pinned, reverse-domain extensions.
 
-`acceptance-scenario.v5` supports digest-pinned, namespaced extensions. The
-caller supplies Draft 2020-12 schema bytes; validation performs no network
-fetches and permits only local references. An extension remains consumer-owned
-until its semantics are reusable enough for the common catalog.
-
-Moving an extension field into a common contract requires a new common schema
-version and an explicit consumer migration plan.
+Moving an extension into the common contract requires reusable semantics,
+positive and negative fixtures, and an architecture decision.
 
 ## Change Review
 
 Every contract change states:
 
-- affected readers and writers;
-- positive and negative examples;
-- migration or deliberate replacement policy;
-- runtime-basis impact;
-- evidence and safety impact.
-
-Architecture decisions are recorded in [`docs/decisions`](docs/decisions/).
+- the affected document roles and producers;
+- positive, negative, and cross-repository tests;
+- evidence and physical-safety impact;
+- the package-version impact;
+- the migration plan for any known consumer.

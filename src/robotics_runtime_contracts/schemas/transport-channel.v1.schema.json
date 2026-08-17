@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:zenoh-channel:v1",
-  "title": "Robotics Zenoh channel contract v1",
-  "description": "A traceable ROS 2 topic routed between isolated DDS domains by zenoh-bridge-ros2dds.",
+  "$id": "urn:robotics-runtime-contracts:v1:transport-channel",
+  "title": "Robotics transport channel contract v1",
+  "description": "A traceable ROS 2 channel routed between isolated communication domains.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,14 +10,14 @@
     "channel_id",
     "source",
     "destination",
-    "bridge",
+    "implementation_binding",
     "qos",
     "delivery",
     "trace"
   ],
   "properties": {
     "schema_version": {
-      "const": "zenoh-channel.v1"
+      "const": "transport-channel.v1"
     },
     "channel_id": {
       "$ref": "#/$defs/identifier"
@@ -28,19 +28,19 @@
     "destination": {
       "$ref": "#/$defs/endpoint"
     },
-    "bridge": {
+    "implementation_binding": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "implementation",
+        "implementation_id",
         "version",
-        "configuration_sha256",
-        "dds_discovery_scope",
-        "zenoh_key_expression"
+        "configuration_sha256"
       ],
       "properties": {
-        "implementation": {
-          "const": "zenoh-bridge-ros2dds"
+        "implementation_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
         },
         "version": {
           "type": "string",
@@ -50,13 +50,14 @@
         "configuration_sha256": {
           "$ref": "#/$defs/sha256"
         },
-        "dds_discovery_scope": {
-          "const": "local_domain_only"
-        },
-        "zenoh_key_expression": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
+        "options": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": ["string", "number", "integer", "boolean"]
+          }
         }
       }
     },

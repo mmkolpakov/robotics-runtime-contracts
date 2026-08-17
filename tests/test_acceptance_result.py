@@ -43,6 +43,8 @@ def test_result_accepts_streaming_trace_evidence() -> None:
     document = result()
     document["evidence"].append(
         {
+            "artifact_id": "trace-evidence",
+            "kind": "trace",
             "uri": "file:///evidence/traces.otlp.jsonl",
             "media_type": "application/x-ndjson",
             "sha256": "e" * 64,

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:qualification-policy:v2",
-  "title": "Robotics qualification verification policy v2",
+  "$id": "urn:robotics-runtime-contracts:v1:qualification-policy",
+  "title": "Robotics qualification verification policy v1",
   "description": "An independently distributed trust policy for offline Sigstore verification of qualification statements.",
   "type": "object",
   "additionalProperties": false,
@@ -16,13 +16,13 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "qualification-policy.v2"
+      "const": "qualification-policy.v1"
     },
     "policy_id": {
       "$ref": "#/$defs/identifier"
     },
     "predicate_type": {
-      "const": "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+      "const": "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
     },
     "certificate_identities": {
       "type": "array",
@@ -31,22 +31,23 @@
       "items": {
         "type": "string",
         "format": "uri",
-        "pattern": "^https://github\\.com/.+/.github/workflows/.+@refs/(heads|tags)/.+$",
         "maxLength": 1024
       }
     },
     "certificate_oidc_issuer": {
-      "const": "https://token.actions.githubusercontent.com"
+      "type": "string",
+      "format": "uri",
+      "maxLength": 1024
     },
     "trusted_root_sha256": {
       "$ref": "#/$defs/sha256"
     },
     "required_artifact_kinds": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 6,
       "uniqueItems": true,
       "items": {
-        "$ref": "#/$defs/artifactKind"
+        "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/qualificationArtifactKind"
       },
       "allOf": [
         {
@@ -78,11 +79,6 @@
           "contains": {
             "const": "evidence_index"
           }
-        },
-        {
-          "contains": {
-            "const": "mcap_summary"
-          }
         }
       ]
     }
@@ -96,25 +92,6 @@
     "sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
-    },
-    "artifactKind": {
-      "enum": [
-        "scenario",
-        "runtime_manifest",
-        "acceptance_run",
-        "domain_result",
-        "acceptance_aggregate",
-        "transport_qualification",
-        "evidence_index",
-        "mcap_summary",
-        "metrics",
-        "traces",
-        "junit",
-        "causal_chain_contract",
-        "channel_contract",
-        "channel_observation",
-        "other_evidence"
-      ]
     }
   }
 }

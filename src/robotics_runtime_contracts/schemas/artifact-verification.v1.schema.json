@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:artifact-verification",
+  "title": "Robotics artifact verification v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verification_id",
+    "statement_sha256",
+    "artifact",
+    "producer_identity",
+    "producer_implementation",
+    "trust_policy_sha256",
+    "verification_evidence_sha256",
+    "verifier",
+    "verified_at",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "artifact-verification.v1"},
+    "verification_id": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/identifier"},
+    "statement_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"},
+    "artifact": {
+      "allOf": [
+        {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/artifactRef"},
+        {"required": ["media_type", "immutable_revision"]}
+      ]
+    },
+    "content_manifest_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"},
+    "producer_identity": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "producer_implementation": {"type": "string", "minLength": 1, "maxLength": 256},
+    "trust_policy_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"},
+    "verification_evidence_sha256": {"$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/sha256"},
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "implementation", "version"],
+      "properties": {
+        "identity": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "implementation": {"type": "string", "minLength": 1, "maxLength": 256},
+        "version": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "verified_at": {"type": "string", "format": "date-time"},
+    "status": {"const": "passed"}
+  }
+}

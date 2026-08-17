@@ -1,36 +1,36 @@
-# Version Package Releases and Document Contracts Independently
+# Keep One Canonical Contract Set Before 1.0
 
 - Status: accepted
 - Date: 2026-07-26
 
 ## Context and Problem Statement
 
-One Python release may need to read several document generations. Coupling
-schema versions to the package version would force synchronized upgrades and
-would make stored evidence ambiguous.
+The repository has no external consumers, while several experimental document
+generations made producer behavior and review scope ambiguous.
 
 ## Decision Drivers
 
-- Deterministic validation of historical documents
-- Explicit producer and consumer compatibility
-- Immutable evidence interpretation
-- Incremental migration
+- One obvious writer and reader per document role
+- Small review and maintenance surface
+- Deterministic identity for retained evidence
+- A migration policy that starts when a real consumer exists
 
 ## Considered Options
 
-- Use only the Python package version
-- Change schemas in place
-- Give every schema an independent versioned identifier
+- Retain every experimental reader
+- Keep one canonical pre-1.0 contract set
+- Stabilize all current documents as a permanent multi-version API
 
 ## Decision Outcome
 
-Every document declares an exact `schema_version`; every schema has a versioned
-`$id`; and tagged releases freeze published schema bytes by SHA-256. The Python
-distribution follows its own Semantic Versioning lifecycle.
+Before package `1.0.0`, every public role maps to one canonical `v1` schema in a
+machine-readable catalog. Tagged releases remain immutable, but the current
+package does not carry superseded experimental readers. A breaking replacement
+requires a package minor release and migration notes for known consumers.
 
 ### Consequences
 
-- Readers may support several schema versions in one package release.
-- Breaking contract changes require a new schema version.
-- Migrations are explicit and cannot invent missing business meaning.
-- The catalog and compatibility matrix must be updated together.
+- Producers and consumers resolve roles through one catalog.
+- Unused compatibility branches are deleted.
+- Migrations remain explicit and cannot invent missing business meaning.
+- Compatibility policy must be revisited before onboarding an external consumer.

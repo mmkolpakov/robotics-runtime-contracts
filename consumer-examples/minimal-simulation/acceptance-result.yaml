@@ -1,4 +1,4 @@
-schema_version: acceptance-result.v4
+schema_version: acceptance-result.v1
 result_id: result-01234567-89ab-4def-8123-456789abcdef
 run_id: run-01234567-89ab-4def-8123-456789abcdef
 scenario_id: org.example.camera-stream
@@ -15,10 +15,10 @@ time_authority_observation:
   max_delivery_latency_ms: 0.3
   within_policy: true
   evidence_sha256: 57c087f21f9185e09d3bf8e6592332451c8d5a57760807f011ee44d804bef598
-scenario_sha256: 0780951bb379e2db6394361f69e167b189f4a607eab6d4382eb82beafafdc1f3
-runtime_manifest_sha256: d594492bd567f221659a144b3b722e50ad2e51baa49b57dc992691845d7df280
-started_at: "2026-07-26T12:00:00Z"
-finished_at: "2026-07-26T12:02:00Z"
+scenario_sha256: 6971f903d4d734723158ad510e98caba99d7375132eba3ecad980677ea7816b8
+runtime_manifest_sha256: 759c6555f4ed98ad3974cd41821ec21e49d36cb64d16a5fdf430dc1d14915ccc
+started_at: '2026-07-26T12:00:00Z'
+finished_at: '2026-07-26T12:02:00Z'
 monotonic_duration_sec: 120
 status: passed
 assertion_results:
@@ -26,6 +26,7 @@ assertion_results:
     status: passed
     observed_value: 20.1
     unit: ms
+    source: core
 observed_ros_graph:
   stable_for_sec: 3
   topics:
@@ -49,8 +50,8 @@ forbidden_graph_observation:
   violations: []
 execution:
   target_environment: simulation
-  data_source: gazebo
-  plant_backend: gazebo_physics
+  data_source: simulator
+  plant_backend: simulated_physics
   time_mode: simulation_realtime
   data_plane_profile: standard_isolated
 workload:
@@ -69,9 +70,20 @@ shutdown:
   recorders_closed: true
   evidence_index_finalized: true
 evidence:
-  - uri: file:///evidence/time-authority.json
+  - artifact_id: artifact-0
+    kind: observation
+    uri: file:///evidence/time-authority.json
     media_type: application/json
     sha256: 57c087f21f9185e09d3bf8e6592332451c8d5a57760807f011ee44d804bef598
     size_bytes: 252
     retention_class: pull-request-7d
     segment_index: 0
+evaluation_mode: live
+runtime_observation:
+  execution_subject_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  ros_domain_id: 42
+  rmw_implementation: rmw_fastrtps_cpp
+  rmw_version: 0.0.0-fixture
+  security_enabled: false
+  security_strategy: none
+evaluators: []

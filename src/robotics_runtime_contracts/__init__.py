@@ -4,6 +4,7 @@ import json
 from collections.abc import Mapping
 from copy import deepcopy
 from functools import cache
+from hashlib import sha256
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, cast
@@ -13,17 +14,24 @@ from jsonschema.exceptions import ValidationError
 from referencing import Registry
 from referencing.jsonschema import DRAFT202012, SchemaRegistry
 
-from robotics_runtime_contracts.compatibility import (
-    SchemaCompatibilityError,
-    UnknownCompatibilityRuleError,
-    allowed_companion_schemas,
-    validate_companion_schema,
+from robotics_runtime_contracts.catalog import (
+    UnknownContractRoleError,
+    contract_roles,
+    contract_set,
+    internal_schema_names,
+    role_schemas,
+    schema_for_role,
 )
 from robotics_runtime_contracts.extensions import (
     ExtensionValidationError,
 )
 from robotics_runtime_contracts.extensions import (
     validate_extensions as _validate_extensions,
+)
+from robotics_runtime_contracts.providers import (
+    ProviderRequirementError,
+    scene_satisfies,
+    validate_provider_requirements,
 )
 from robotics_runtime_contracts.qualification_policy import (
     CHANNEL_ERROR_VIOLATIONS,
@@ -36,6 +44,10 @@ from robotics_runtime_contracts.qualification_policy import (
     derive_channel_violations,
     hardware_clock_within_policy,
     validate_clock_relation_evidence,
+)
+from robotics_runtime_contracts.receipts import (
+    ArtifactReceiptValidationError,
+    validate_artifact_receipt,
 )
 from robotics_runtime_contracts.semantics import (
     SemanticValidationError,
@@ -50,49 +62,11 @@ from robotics_runtime_contracts.serialization import (
     load_mapping,
     loads_mapping,
 )
+from robotics_runtime_contracts.status import OutcomeStatus, worst_status
 
-PUBLISHED_SCHEMA_SHA256 = {
-    "acceptance-aggregate.v4": "d68fa8bd7dee83411f920c90a325247938da4f634dc4c840167b13831b664c4d",
-    "acceptance-result.v5": "b18f2b35c4bc0d4215af1bf70b14d0bd12b73d5ce476afcd9deb3c4e0a6f23eb",
-    "acceptance-run.v1": "541e5594aba482f14b2f644d9195c2fa6356be60aa8e5a9c1ce8c41d3e13e6c2",
-    "acceptance-result.v4": "e794245312ae763169296dcb0449c3947e3fa5dcd97ba2f588608c2045579107",
-    "acceptance-scenario.v4": "e1c7e2479112c33a3d67ff5de3e5c48499389a2cf9fde765af5c06af6c8a3bff",
-    "acceptance-scenario.v5": "fe463ed1c1f36b77164b57b0ece016ddae27b1dfc9823c63d42ef40839c7b190",
-    "campaign-summary.v1": "e4ceae7029b387345ade29eaa3567aaedb59189b9a94576e28e4768b3cbc931b",
-    "clock-relation.v1": "e034aeb7259c2bdd57d94b1c56ffef46e70c08cad1438d0b1eb1d45ead7f81d8",
-    "dataset-manifest.v1": "b768eb96ee26e4c646eac2ba8743ba4a25bc2b668f7fe1453a474de7c10c8f08",
-    "evidence-index.v2": "c71cb01eaea93909048a15c06821d6ccc484ca5c45bac1dd614f97c86ec75509",
-    "evidence-index.v3": "4ef09f7acd5239b704e14e546818cb45085724f29fc0311cc777300a8d013df6",
-    "execution-permit.v1": "001b125fcc66dd7e01bb044ea858edbf9e2925ca20cfde75fd228b500be57c07",
-    "execution-verification.v1": (
-        "916a2f164393c5ae54bfe28127b2bb85c1285aa25c93faa49766e73707c237de"
-    ),
-    "model-artifact-manifest.v1": (
-        "eed0440e05b1846db93958db9bc7fba4bb45b451a907200b5f98f843a3577063"
-    ),
-    "mcap-summary.v1": "e2c8ff63268cedaf699649d39bd2fa7a6a9e49873502af72855b284a22511ccf",
-    "causal-chain.v1": "67a66bec2c59956e22c4534e1300adba4c63d8fd950d7e20681e63f060ec3777",
-    "qualification-bundle.v2": "66f1f2869c25e61e465aeb8eac30707f77d77458db810a98252b61e59f72fa53",
-    "qualification-policy.v2": "24101fbd567dfb550c5c154a41f64460653ad512ea0332c5244b97a2aadcf265",
-    "runtime-manifest.v1": "0af0870a80c8071d2904423e50aa10af5643ce9ec2ca6afd6e07b0a586071a9d",
-    "runtime-manifest.v2": "509a216b7d24010f19cf1781d6c4a7307315390060eb52e6ad128f6825e740e1",
-    "runtime-manifest.v3": "51500c61efe12769d33b11e97425676d15f3d67ca9bd7ad4606d79e9f50b1ec3",
-    "zenoh-channel.v1": "2febfa242150f1ceda98d4efac4b9ecfaa4c74bbba873d22d41810a619ca185b",
-    "zenoh-channel-observation.v1": (
-        "3596ee9478e74d27d5403536a88366ec335e77a22543cad83266db48b0f1c45f"
-    ),
-    "transport-qualification-result.v1": (
-        "3dc2bd38f2b9ea1015fb66f28b4569cac344f30b86c6af3e2d8434bcb73a897e"
-    ),
-    "transport-qualification-result.v2": (
-        "6d6d89cd4518c2659a4c81a7e66f7b2289b45b703e2d3ea7892b2397e2f8b0d1"
-    ),
-}
-_SCHEMA_FILES = {name: f"{name}.schema.json" for name in PUBLISHED_SCHEMA_SHA256}
-_SCHEMA_IDS = {
-    f"urn:robotics-runtime-contracts:{name.replace('.', ':', 1)}": name
-    for name in PUBLISHED_SCHEMA_SHA256
-}
+_PUBLIC_SCHEMA_FILES = {name: f"{name}.schema.json" for name in role_schemas().values()}
+_INTERNAL_SCHEMA_FILES = {name: f"{name}.schema.json" for name in internal_schema_names()}
+_SCHEMA_FILES = _PUBLIC_SCHEMA_FILES | _INTERNAL_SCHEMA_FILES
 
 
 class ContractValidationError(ValueError):
@@ -114,9 +88,23 @@ class UnknownSchemaError(ValueError):
 
 
 def schema_names() -> tuple[str, ...]:
-    """Return published schema versions in stable order."""
+    """Return canonical public schemas in stable role order."""
+
+    return tuple(_PUBLIC_SCHEMA_FILES)
+
+
+def schema_resource_names() -> tuple[str, ...]:
+    """Return public and internal resources used by the offline registry."""
 
     return tuple(_SCHEMA_FILES)
+
+
+@cache
+def _schema_ids() -> dict[str, str]:
+    return {
+        cast(str, json.loads((schema_dir() / file_name).read_text(encoding="utf-8"))["$id"]): name
+        for name, file_name in _SCHEMA_FILES.items()
+    }
 
 
 def resolve_schema_name(schema: str) -> str:
@@ -124,8 +112,8 @@ def resolve_schema_name(schema: str) -> str:
 
     if schema in _SCHEMA_FILES:
         return schema
-    if schema in _SCHEMA_IDS:
-        return _SCHEMA_IDS[schema]
+    if schema in _schema_ids():
+        return _schema_ids()[schema]
     for schema_name, file_name in _SCHEMA_FILES.items():
         if schema == file_name:
             return schema_name
@@ -142,6 +130,12 @@ def schema_path(schema: str) -> Path:
     if not path.is_file():
         raise FileNotFoundError(path)
     return path
+
+
+def schema_digest(schema: str) -> str:
+    """Return the SHA-256 digest of the packaged schema resource."""
+
+    return sha256(schema_path(schema).read_bytes()).hexdigest()
 
 
 @cache
@@ -221,36 +215,57 @@ def validate_document(
     _validate_extensions(schema_name, document, extension_schemas)
 
 
+def validate_role(
+    document: Mapping[str, Any],
+    role: str,
+    *,
+    extension_schemas: Mapping[str, bytes | str] | None = None,
+) -> None:
+    """Validate a document against the canonical schema for its role."""
+
+    validate_document(document, schema_for_role(role), extension_schemas=extension_schemas)
+
+
 __all__ = [
     "CHANNEL_ERROR_VIOLATIONS",
     "CHANNEL_INCOMPLETE_VIOLATIONS",
-    "PUBLISHED_SCHEMA_SHA256",
+    "OutcomeStatus",
     "RESERVED_ASSERTION_IDS",
     "RESERVED_METRIC_NAMES",
     "ChannelObservationStatus",
     "ClockEvidenceValidationError",
     "ContractValidationError",
+    "ArtifactReceiptValidationError",
     "DocumentParseError",
     "ExtensionValidationError",
     "NonFiniteNumberError",
-    "SchemaCompatibilityError",
+    "ProviderRequirementError",
     "SemanticValidationError",
-    "UnknownCompatibilityRuleError",
+    "UnknownContractRoleError",
     "UnknownSchemaError",
-    "allowed_companion_schemas",
+    "contract_roles",
+    "contract_set",
     "ensure_finite_numbers",
     "load_schema",
     "load_mapping",
     "loads_mapping",
     "resolve_schema_name",
+    "role_schemas",
+    "schema_digest",
     "schema_dir",
+    "schema_for_role",
     "schema_names",
     "schema_path",
     "schema_registry",
+    "schema_resource_names",
+    "scene_satisfies",
     "channel_observation_status",
     "derive_channel_violations",
     "hardware_clock_within_policy",
-    "validate_companion_schema",
     "validate_clock_relation_evidence",
+    "validate_artifact_receipt",
     "validate_document",
+    "validate_provider_requirements",
+    "validate_role",
+    "worst_status",
 ]

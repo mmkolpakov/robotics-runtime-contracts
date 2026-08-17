@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:robotics-runtime-contracts:qualification-bundle:v2",
-  "title": "Robotics qualification bundle v2",
+  "$id": "urn:robotics-runtime-contracts:v1:qualification-bundle",
+  "title": "Robotics qualification bundle v1",
   "description": "An in-toto Statement that names every artifact in one qualification run.",
   "type": "object",
   "additionalProperties": false,
@@ -23,7 +23,7 @@
       }
     },
     "predicateType": {
-      "const": "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v2"
+      "const": "https://robotics-runtime-contracts.dev/attestations/qualification-bundle/v1"
     },
     "predicate": {
       "type": "object",
@@ -36,7 +36,7 @@
       ],
       "properties": {
         "schema_version": {
-          "const": "qualification-bundle.v2"
+          "const": "qualification-bundle.v1"
         },
         "run_id": {
           "type": "string",
@@ -97,23 +97,7 @@
       ],
       "properties": {
         "kind": {
-          "enum": [
-            "scenario",
-            "runtime_manifest",
-            "acceptance_run",
-            "domain_result",
-            "acceptance_aggregate",
-            "transport_qualification",
-            "evidence_index",
-            "mcap_summary",
-            "metrics",
-            "traces",
-            "junit",
-            "causal_chain_contract",
-            "channel_contract",
-            "channel_observation",
-            "other_evidence"
-          ]
+          "$ref": "urn:robotics-runtime-contracts:v1:internal:common#/$defs/qualificationArtifactKind"
         },
         "subject_name": {
           "type": "string",

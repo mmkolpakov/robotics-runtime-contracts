@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:robotics-runtime-contracts:v1:evidence-index",
+  "title": "Robotics evidence index v1",
+  "description": "Provider-neutral finalized index of retained acceptance evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "generated_at",
+    "finalized",
+    "policy_observation",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "evidence-index.v1"},
+    "run_id": {"$ref": "#/$defs/runId"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "finalized": {"const": true},
+    "policy_observation": {"$ref": "#/$defs/policyObservation"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"},
+      "additionalProperties": {"type": "object"}
+    }
+  },
+  "$defs": {
+    "runId": {
+      "type": "string",
+      "pattern": "^run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "mediaType": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$",
+      "maxLength": 255
+    },
+    "policyObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recording_mode",
+        "compression",
+        "retention_class",
+        "upload_mode",
+        "remote_sink_used",
+        "spool_peak_size_bytes",
+        "upload_lag_max_sec"
+      ],
+      "properties": {
+        "recording_mode": {"type": "string", "minLength": 1, "maxLength": 128},
+        "compression": {"type": "string", "minLength": 1, "maxLength": 128},
+        "retention_class": {"type": "string", "minLength": 1, "maxLength": 128},
+        "upload_mode": {"type": "string", "minLength": 1, "maxLength": 128},
+        "remote_sink_used": {"type": "boolean"},
+        "spool_peak_size_bytes": {"type": "integer", "minimum": 0},
+        "upload_lag_max_sec": {"type": "number", "minimum": 0}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "kind",
+        "uri",
+        "media_type",
+        "sha256",
+        "size_bytes",
+        "retention_class",
+        "storage_state"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+          "maxLength": 128
+        },
+        "uri": {"type": "string", "format": "uri", "maxLength": 2048},
+        "local_path": {"type": "string", "minLength": 1, "maxLength": 4096},
+        "media_type": {"$ref": "#/$defs/mediaType"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "retention_class": {"type": "string", "minLength": 1, "maxLength": 128},
+        "storage_state": {"enum": ["local", "retained"]},
+        "immutable_revision": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "segment_index": {"type": "integer", "minimum": 0},
+        "recording_summary": {"$ref": "#/$defs/summaryReference"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"storage_state": {"const": "local"}}, "required": ["storage_state"]},
+          "then": {"required": ["local_path"], "properties": {"uri": {"pattern": "^file:"}}}
+        },
+        {
+          "if": {"properties": {"storage_state": {"const": "retained"}}, "required": ["storage_state"]},
+          "then": {"required": ["immutable_revision", "receipt_sha256"]}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "recording"}}, "required": ["kind"]},
+          "then": {"required": ["recording_summary"]}
+        }
+      ]
+    },
+    "summaryReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "sha256", "size_bytes"],
+      "properties": {
+        "uri": {"type": "string", "format": "uri", "maxLength": 2048},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
