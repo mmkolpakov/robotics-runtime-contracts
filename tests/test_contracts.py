@@ -16,7 +16,6 @@ from robotics_runtime_contracts import (
     load_schema,
     resolve_schema_name,
     role_schemas,
-    schema_digest,
     schema_dir,
     schema_for_role,
     schema_names,
@@ -51,11 +50,6 @@ def test_catalog_defines_one_public_v1_schema_per_role() -> None:
     assert all(schema_name.endswith(".v1") for schema_name in schema_names())
     for role, schema_name in role_schemas().items():
         assert schema_for_role(role) == schema_name
-
-
-@pytest.mark.parametrize("schema_name", schema_resource_names())
-def test_schema_digest_describes_packaged_bytes(schema_name: str) -> None:
-    assert len(schema_digest(schema_name)) == 64
 
 
 @pytest.mark.parametrize(

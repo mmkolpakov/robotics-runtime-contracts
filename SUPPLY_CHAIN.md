@@ -23,8 +23,10 @@ publication jobs:
 - the `github-release` job attests the distributions and creates the GitHub
   Release.
 
-Only the PyPI job has `id-token: write` for publication. It does not check out
-the repository or execute project code. No PyPI API token is used or stored.
+Both publication jobs have `id-token: write`: `publish-pypi` uses it for Trusted
+Publishing, and `github-release` uses it for attestations (with
+`attestations: write` and `contents: write`). Neither job checks out the
+repository or executes project code. No PyPI API token is used or stored.
 The hosted builder and authentic provenance meet the L2 shape. Build L3 is not
 claimed because the project does not use and verify an isolated reusable build
 workflow as its trusted builder boundary.
@@ -54,7 +56,8 @@ qualify a robotics runtime, dataset, model, or physical target.
 - Actions are pinned by immutable commit SHA.
 - Release builds run repository checks and the complete test suite.
 - Wheel and source distribution installation are checked in CI.
-- Consumer examples are validated by the same public API before release.
+- Consumer examples are validated with the current source checkout before
+  release, not with an already published wheel or downstream consumer suite.
 - The Git tag must equal `v` followed by the installed package version.
 - The release job fetches `origin/main` and fails before building when the
   tagged commit is not reachable from that branch.

@@ -1,12 +1,14 @@
 # Keep One Canonical Contract Set Before 1.0
 
-- Status: accepted
+- Status: superseded by [ADR 0007](0007-preserve-published-schema-compatibility.md)
 - Date: 2026-07-26
 
 ## Context and Problem Statement
 
-The repository has no external consumers, while several experimental document
-generations made producer behavior and review scope ambiguous.
+The original decision assumed there were no external consumers, while several
+experimental document generations made producer behavior and review scope
+ambiguous. That assumption no longer applies: harness and infra consume
+different released generations. The outcome below records the historical policy.
 
 ## Decision Drivers
 

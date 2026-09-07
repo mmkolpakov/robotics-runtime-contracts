@@ -23,6 +23,7 @@ jobs:
           args: >-
             --no-progress
             --root-dir .
+            --exclude '^https?://([a-z0-9-]+\.)?example\.(org|com|net)(/|$)'
             './**/*.md'
           fail: true
           failIfEmpty: true

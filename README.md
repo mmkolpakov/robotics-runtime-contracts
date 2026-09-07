@@ -23,13 +23,14 @@ flowchart LR
     contracts -. validates .-> harness
 ```
 
-The contracts are neutral to robot type, simulator provider, scene, model
-family, storage service, and transport implementation. Provider-specific facts
-are recorded as data or namespaced extensions; they do not select a schema.
+The contracts are independent of a particular robot or product. They describe
+ROS 2 execution, security and timing concepts, including implementation-specific
+constraints. Provider identities are recorded as data or namespaced extensions;
+they do not select a schema.
 
 ## Install
 
-Python 3.12 or newer is required. Install a wheel from a tagged
+Python 3.12 through 3.14 is supported. Install a wheel from a tagged
 [GitHub Release](https://github.com/mmkolpakov/robotics-runtime-contracts/releases),
 or create a development environment:
 
@@ -90,14 +91,16 @@ print(schema_for_role("runtime_manifest"))
 registry = schema_registry()
 ```
 
-Validation is offline, does not mutate inputs, rejects non-finite numbers, and
-reports structural and semantic failures with an exact JSON path. The package
-also exports `worst_status()` as the single status-folding rule shared by all
-consumers.
+Validation is offline, does not mutate inputs, and rejects non-finite numbers.
+It reports the first failure; structural and semantic document errors normally
+include a JSON path, while qualification-link and some input errors do not.
+The package exports `worst_status()` for consumers to share status-folding
+rules; this does not mean every consumer already uses it.
 
 ## Contract Set
 
-The repository currently publishes one canonical `v1` contract set. The
+Release 0.16 publishes one catalogued `v1` contract set. These identifiers are
+not compatible with every historical `v1` document. The
 machine-readable source of truth is
 [`catalog.v1.json`](src/robotics_runtime_contracts/schemas/catalog.v1.json).
 
@@ -117,8 +120,11 @@ exist only to remove duplication and are not document roles.
 
 ## Extensions
 
-Domain teams can add digest-pinned schemas without changing the common
-contract. Extension keys use reverse-domain namespaces such as
+Scenario extensions can use digest-pinned schemas without changing the common
+contract. This validation currently applies only to acceptance scenarios;
+`extensions` in other document roles do not receive the same schema checks.
+Extension schemas are interpreted as Draft 2020-12. Extension keys use
+reverse-domain namespaces such as
 `org.example.sorting`; schema bytes are supplied by the caller and are never
 fetched from the network.
 
@@ -136,11 +142,14 @@ semantics and evidence from more than one domain.
 
 ## Version Policy
 
-There are no external consumers yet. Until package `1.0.0`, `main` carries one
-canonical `v1` shape per role and does not retain compatibility readers for
-superseded experiments. Released tags remain immutable and reproducible; a
-breaking change to the active pre-1.0 contract set requires release notes and a
-package minor version. See [COMPATIBILITY.md](COMPATIBILITY.md).
+Known consumers include the acceptance harness and runtime infra. They use
+different contract generations; see the dated consumer table in
+[COMPATIBILITY.md](COMPATIBILITY.md) and the
+[0.15 to 0.16 migration guide](docs/migrations/0.15-to-0.16.md).
+Published schema names now permit only additive changes; breaking changes
+require a new schema major and migration notes. The structural compatibility
+gate is planned, so published schema changes remain deferred. Released tags
+and artifacts remain immutable. See [CHANGELOG.md](CHANGELOG.md).
 
 HIL and real-target contracts are observation-only. A valid document is not an
 authorization to actuate hardware and is not proof that a device or accelerator

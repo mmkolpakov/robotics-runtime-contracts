@@ -18,9 +18,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
+  required-validation:
+    name: validate
+    needs: validate
+    if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 2
+    steps:
+      - name: Require every supported Python to pass
+        env:
+          MATRIX_RESULT: ${{ needs.validate.result }}
+        run: test "${MATRIX_RESULT}" = success
+
+  validate:
+    name: validate (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
@@ -28,10 +47,19 @@ jobs:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990  # v8.3.2
         with:
           version: "0.11.28"
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
           cache-dependency-glob: uv.lock
       - name: Synchronize locked environment
-        run: uv sync --locked --all-groups
+        run: |
+          uv sync --locked --all-groups
+          uv run --locked python - <<'PY'
+          import os
+          import sys
+
+          assert f"{sys.version_info.major}.{sys.version_info.minor}" == os.environ["UV_PYTHON"]
+          PY
+          uv pip check --python .venv/bin/python
       - name: Run repository checks
         run: |
           uv run pre-commit run --all-files --show-diff-on-failure
@@ -43,22 +71,34 @@ jobs:
         run: uv build --no-sources --out-dir artifacts/dist
       - name: Verify installed wheel
         run: |
-          uv venv --python 3.12 .wheel-venv
+          uv venv --python "$UV_PYTHON" .wheel-venv
           uv pip install --python .wheel-venv/bin/python artifacts/dist/*.whl
+          uv pip check --python .wheel-venv/bin/python
           .wheel-venv/bin/python - <<'PY'
-          from robotics_runtime_contracts import load_schema, schema_names, schema_path
+          import json
+          from hashlib import sha256
           from importlib.resources import files
+          from pathlib import Path
 
-          assert schema_names()
+          from robotics_runtime_contracts import load_schema, schema_resource_names, schema_path
+
+          assert schema_resource_names()
           assert files("robotics_runtime_contracts").joinpath("py.typed").is_file()
-          for name in schema_names():
+          for name in schema_resource_names():
               assert schema_path(name).is_file()
               assert load_schema(name)["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          resources = files("robotics_runtime_contracts").joinpath("schemas")
+          actual = {
+              resource.name: sha256(resource.read_bytes()).hexdigest()
+              for resource in resources.iterdir() if resource.name.endswith(".json")
+          }
+          assert actual == json.loads(Path("docs/schema-digests.json").read_text(encoding="utf-8"))
           PY
       - name: Verify installed source distribution
         run: |
-          uv venv --python 3.12 .sdist-venv
+          uv venv --python "$UV_PYTHON" .sdist-venv
           uv pip install --python .sdist-venv/bin/python artifacts/dist/*.tar.gz
+          uv pip check --python .sdist-venv/bin/python
           .sdist-venv/bin/python - <<'PY'
           from robotics_runtime_contracts import schema_names, schema_path
 
@@ -69,7 +109,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: contracts-validation-${{ github.sha }}
+          name: contracts-validation-${{ matrix.python-version }}-${{ github.sha }}
           path: artifacts/
           if-no-files-found: warn
           retention-days: 7

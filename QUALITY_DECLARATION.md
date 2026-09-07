@@ -55,16 +55,21 @@ quality level.
 
 ## Dependencies
 
-The runtime dependency is `jsonschema` with its non-GPL format-validation
-extras. It is version constrained in `pyproject.toml` and resolved in
-`uv.lock`. The package has no runtime ROS dependency.
+The runtime dependencies are `jsonschema` with non-GPL format-validation extras,
+`referencing`, `PyYAML` and `json-merge-patch`. They are constrained in
+`pyproject.toml` and resolved in `uv.lock`. The package has no runtime ROS
+dependency. Consumer-example tests use the current checkout; they do not certify
+compatibility with released harness/infra combinations.
 
 ## Platform Support
 
-The qualified development and release platform is CPython 3.12 on Ubuntu 24.04
-x86-64, as exercised by GitHub-hosted CI. The wheel is pure Python, but other
-operating systems, architectures, and Python versions are not part of this
-quality claim until they are added to the CI matrix.
+The CI validation matrix targets CPython 3.12, 3.13 and 3.14 on Ubuntu 24.04
+x86-64, running the test suite and wheel/source-distribution installation checks
+for each interpreter. The release build remains on CPython 3.12. The declared
+support range is `>=3.12,<3.15`; `.python-version` selects its minimum for local
+development. A matrix configuration is not itself evidence of a successful
+hosted run. The pure-Python wheel does not establish support for additional
+operating systems or architectures.
 
 ## Security
 
