@@ -33,7 +33,7 @@ Issues = "https://github.com/mmkolpakov/robotics-runtime-contracts/issues"
 dev = [
   "check-jsonschema==0.37.4",
   "mypy==2.3.0",
-  "pre-commit==4.6.0",
+  "pre-commit==4.6.2",
   "pytest==9.1.1",
   "ruff==0.15.21",
   "types-jsonschema==4.26.0.20260518",
